@@ -64,6 +64,7 @@ home.on(bubbles.tap).fade()
 product.on(bubbles.tap).show()`;
 
 const ev = (js) => browser.evaluate(js);
+const MOD = process.platform === "darwin" ? 4 : 2; // ⌘ on a Mac, Ctrl elsewhere: what the editor calls Mod
 const tabs = () => ev(`JSON.stringify([...document.querySelectorAll("#tabs .tab")].map((b) => b.textContent.replace(/\\d+$/, "") + (b.querySelector(".tab-dot") ? "•" : "")))`).then(JSON.parse);
 const visible = () => ev(`JSON.stringify([...document.querySelectorAll(".cm-line")].map((l) => l.textContent))`).then(JSON.parse);
 const numbers = () => ev(`JSON.stringify([...document.querySelectorAll(".cm-lineNumbers .cm-gutterElement")].map((e) => e.textContent).filter((t) => t && t !== "99"))`).then(JSON.parse);
@@ -103,14 +104,14 @@ test("2. the product tab: exactly its lines, numbered 17–24, braces and indent
   assert.match(await ev(`document.querySelector(".cm-tab-foot").textContent`), /^8 layers · product\.hide\(\) and the \d lines that move it are in feel$/);
   // type at the end of the last line
   await ev(`document.querySelector(".cm-content").focus(); 0`);
-  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "End", code: "End", windowsVirtualKeyCode: 35, modifiers: 4 });
-  await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "End", code: "End", windowsVirtualKeyCode: 35, modifiers: 4 });
+  await browser.send("Input.dispatchKeyEvent", { type: "keyDown", key: "End", code: "End", windowsVirtualKeyCode: 35, modifiers: MOD });
+  await browser.send("Input.dispatchKeyEvent", { type: "keyUp", key: "End", code: "End", windowsVirtualKeyCode: 35, modifiers: MOD });
   await type(".rotate(3)");
   await sleep(900);
   const now = await file();
   assert.equal(now, FILE.replace(`.at(300, 64)\n}`, `.at(300, 64).rotate(3)\n}`), "the file changed by exactly that");
   // the hidden parts can't be touched: select all and type replaces only the tab's lines
-  await key("a", 4);
+  await key("a", MOD);
   await type("x: box()");
   await sleep(900);
   const after = await file();
