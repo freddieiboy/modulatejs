@@ -23,6 +23,7 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 - Every piece looks finished with no arguments and **starts centred on the screen**.
 - In a piece's arguments, **numbers are sizes, strings are content or colour, layers become children**, in any order: `circle(72, "plum")`, `card(photo, title)`, `pill("Follow", "coral")`.
 - Anywhere a number goes, a **Value** (from `modulate`) or a **pattern** string can go.
+- A verb on a **group** runs on each member; a `"<…>"` pattern in a slot is read per member, in order, cycling.
 - `js { … }` is a plain block for when the vocabulary runs out. Everything is ordinary JS anyway.
 
 ## init, draw, update
@@ -103,10 +104,11 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `bubbles(n = 5)` · `bubbles("line", "line", …)` | a chat: grey on the left, plum on the right, words from the bank |
 | `sheet(...words and children)` | bottom sheet, 560 tall, resting with 96 showing. What you give it stacks in the order written; strings are its words (a title, a dim line, then body). `rise()` lifts it fully, `rise("half")` to the middle of the screen |
 | `tabbar("Home Search Inbox Me")` | bottom tabs with a sliding indicator; `tabs.page` is its driver |
+| `group(a, b, c, …)` | a named set of layers you already made; `.and(d)` makes a bigger one. It is not a layer: no box, no colour of its own, and a layer can be in several. Every verb runs on each member: `floaters.color("coral")`. A `"<…>"` pattern is read per member, cycling (`.y("<-20 -14 -9>")`; `~` leaves a member alone), and so is a driver's: `lfo("<.08 .11 .13>")` is one oscillator each. `on("tap")` is each member's own tap; `floaters.tap` fires for another layer when any member is tapped, and `floaters.tapped` is which. Placing verbs (`at`, `center`, `below`…) place the first member and leave the rest, so a change shifts each from its own place. `stagger(s)` starts each member s later than the one before. `circle(7).around(floaters, 10)` makes a ring round every member, as a group that matches it member for member, so `drops.on(floaters.tap)` flies only the ring of the one that was tapped |
 
 Three verbs name a point, and they don't all mean the same corner of a layer: `at(x, y)` is where its **top-left** goes; `center()` and the points in `snap()` are where its **centre** goes; `origin()` is a point inside it.
 
-`row`, `stack`, `grid`, `bubbles` and `around` make **groups**. Look verbs on a group reach its children; with `stagger()` or `peak()` so do feel verbs.
+`row`, `stack`, `grid`, `bubbles` and `around` make **containers**: many layers in one box that is placed and moved as one. Look verbs on a container reach its children (and read a `"<…>"` pattern per child); with `stagger()` or `peak()` so do feel verbs. `group()` is the other kind of many: a plain set, no box, every verb on every member.
 
 ## Placement
 

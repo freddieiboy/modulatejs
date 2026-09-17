@@ -4,6 +4,7 @@ import { preset, timed } from "./presets";
 import { stage, listen, track } from "./stage";
 import type { Layer } from "./layer";
 import { handToDrag } from "./drift";
+import { mini } from "./mini";
 
 // Everything that moves a prototype is a Driver: a t between 0 and 1.
 // Played drivers (tap) fire, and the reaction plays itself with a spring.
@@ -23,7 +24,14 @@ export class Driver {
 const root = (l: any): Layer => l?.__root ?? l;
 const isLayer = (x: any) => !!x && typeof x === "object" && "reactions" in root(x) && "el" in root(x);
 
+// A driver that isn't made yet, because it depends on who asks: lfo("<.08 .11 .13>") is one oscillator per
+// member of a group, each at its own rate. A single layer gets the first.
+export class DriverSpec {
+  constructor(public make: (index: number) => Driver) {}
+}
+
 export function resolveDriver(source: any, self: Layer | null): Driver {
+  if (source instanceof DriverSpec) return source.make(0);
   if (source instanceof Driver) return source;
   if (isValue(source)) {
     const d = new Driver("value", false);
@@ -388,9 +396,15 @@ export class TimeDriver extends Driver {
   }
 }
 
-export const time = (seconds = 1) => new TimeDriver(seconds);
+export const time = (seconds: any = 1): any => (eachMember(seconds) ? new DriverSpec((i) => new TimeDriver(Number(mini(seconds).at(i)) || 1)) : new TimeDriver(seconds));
 
-export function lfo(hz = 1, shape: "wave" | "saw" | "square" = "wave"): Driver {
+const eachMember = (p: any) => typeof p === "string" && /^\s*<[^<>]*>\s*$/.test(p);
+
+export function lfo(hz: any = 1, shape: "wave" | "saw" | "square" = "wave"): any {
+  if (eachMember(hz)) {
+    const rates = mini(hz);
+    return new DriverSpec((i) => lfo(Number(rates.at(i)) || 1, shape));
+  }
   const d = new Driver("lfo", false);
   const t0 = performance.now();
   track(

@@ -6,6 +6,7 @@ import { preprocess } from "./preprocess";
 export { preprocess };
 
 function $name(name: string, value: any) {
+  if (value && typeof value === "object" && Array.isArray(value.members) && "alignedTo" in value) value.label = name; // a group: named, but not a layer
   if (value && typeof value === "object" && "el" in rootOf(value) && "reactions" in rootOf(value)) {
     const layer: any = rootOf(value);
     layer.name(name);

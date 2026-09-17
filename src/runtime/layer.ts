@@ -31,6 +31,13 @@ interface TimeBinding {
 }
 
 export const rootOf = (l: any): Layer => l.__root ?? l;
+
+// group() lives in set.ts, which needs every verb defined first; it introduces itself here once it is loaded
+let sets: { isSet(x: any): boolean; members(s: any): Layer[]; make(rings: Layer[], around: any): any } | null = null;
+export const registerSetFactory = (f: NonNullable<typeof sets>) => (sets = f);
+const noBox = (x: any, verb: string) => {
+  if (sets?.isSet(x)) throw new Error(`${verb}(group): a group has no box to sit next to; name one of its members`);
+};
 const ctxOf = (l: any): Reaction | null => l._rx ?? capturing();
 
 export class Layer {
@@ -54,6 +61,7 @@ export class Layer {
   reactions: Reaction[] = [];
   bindings: TimeBinding[] = [];
   bindStagger = 0;
+  bindDelay = 0; // seconds this layer's patterns run behind, when a group staggers its members
   cycle = CYCLE;
   dragCfg: DragConfig | null = null;
   dir: number | null = null; // the way fly() goes, radians
@@ -303,7 +311,7 @@ export class Layer {
     const stop = onFrame((now) => {
       const secs = (now - t0) / 1000;
       targets.forEach((target, i) => {
-        const pos = (secs - i * this.bindStagger) / this.cycle;
+        const pos = (secs - this.bindDelay - i * this.bindStagger) / this.cycle;
         for (const b of this.bindings) {
           const wave = typeof b.pattern.constant === "string" && WAVES.includes(b.pattern.constant) ? b.pattern.constant : null;
           const chan = wave || typeof b.pattern.at(0) === "number" || b.prop === "color" ? WAVE_CHANNEL[b.prop] ?? b.prop : b.prop;
@@ -374,7 +382,11 @@ function verb(name: string, fn: VerbFn) {
 function lookVerb(name: string, fn: (L: Layer, ctx: Reaction | null, ...args: any[]) => void) {
   verb(name, (L, ctx, ...args) => {
     const kids = L.fan();
-    if (kids && !ctx) for (const k of kids) fn(k, ctx, ...args);
+    if (kids && !ctx)
+      kids.forEach((k, i) => {
+        const a = args.map((v) => (typeof v === "string" && /^\s*<[^<>]*>\s*$/.test(v) ? mini(v).at(i) : v)); // "<coral plum>": one each, cycling
+        if (!a.some((v) => v === null)) fn(k, ctx, ...a);
+      });
     else fn(L, ctx, ...args);
   });
 }
@@ -438,6 +450,7 @@ verb("at", (L, ctx, x: number | string, y: number | string) => {
 });
 
 verb("center", (L, ctx, target?: Layer) => {
+  noBox(target, "center");
   const t = target ? rootOf(target) : null;
   // centred on a layer means riding on it: it moves, scales and fades along
   if (t && !ctx && !t.fan() && L.parent !== t) t.adopt(L);
@@ -450,6 +463,7 @@ verb("center", (L, ctx, target?: Layer) => {
 function beside(name: string, pos: (f: any, w: number, h: number, gap: number) => [number, number]) {
   verb(name, (L, ctx, target: Layer, gap = 12) => {
     if (!target) throw new Error(`${name}() needs a layer to sit next to`);
+    noBox(target, name);
     const t = rootOf(target);
     L.place((l) => {
       const c = capturing() ?? ctx;
@@ -779,8 +793,17 @@ export class Group extends Layer {
 }
 
 // circle(6).around(heart, 8) → eight of them on a ring just outside the heart
-verb("around", (L, _ctx, target: Layer, n = 8, gap = 14) => {
-  const t = rootOf(target);
+verb("around", (L, _ctx, target: any, n = 8, gap = 14) => {
+  if (!target) throw new Error("around() needs a layer, or a group, to go around");
+  // around a group: a ring around each member, handed back as a group that matches it member for member
+  if (sets?.isSet(target)) {
+    const members = sets.members(target);
+    return sets.make(members.map((m, i) => ringAround(i === 0 ? L : L.clone(), m, n, gap)), target);
+  }
+  return ringAround(L, rootOf(target), n, gap);
+});
+
+function ringAround(L: Layer, t: Layer, n: number, gap: number): Layer {
   const f = t.abs();
   const r = Math.max(f.w, f.h) / 2 + gap;
   const items = [L, ...Array.from({ length: n - 1 }, () => L.clone())];
@@ -799,5 +822,11 @@ verb("around", (L, _ctx, target: Layer, n = 8, gap = 14) => {
     it.v.y.jump(size / 2 + Math.sin(a) * rr - it.v.h.get() / 2);
   });
   ring.factory = null;
+  // the ring goes where its layer goes: when that drifts, bobs or is dragged, the ring's resting point follows
+  const follow = () => {
+    ring.v.wx.set(t.v.ox.get() + t.v.dx.get() + t.v.wx.get() + t.v.fx.get());
+    ring.v.wy.set(t.v.oy.get() + t.v.dy.get() + t.v.wy.get() + t.v.fy.get());
+  };
+  for (const k of ["ox", "oy", "dx", "dy", "wx", "wy", "fx", "fy"]) t.v[k].on(follow);
   return ring;
-});
+}

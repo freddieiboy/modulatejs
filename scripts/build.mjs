@@ -95,7 +95,7 @@ async function build() {
 
   // /vocab.json: every name the language has, for the lint, the MCP servers, and anyone's tooling
   const rt = await import(join(dist, "modulate.mjs") + "?" + Date.now());
-  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar"];
+  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar", "group"];
   const globals = Object.keys(rt.vocabulary);
   writeFileSync(join(site, "vocab.json"), JSON.stringify({
     version: pkg.version,
@@ -104,7 +104,7 @@ async function build() {
     globals,
     verbs: rt.VERBS,
     // verbs, plus what drivers and between() answer to
-    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go"])],
+    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go", "and"])],
     over: { min: 0.05, max: 3 },
     originWords: ["center", "top", "bottom", "left", "right", "top left", "top right", "bottom left", "bottom right", "finger"],
     presetTable: rt.presetTable,

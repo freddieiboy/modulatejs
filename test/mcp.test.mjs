@@ -80,6 +80,13 @@ test("check warns about soft things that cost frames: big blur, big glass, a cro
   assert.equal(lint(crowd, vocab).ok, true, "a warning, not an error");
 });
 
+test("check: group() with nobody in it is an error; a group's verbs and and() are known", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.match(p(`g: group()`)[0], /^1: group\(\) needs members/);
+  assert.deepEqual(p(`a: box()\nb: box()\ng: group(a).and(b)\ng.on(lfo("<.1 .2 .3 .4>")).y("<-20 -14>")\nrings: circle(4).around(g, 6)\nrings.on(g.tap).show().fly(30)`), []);
+  assert.match(p(`a: box()\ng: group(a)\ng.wobble()`)[0], /^3: \.wobble\(\) is not a verb/);
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");

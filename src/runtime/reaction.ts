@@ -79,6 +79,8 @@ export class Reaction extends Driver {
   goal = 0;
   fires = 0;
   built = false;
+  // one member's change within a group that staggers: it starts index × stagger later (or that share of t later)
+  slot: { index: number; count: number; stagger: number } | null = null;
   run = 0;
 
   constructor() {
@@ -328,6 +330,10 @@ export class Reaction extends Driver {
 
   // a continuous driver moved, or a drag is scrubbing
   follow(t: number, instant = false) {
+    if (this.slot && this.slot.count > 1 && this.slot.stagger) {
+      const f = Math.min(this.slot.stagger, 0.8 / (this.slot.count - 1));
+      t = Math.max(0, Math.min(1.5, (t - this.slot.index * f) / (1 - (this.slot.count - 1) * f)));
+    }
     if (this.hasOrigins && this.t.get() === 0 && t !== 0) this.claimOrigins(); // leaving rest: this change's pivot applies
     const homeward = !!this.back && t < this.t.get();
     if ((this.springSet || homeward) && !instant) {
@@ -416,11 +422,12 @@ export class Reaction extends Driver {
     this.goal = to;
     this.playing = true;
     const feel = this.feel(to);
-    const jobs = [this.t.to(to, feel, { velocity })];
+    const wait = this.slot ? this.slot.stagger * (to === 1 ? this.slot.index : this.slot.count - 1 - this.slot.index) : 0;
+    const jobs = [this.t.to(to, feel, { velocity, delay: wait })];
     for (const e of this.entries) {
       if (e.peak) continue;
       const order = to === 1 ? e.index : e.count - 1 - e.index;
-      jobs.push(e.t.to(to, feel, { delay: order * e.stagger, velocity: e.stagger ? undefined : velocity }));
+      jobs.push(e.t.to(to, feel, { delay: wait + order * e.stagger, velocity: e.stagger || wait ? undefined : velocity }));
     }
     const peaks = this.entries.filter((e) => e.peak);
     const off = peaks.length ? this.t.on((t) => peaks.forEach((e) => e.t.set(this.shape(e, t)))) : null;

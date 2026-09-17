@@ -63,6 +63,7 @@ export class Layer {
   fill(inset?: number): this;
   move(dx?: number, dy?: number): this;
   around(layer: Layer, count?: number, gap?: number): Layer;
+  around(group: LayerGroup, count?: number, gap?: number): LayerGroup;
   gap(n: number): this;
   /** on a row: first at one edge, last at the other */
   spread(): this;
@@ -136,12 +137,23 @@ export function bubbles(...args: PieceArg[]): Layer;
 export function sheet(...args: PieceArg[]): Layer;
 export function tabbar(...names: string[]): Layer & { page: PageDriver };
 
+/** A named set of layers that takes every verb: each runs on each member. Not a layer: no box, nothing to contain. */
+export type LayerGroup = Omit<Layer, "el" | "name"> & {
+  /** a bigger group with these as well */
+  and(...layers: (Layer | LayerGroup)[]): LayerGroup;
+  /** the member most recently tapped */
+  readonly tapped: Layer | null;
+  readonly members: Layer[];
+};
+export function group(...layers: (Layer | LayerGroup)[]): LayerGroup;
+
 export function tap(layer?: Layer): Driver;
 export function hold(layer?: Layer): Driver;
 export function drag(layer: Layer): DragDriver;
 export function scroll(length?: number): Driver & { px: Value<number> };
 export function time(seconds?: number): TimeDriver;
-export function lfo(hz?: number, shape?: "wave" | "saw" | "square"): Driver;
+/** lfo("<.08 .11 .13>") on a group is one oscillator per member, each at its own rate */
+export function lfo(hz?: number | string, shape?: "wave" | "saw" | "square"): Driver;
 export function page(count?: number): PageDriver;
 
 export function between(describe: () => void): Reaction;

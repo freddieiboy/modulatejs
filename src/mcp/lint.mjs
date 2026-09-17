@@ -84,6 +84,7 @@ export function lint(code, vocab) {
     if (n.type !== "CallExpression") return;
     const c = n.callee, line = n.loc.start.line;
     if (c.type === "Identifier") {
+      if (c.name === "group" && !n.arguments.length) problems.push({ line, message: "group() needs members: group(room, path, park)" });
       if (declared.has(c.name) || globals.has(c.name) || JS_GLOBALS.has(c.name)) return;
       const hint = nearest(c.name, vocab.globals);
       problems.push({ line, message: `${c.name}() is not in the vocabulary` + (hint ? `. Did you mean ${hint}()?` : ". The pieces are " + vocab.pieces.join(", ")) });
