@@ -502,6 +502,59 @@ const local = {
   },
 };
 
+// ——— drop a picture on the editor. Under npx modulatejs it lands beside your prototype and a line
+// naming it appears at the cursor. coral.fm itself stores nothing, so there it can only say so.
+const PICTURE = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
+function nameFor(fileName: string, taken: string): string {
+  let id = fileName.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9]+(.)?/g, (_m, c) => (c ? c.toUpperCase() : "")).replace(/^[^A-Za-z_]+/, "") || "picture";
+  id = id[0].toLowerCase() + id.slice(1);
+  const verbs = new Set<string>(["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar", "tap", "hold", "drag", "scroll", "time", "lfo", "page", "between", "modulate", "device", "theme", "content", "provider"]);
+  let out = verbs.has(id) ? id + "Pic" : id;
+  // taken already? count up from whatever number it ends in: bubble, bubble2, bubble3
+  const stem = out.replace(/\d+$/, ""), from = Number(/\d+$/.exec(out)?.[0] ?? 1);
+  for (let n = from + 1; new RegExp("^\\s*" + out + "\\s*:", "m").test(taken); n++) out = stem + n;
+  return out;
+}
+const pane = $("pane");
+const say = (msg: string) => {
+  const left = $("status-left");
+  left.className = "";
+  left.textContent = msg;
+};
+pane.addEventListener("dragover", (e) => {
+  if (!e.dataTransfer?.types.includes("Files")) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "copy";
+  pane.classList.add("dropping");
+});
+pane.addEventListener("dragleave", () => pane.classList.remove("dropping"));
+pane.addEventListener("drop", async (e) => {
+  const files = [...(e.dataTransfer?.files ?? [])].filter((f) => PICTURE.test(f.name));
+  if (!e.dataTransfer?.types.includes("Files")) return;
+  e.preventDefault();
+  pane.classList.remove("dropping");
+  if (!view || !files.length) return say("pictures only: png, jpg, gif, webp, avif, svg");
+  if (!local.on) return say("coral.fm stores nothing, so it can't take a file. Run npx modulatejs to use pictures from your disk, or give image() a URL.");
+  const lines: string[] = [];
+  for (const f of files) {
+    try {
+      const r = await fetch("/__modulate/asset?name=" + encodeURIComponent(f.name), { method: "POST", body: f });
+      if (!r.ok) throw new Error(await r.text());
+      const { name } = await r.json();
+      lines.push(`${nameFor(name, view.state.doc.toString() + "\n" + lines.join("\n"))}: image("${name}", 240)`);
+    } catch (err: any) {
+      say("couldn't take " + f.name + ": " + (err?.message ?? err));
+    }
+  }
+  if (!lines.length) return;
+  // a whole line of its own, at the line the cursor is on
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+  const insert = (line.text.trim() ? "\n" : "") + lines.join("\n") + "\n";
+  const at = line.text.trim() ? line.to : line.from;
+  view.dispatch({ changes: { from: at, insert }, selection: { anchor: at + insert.length }, userEvent: "input.drop" });
+  view.focus();
+});
+
 // ——— go
 (async () => {
   const isLocal = await local.start();

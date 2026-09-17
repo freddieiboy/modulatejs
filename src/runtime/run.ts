@@ -49,7 +49,19 @@ export function check(code: string): RunResult {
   }
 }
 
+// Something learned after the run changes how it should have been laid out (a picture's real proportions):
+// run the same code again, once things have gone quiet.
+let lastCode: string | null = null, lastTarget: HTMLElement | undefined, again: any = null;
+export function runAgain() {
+  if (lastCode == null) return;
+  clearTimeout(again);
+  again = setTimeout(() => lastCode != null && run(lastCode, lastTarget), 40);
+}
+
 export function run(code: string, target?: HTMLElement): RunResult {
+  lastCode = code;
+  lastTarget = target;
+  clearTimeout(again);
   let fn: Function;
   try {
     fn = compile(code);

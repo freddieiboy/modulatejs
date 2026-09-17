@@ -18,6 +18,7 @@ const CSS = `
 .m-img{background-size:cover;background-position:center}
 .m-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;opacity:0;transition:opacity .3s}
 .m-img img.m-ok{opacity:1}
+.m-own img{transition:opacity .15s}
 .m-error{position:absolute;left:12px;right:12px;bottom:46px;padding:10px 12px;border-radius:12px;background:#17171bee;color:#ff9c8a;
   font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;z-index:99999;pointer-events:none}
 `;

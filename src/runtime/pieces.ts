@@ -4,6 +4,7 @@ import { resolveColor, luminance, isColorWord } from "./theme";
 import { providers, next, placeholder, duo, looksLikeUrl, initials } from "./content";
 import { PageDriver } from "./drivers";
 import { mapRange } from "./engine";
+import { runAgain } from "./run";
 
 // The pieces. Each one looks finished with no arguments.
 // Numbers are sizes, strings are content or colour, layers become children.
@@ -126,27 +127,62 @@ export function pill(...args: any[]): Layer {
   return finish(l, () => pill(...args));
 }
 
-function loadInto(l: Layer, url: string | null) {
+function loadInto(l: Layer, url: string | null, done?: (img: HTMLImageElement | null) => void) {
   if (!url || typeof Image === "undefined") return;
   const img = l.el.ownerDocument.createElement("img");
   img.alt = "";
   img.draggable = false;
   img.decoding = "async";
-  img.onload = () => img.classList.add("m-ok");
-  img.onerror = () => img.remove(); // the placeholder underneath is already the design
+  img.onload = () => (img.classList.add("m-ok"), done?.(img));
+  img.onerror = () => (img.remove(), done?.(null)); // the placeholder underneath is already the design
   img.src = url;
   l.el.appendChild(img);
 }
 
+// what each of your own pictures turned out to be, height over width: remembered between runs, so the
+// second run (which a first sighting asks for) can lay everything out with the real proportions
+const proportions = new Map<string, number>();
+
 export function image(...args: any[]): Layer {
   const { nums, strs } = sort(args);
   const seed = strs[0] ?? next("titles");
+  if (looksLikeUrl(seed)) return own(seed, nums, args);
   const w = nums[0] ?? Math.min(stage().W - 48, 420), h = nums[1] ?? (nums[0] ? nums[0] : 220);
   const l = new Layer("image", { w, h, radius: Math.min(20, w / 4) });
   l.colorMode = "none";
   l.el.classList.add("m-img");
   l.el.style.backgroundImage = placeholder(seed);
-  loadInto(l, looksLikeUrl(seed) ? seed : providers.image(seed, w, h));
+  loadInto(l, providers.image(seed, w, h));
+  return finish(l, () => image(...args));
+}
+
+// Your own picture: a URL, or a file beside the prototype under npx modulatejs. It is shown as it is:
+// nothing behind it (a transparent PNG stays transparent), square corners, and with one size or none it
+// keeps its own proportions. Give it both a width and a height and it fills that frame instead.
+function own(url: string, nums: number[], args: any[]): Layer {
+  const w = nums[0] ?? Math.min(stage().W - 48, 420);
+  const framed = nums.length >= 2;
+  const known = proportions.get(url);
+  const h = framed ? nums[1] : w * (known ?? 1);
+  const l = new Layer("image", { w, h, radius: 0 });
+  l.colorMode = "none";
+  l.el.classList.add("m-img", "m-own");
+  loadInto(l, url, (img) => {
+    if (!img) {
+      // it didn't load: say which, where the picture would have been
+      l.el.style.backgroundImage = placeholder(url);
+      l.el.style.borderRadius = "12px";
+      const note = l.el.ownerDocument.createElement("span");
+      note.textContent = url.length > 40 ? "…" + url.slice(-38) : url;
+      note.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;padding:8px;text-align:center;font:600 12px/1.3 ui-monospace,Menlo,monospace;color:rgba(0,0,0,.6);word-break:break-all";
+      l.el.appendChild(note);
+      return;
+    }
+    const p = img.naturalWidth ? img.naturalHeight / img.naturalWidth : 1;
+    if (proportions.get(url) === p) return;
+    proportions.set(url, p);
+    if (!framed && Math.abs(p - (known ?? 1)) > 0.005) runAgain();
+  });
   return finish(l, () => image(...args));
 }
 

@@ -122,6 +122,9 @@ body.player .mode { display: none; }
 .tip-info { padding: 10px 13px; }
 .tip-info .tip-text { margin-top: 0; }
 
+/* a picture being dropped on the editor */
+.pane.dropping::before { content: "drop it: it goes beside your prototype"; position: absolute; inset: 10px; z-index: 6; display: grid; place-items: center; border: 1.5px dashed var(--str); border-radius: 16px; background: #0b0b0be6; color: var(--str); font-size: 14px; pointer-events: none; }
+
 /* the device */
 .stage { background: var(--stage); flex: 0 0 auto; width: var(--stage-w, 40%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 0 10px; min-width: 260px; max-width: calc(100% - 420px); }
 .device-fit { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }

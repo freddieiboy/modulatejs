@@ -4,7 +4,7 @@
 //   npx modulatejs check [proto.js]  parse it and check every piece and verb against the vocabulary
 //   npx modulatejs mcp [proto.js]    an MCP server on stdio, for Claude Code and other agents
 import http from "node:http";
-import { readFileSync, writeFileSync, existsSync, watch, statSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, watch, statSync, mkdirSync } from "node:fs";
 import { join, resolve, dirname, basename, extname, normalize } from "node:path";
 import { networkInterfaces } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -72,6 +72,9 @@ if (command === "check") {
 
 // ——— the relay: one file, mirrored to every page that is open on it
 
+// pictures (and film, and type) that a prototype may bring along from the folder it lives in
+const MEDIA = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif", ".svg": "image/svg+xml", ".mp4": "video/mp4", ".webm": "video/webm", ".woff2": "font/woff2" };
+
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 
 function lan() {
@@ -120,6 +123,28 @@ function startRelay({ file, port, create, hunt }) {
       req.on("close", () => (clearInterval(beat), clients.delete(res)));
       return;
     }
+    if (path === "/__modulate/asset" && req.method === "POST") {
+      // a picture dropped on the editor lands beside the prototype, where image("name.png") will find it
+      const origin = req.headers.origin;
+      if (origin && new URL(origin).host !== req.headers.host) return res.writeHead(403).end();
+      const wanted = basename(String(url.searchParams.get("name") ?? "")).toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[.-]+/, "");
+      const ext = extname(wanted);
+      if (!wanted || !MEDIA[ext] || ext === ".woff2") return res.writeHead(415, { "content-type": "text/plain" }).end("pictures only: " + Object.keys(MEDIA).filter((e) => e !== ".woff2").join(" "));
+      const chunks = [];
+      let size = 0;
+      req.on("data", (c) => ((size += c.length) > 30 * 1024 * 1024 ? req.destroy() : chunks.push(c)));
+      req.on("end", () => {
+        const data = Buffer.concat(chunks);
+        const folder = dirname(file);
+        // same name, same bytes: reuse it. Same name, different picture: keep both.
+        let name = wanted;
+        for (let n = 2; existsSync(join(folder, name)) && !readFileSync(join(folder, name)).equals(data); n++) name = wanted.slice(0, -ext.length) + "-" + n + ext;
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(join(folder, name), data);
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ name }));
+      });
+      return;
+    }
     if (path === "/__modulate/file" && req.method === "POST") {
       // only this page may write the file
       const origin = req.headers.origin;
@@ -135,8 +160,15 @@ function startRelay({ file, port, create, hunt }) {
     let rel = normalize(decodeURIComponent(path)).replace(/^(\.\.[/\\])+/, "");
     if (rel === "/" || rel === "") rel = (req.headers.accept ?? "").includes("text/markdown") ? "/index.md" : "/index.html";
     if (!extname(rel)) rel += ".html";
-    const full = join(site, rel);
-    if (!full.startsWith(site) || !existsSync(full) || !statSync(full).isFile()) return res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+    let full = join(site, rel);
+    if (!full.startsWith(site) || !existsSync(full) || !statSync(full).isFile()) {
+      // not part of the editor: is it a picture sitting beside the prototype?
+      const folder = dirname(file), mine = join(folder, normalize(decodeURIComponent(path)).replace(/^(\.\.[/\\])+/, ""));
+      const hidden = mine.slice(folder.length).split(/[/\\]/).some((part) => part.startsWith("."));
+      if (!MEDIA[extname(mine).toLowerCase()] || hidden || !mine.startsWith(folder) || !existsSync(mine) || !statSync(mine).isFile()) return res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+      res.writeHead(200, { "content-type": MEDIA[extname(mine).toLowerCase()], "cache-control": "no-cache" });
+      return res.end(readFileSync(mine));
+    }
     res.writeHead(200, { "content-type": TYPES[extname(full)] ?? "application/octet-stream", "cache-control": "no-store" });
     res.end(readFileSync(full));
   });

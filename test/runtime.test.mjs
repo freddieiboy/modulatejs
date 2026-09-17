@@ -211,3 +211,16 @@ test("numbers follow a spring past its ends; colours, opacity and range() slices
   assert.equal(c.ox(0.75), 100, "held after its slice ends");
   assert.ok(Math.abs(c.ox(-0.1) + 20) < 1e-9, "free at the true start");
 });
+
+test("your own picture is shown as it is; a seeded photo keeps its placeholder and rounded corners", () => {
+  const win = browser();
+  const r = win.Modulate.run(`a: image("stroller.png", 240)\nb: image("https://example.com/x.webp", 120, 60)\nc: image("dunes", 240)\nd: image("stroller.png")`, win.document.body);
+  assert.equal(r.error, undefined);
+  const L = (n) => win.Modulate.stage().layers.find((l) => l.label === n);
+  assert.equal(L("a").v.radius.get(), 0);
+  assert.equal(L("a").el.style.backgroundImage, "", "nothing behind a transparent PNG");
+  assert.equal(L("a").v.w.get() + "x" + L("a").v.h.get(), "240x240", "square until its real proportions are known");
+  assert.equal(L("b").v.w.get() + "x" + L("b").v.h.get(), "120x60", "both sizes: a frame to fill");
+  assert.ok(L("c").v.radius.get() > 0 && L("c").el.style.backgroundImage.includes("gradient"));
+  assert.equal(L("d").v.w.get(), 342);
+});
