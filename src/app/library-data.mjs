@@ -51,7 +51,7 @@ export const sections = [
     intro: "Everything that moves a prototype produces t from 0 to 1, so any driver can drive any change. After .on(driver), verbs describe the other state; the runtime diffs the two and moves what changed.",
     items: [
       { verbs: "on · tap", text: "A tap plays the change with a spring; tapping again plays it back. \"tap\" is the layer's own; other.tap listens to another layer; tap() is anywhere on the screen.", code: `door: box(140, "plum")\ndoor.on("tap").rotate(90).radius(70).color("coral")` },
-      { verbs: "hold · release", text: "1 while a finger is down, 0 when it lifts. release() gives the way back its own spring: here the press goes in at once, under the finger, and only the letting go bounces.", code: `b: box(180, "coral").radius(40)\nb.on("hold").scale(.85).rotate(-45).release("bounce")\ntext("press and hold", 13).color("dim").below(b, 60)` },
+      { verbs: "hold · release", text: "1 while a finger is down, 0 when it lifts. A bare hold feels like a finger, not a spring: it goes in snappy and comes out settled. spring() changes the way in, release() the way out: here only the letting go bounces.", code: `b: box(180, "coral").radius(40)\nb.on("hold").scale(.85).rotate(-45).release("bounce")\ntext("press and hold", 13).color("dim").below(b, 60)` },
       { verbs: "scroll", text: "The screen scrolls natively, with the phone's own momentum. t is how far through the length you are. Layers stay put unless they follow it, or scrolls() with it.", code: `hero: image("dunes", 390, 420).at(0, 0).radius(0)\ntitle: text("Dune walk", 34).at(24, 440)\nhero.on(scroll(300)).height(140).opacity(.5)\ntitle.on("scroll").y(-280).size(20)` },
       { verbs: "page", text: "Swipe sideways through n pages. It snaps, it rubber-bands at the ends, and t runs 0 to 1 across all of them. peak() lights child i at page i.", code: `p: page(3)\nslides: row(3, card()).gap(48).at(24, 150)\ndots: row(3, circle(8, "grey")).gap(10).at("center", 620)\nslides.on(p).x(-2 * 390)\ndots.on(p).peak().color("coral").scale(1.5)` },
       { verbs: "time · lfo", text: "time(seconds) is a looping clock you can pause(); lfo(hz) is an oscillator. Both are just t.", code: `track: pill(300, 6).color("grey")\nbar: pill(300, 6).color("coral").width(0)\nbar.on(time(3).pause(hold())).width(300)\ndot: circle(24, "plum").below(track, 60)\ndot.on(lfo(.5)).x(120).scale(1.6)` },
@@ -61,7 +61,7 @@ export const sections = [
   {
     id: "feel",
     title: "Feel",
-    intro: "Five frozen presets: pop, settle, snappy, lazy, bounce. Nobody tunes stiffness in a prototype.",
+    intro: "Five frozen presets, each defined by a response time and a damping fraction: snappy (0.30 s, no overshoot), settle (0.45 s, the default), pop (0.35 s, one 13% overshoot), lazy (0.90 s, heavy), bounce (0.50 s, rings 31% past). Nobody tunes stiffness in a prototype, and the test suite holds the five to their numbers.",
     items: [
       { verbs: "spring", text: "spring(preset) picks which spring plays the change. On its own after on(\"tap\") it is a kick: scale up to the amount and spring back.", code: `row(pill("pop").on("tap").spring("pop"), pill("bounce", "plum").on("tap").spring("bounce", 1.3)).gap(12)` },
       { verbs: "curve", text: "A timed ease when you want one: linear, ease, in, out, and a duration in seconds.", code: `b: box("sky")\nb.on("tap").x(120).rotate(180).curve("ease", .6)` },

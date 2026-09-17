@@ -73,7 +73,7 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | driver | what it is | t |
 | --- | --- | --- |
 | `"tap"` · `layer.tap` · `tap(layer)` · `tap()` | a tap on the layer (or anywhere) | **played**: springs 0 → 1; tap again springs back |
-| `"hold"` · `layer.hold` · `hold(layer)` | a finger is down on it, or not (touch start to touch end) | 1 while held |
+| `"hold"` · `layer.hold` · `hold(layer)` | a finger is down on it, or not (touch start to touch end). It should feel like a finger, not a spring, so by default it goes in `snappy` and comes out `settle`; `spring(p)` changes the way in, `release(p)` the way out | 1 while held |
 | `drag(layer)` · `"drag"` | how far the layer has been dragged | distance ÷ 160; `.range(px)` changes it; `.x` `.y` are raw Values |
 | `scroll(length = 400)` · `"scroll"` | the screen scrolls natively over `length` points | scrollTop ÷ length |
 | `page(n = 3)` | swipe sideways through n pages, snapping | 0 → 1 across all pages |
@@ -146,7 +146,7 @@ Each takes a number, a Value or a pattern. Before `.on()` they set the layer; af
 | `between(() => { … })` | the same for many layers at once; `.drive(a, b, …)` attaches drivers, `.spring()` `.curve()` set its feel |
 | `spring(preset, amount?)` | which spring plays it. Alone after `on("tap")`, it is a kick: scale to `amount` (1.2) and spring back |
 | `curve(name = "ease", seconds = .3)` | a timed ease instead: `linear` `ease` `in` `out` |
-| `release(preset = "settle")` | the spring for the way back, when it should differ from the way in. `b.on("hold").scale(.85).release("bounce")` goes in at once under the finger and bounces when let go; add `.spring("snappy")` to shape the way in too |
+| `release(preset = "settle")` | the spring for the way back, when it should differ from the way in: `spring(p)` is the way there, `release(p)` the way home. `b.on("hold").scale(.85).release("bounce")` presses in quietly and bounces when let go |
 | `range(a, b)` | this layer only moves during that slice of t: `range(.35, 1)` |
 | `fade()` | dissolve: a visible layer fades out, a hidden one fades in |
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
@@ -157,7 +157,19 @@ Each takes a number, a Value or a pattern. Before `.on()` they set the layer; af
 | `peak()` | child i of n is at its other state when t = i ÷ (n − 1): pager dots, tab highlights |
 | `modulate(value, [a, b], [c, d], clamp = true)` | a Value that follows another through a mapping; any number of stops, numbers or colours |
 
-Presets are frozen: `pop` (fast, overshoots) · `settle` (the default, no fuss) · `snappy` (quick, no bounce) · `lazy` (slow, heavy) · `bounce` (keeps ringing).
+### The five presets
+
+A preset is two numbers: **response**, the seconds one swing takes (how quick), and **damping**, as a fraction of critical (1 never overshoots; lower rings more). Overshoot follows from damping. They are frozen: the test suite drives each one through a step and holds it to this table.
+
+| preset | response | damping | overshoot | use it for |
+| --- | --- | --- | --- | --- |
+| `snappy` | 0.30 s | 1.00 | 0% | things under a finger; navigation; anything that must not wobble |
+| `settle` | 0.45 s | 0.85 | ≈0.6% | the default: arrives and stays |
+| `pop` | 0.35 s | 0.55 | ≈13% | a like, a badge, a confirmation: one visible overshoot |
+| `lazy` | 0.90 s | 0.90 | ≈0.2% | big, heavy, slow: a background, a full-screen dissolve |
+| `bounce` | 0.50 s | 0.35 | ≈31% | playful: rings two or three times before it rests |
+
+Numbers follow a spring past their target (that overshoot is the bounce); colours, opacity and the inner edges of `range()` slices stop at their ends.
 
 ### Dragging
 

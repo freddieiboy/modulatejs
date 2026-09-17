@@ -151,6 +151,9 @@ export function preprocess(code: string): string;
 export function install(target?: any): any;
 export function mount(el: HTMLElement): unknown;
 
-export const presets: Record<Preset, { type: "spring"; stiffness: number; damping: number }>;
+/** the engine's numbers, derived from presetTable with mass 1 */
+export const presets: Record<Preset, { type: "spring"; stiffness: number; damping: number; mass: number }>;
+/** what each preset means: response in seconds, damping as a fraction of critical, and the overshoot (percent) that predicts */
+export const presetTable: Record<Preset, { response: number; damping: number; overshoot: number }>;
 export const palette: Record<string, string>;
 export const version: string;

@@ -186,7 +186,7 @@ test("release() gives the way back its own spring; outside on() it is still the 
   const b = st.layers.find((l) => l.label === "b"), c = st.layers.find((l) => l.label === "c");
   const rx = b.reactions[0];
   assert.equal(rx.back.damping, win.Modulate.presets.bounce.damping);
-  assert.equal(rx.springSet, false, "no spring() means the way in is immediate");
+  assert.equal(rx.transition, win.Modulate.presets.snappy, "a hold with no spring() goes in snappy");
   assert.equal(b.dragCfg, null, "release after on() is not about dragging");
   assert.equal(c.dragCfg.release, "pop");
   r = win.Modulate.run(`a: box()\nbetween(() => { a.x(100) }).drive(tap()).spring("snappy").release("bounce")`, win.document.body);

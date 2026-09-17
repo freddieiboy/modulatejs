@@ -6,7 +6,7 @@ Two names. **modulatejs** is the library: a toy vocabulary for mobile-app feel (
 
 - Read `SPEC.md` first. It is the source of truth for the language, for the docs panel, for the tests, and for every model that uses the site. If behaviour and spec disagree, one of them is a bug: say which.
 - Never add a verb without a prototype that can't be written without it. The budget is tight on purpose.
-- Presets are frozen (`pop settle snappy lazy bounce`). Don't tune them, don't add to them.
+- Presets are frozen (`pop settle snappy lazy bounce`), defined by response and damping in `src/runtime/presets.ts`. `test/presets.test.mjs` drives each through a step at 60 fps and holds overshoot and settle time to that table, so a preset and its expectation change together or the build fails. Don't add presets or aliases.
 - Transforms, not layout. `t` is normalized 0 to 1 everywhere. Every piece must look finished with no arguments.
 - Only `src/runtime/engine.ts` imports Motion. Everything else goes through `Value` and `animateTo`, so the engine can be swapped.
 - `image()` references a URL and never inlines bytes. Every content provider needs a local fallback.

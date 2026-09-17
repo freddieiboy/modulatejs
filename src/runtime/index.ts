@@ -6,7 +6,7 @@ import { Reaction, between } from "./reaction";
 import { Driver, tap, hold, drag, scroll, time, lfo, page } from "./drivers";
 import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar } from "./pieces";
 import { theme, palette } from "./theme";
-import { presets } from "./presets";
+import { presets, presetTable } from "./presets";
 import { provider, bank, content } from "./content";
 import { mini } from "./mini";
 import { run, check, preprocess, setApi } from "./run";
@@ -36,5 +36,5 @@ export {
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage,
-  Value, Layer, Group, Reaction, Driver, presets, palette, bank, VERBS,
+  Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };

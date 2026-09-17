@@ -138,6 +138,13 @@ export class Reaction extends Driver {
       this.impulse = bare;
     }
 
+    // A bare .on("hold") should feel like a finger, not a spring: quick in with no overshoot, a calm way out.
+    // spring() overrides the way in, release() the way out.
+    if (this.drivers.some((d) => d.kind === "hold")) {
+      if (!this.springSet) (this.transition = preset("snappy")), (this.springSet = true);
+      this.back ??= preset("settle");
+    }
+
     for (const [layer, tg] of this.targets) {
       const kids = layer.fan();
       const fans = kids && kids.length && (tg.stagger != null || tg.peak || (tg.fly != null && layer.kind === "ring"));
