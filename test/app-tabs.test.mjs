@@ -207,11 +207,17 @@ test("8. renaming product to item via the tab rewrites product: and every produc
   assert.deepEqual((await tabs()).slice(1, 4), ["home•", "bubbles•", "item•"]);
 });
 
-test("10. a file with no sections shows only all · feel · +; an old link opens and runs unchanged", { skip: !chrome }, async () => {
+test("10. a file with no sections shows only all · +; feel arrives with the first section; an old link opens and runs unchanged", { skip: !chrome }, async () => {
   const plain = `heart: circle(72).center()\nheart.on("tap").spring("pop", 1.3)`;
   await open(plain);
-  assert.deepEqual(await tabs(), ["all", "feel", "+"]);
+  assert.deepEqual(await tabs(), ["all", "+"]);
   assert.deepEqual(await visible(), plain.split("\n"));
+  await ev(`document.querySelector("#tabs .tab-plus").click(); 0`);
+  await sleep(100);
+  await ev(`{ const i = document.querySelector("#tabs .tab-new input"); i.value = "menu"; i.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); } 0`);
+  await sleep(900);
+  assert.deepEqual(await tabs(), ["all", "menu", "feel", "+"], "the first section brings feel with it");
+  await open(plain);
   assert.equal(await file(), plain);
   assert.deepEqual(await shown(["heart"]), { heart: true });
 });

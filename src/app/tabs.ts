@@ -1,4 +1,5 @@
-// Tabs: the file's sections across the top of the editor. One file, one document; a tab is a view of it with the
+// Tabs: the file's sections across the top of the editor. A file with no sections has only all (and + to make the
+// first); the tabs arrive as the sections do. One file, one document; a tab is a view of it with the
 // other lines hidden, so line numbers are whole-file numbers, undo is file-wide and the link never changes shape.
 // PICO-8 has code tabs over one cart; sections already split a file the same way. AGPL-3.0.
 import { EditorView, Decoration, DecorationSet, WidgetType, keymap } from "@codemirror/view";
@@ -300,6 +301,7 @@ export class Tabs {
 
   open(name: string, line?: number) {
     const st = this.view.state;
+    if (name === "feel" && !sectionNames(st).length) name = "all";
     if (name !== "all" && name !== "feel" && !sectionNames(st).includes(name)) return;
     const wasFramed = this.framed;
     this.view.dispatch({ effects: setTab.of(name) });
@@ -326,7 +328,8 @@ export class Tabs {
     if (names[i - 1]) this.open(names[i - 1]);
   }
   private names() {
-    return ["all", ...sectionNames(this.view.state), "feel"];
+    const s = sectionNames(this.view.state);
+    return s.length ? ["all", ...s, "feel"] : ["all"];
   }
 
   // the device said how many layers each section has, and whether a line went wrong
@@ -370,9 +373,11 @@ export class Tabs {
       h.appendChild(b);
       return b;
     };
+    // at first there is only all; feel is only worth a tab once there is a section for it to be apart from
     tab("all");
-    for (const name of sectionNames(st)) tab(name, name, true);
-    tab("feel");
+    const names = sectionNames(st);
+    for (const name of names) tab(name, name, true);
+    if (names.length) tab("feel");
     const plus = document.createElement("button");
     plus.className = "tab tab-plus";
     plus.textContent = "+";
