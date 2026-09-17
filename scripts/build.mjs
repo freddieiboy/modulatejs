@@ -96,6 +96,16 @@ async function build() {
   md += "\n## Licences\n\nmodulate.js (the runtime) is MIT. The editor page and CLI are AGPL-3.0. The spec and prototypes are CC BY 4.0. Built on Motion (MIT).\n";
   writeFileSync(join(site, "library.md"), md);
 
+  // stamp asset URLs with a content hash: the HTML is always fresh, so what it points at is always the matching build
+  const { createHash } = await import("node:crypto");
+  const stamp = (f) => createHash("md5").update(readFileSync(join(site, f))).digest("hex").slice(0, 10);
+  const ASSETS = ["app.js", "app.css", "library.js", "library.css", "frame.js", "modulate.js", "favicon.svg"];
+  for (const page of ["index.html", "library.html", "frame.html", "404.html"]) {
+    let html = readFileSync(join(site, page), "utf8");
+    for (const a of ASSETS) html = html.split(`"/${a}"`).join(`"/${a}?v=${stamp(a)}"`);
+    writeFileSync(join(site, page), html);
+  }
+
   const size = (f) => (readFileSync(join(dist, f)).length / 1024).toFixed(0) + " KB";
   console.log(`modulate.js ${size("modulate.js")} · app ${size("site/app.js")} · ${protos.length} prototypes`);
 }

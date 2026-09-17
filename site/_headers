@@ -26,8 +26,19 @@
 /link.mjs
   Access-Control-Allow-Origin: *
 
+# referenced by content hash from pages that are never cached, so these can be kept forever
 /app.js
-  Cache-Control: public, max-age=300
+  Cache-Control: public, max-age=31536000, immutable
 
-/frame.html
-  Cache-Control: public, max-age=300
+/app.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/library.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/library.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/frame.js
+  Cache-Control: public, max-age=31536000, immutable
+

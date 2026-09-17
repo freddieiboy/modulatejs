@@ -178,7 +178,7 @@ const keepCentred = EditorState.transactionExtender.of((tr: Transaction) => (typ
 function applyTypewriter() {
   const pane = $("pane"), btn = $("typewriter");
   pane.classList.toggle("typewriter", typewriter);
-  btn.setAttribute("aria-pressed", String(typewriter));
+  btn.setAttribute("aria-checked", String(typewriter));
   measureTypewriter();
   if (view) {
     view.requestMeasure();
