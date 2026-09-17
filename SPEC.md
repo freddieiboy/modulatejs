@@ -1,8 +1,8 @@
 # modulate — the spec
 
-A toy vocabulary for mobile-app feel. You write ten to fifteen lines, you get a link, and the link runs on a phone. This page is everything a person or a model needs.
+ModulateJS is a lightweight prototyping library: a toy vocabulary for mobile-app feel. You write ten to fifteen lines, you get a link, and the link runs on a phone. This page is everything a person or a model needs.
 
-modulatejs is the library ([modulatejs.com](https://modulatejs.com)). [coral.fm](https://coral.fm) is the app that runs it: an editor, a device, and links.
+ModulateJS is the library ([modulatejs.com](https://modulatejs.com)). [coral.fm](https://coral.fm) is the app that runs it (Riff, Play, Share): an editor, a device, and links.
 
 ```js
 // like button that pops
