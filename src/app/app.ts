@@ -13,6 +13,7 @@ import { tint } from "./tint";
 import { renderSpec } from "./spec";
 import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
+import { allPictures, keepPicture } from "./assets";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -41,9 +42,13 @@ addEventListener("message", (e) => {
   if (e.source !== frame.contentWindow) return;
   const d = e.data;
   if (d?.type === "ready") {
-    frameReady = true;
     $("verbs").textContent = String(d.verbs);
-    send();
+    // the pictures this browser is keeping go in first, so the first run already finds them
+    pictures.then((files) => {
+      frame.contentWindow!.postMessage({ type: "pictures", files }, "*");
+      frameReady = true;
+      send();
+    });
   } else if (d?.type === "result") showResult(d);
 });
 
@@ -64,6 +69,8 @@ function shapeDevice(d?: typeof dev) {
   el.classList.toggle("dark-screen", d.dark); // the home indicator is dark on a light screen, light on a dark one
   fitDevice(); // the iframe resizes, the frame notices and runs again at the new size
 }
+
+const pictures: Promise<Record<string, Blob>> = player ? Promise.resolve({}) : allPictures().catch(() => ({}));
 
 function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev }) {
   if (!player) shapeDevice(r.device);
@@ -520,6 +527,7 @@ const say = (msg: string) => {
   const left = $("status-left");
   left.className = "";
   left.textContent = msg;
+  $("status-right").textContent = ""; // a sentence needs the whole line
 };
 pane.addEventListener("dragover", (e) => {
   if (!e.dataTransfer?.types.includes("Files")) return;
@@ -534,13 +542,37 @@ pane.addEventListener("drop", async (e) => {
   e.preventDefault();
   pane.classList.remove("dropping");
   if (!view || !files.length) return say("pictures only: png, jpg, gif, webp, avif, svg");
-  if (!local.on) return say("coral.fm stores nothing, so it can't take a file. Run npx modulatejs to use pictures from your disk, or give image() a URL.");
+  takePictures(files);
+});
+
+// a picture pasted into the editor is the same as one dropped on it
+addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
+  if (!files.length || player) return;
+  e.preventDefault();
+  takePictures(files.map((f) => (PICTURE.test(f.name) ? f : new File([f], "pasted." + (f.type.split("/")[1] || "png").replace("jpeg", "jpg"), { type: f.type }))));
+}, true);
+
+// Under npx modulatejs a picture is saved beside the prototype. On coral.fm it is kept in this browser:
+// nothing is uploaded, so it works here and nowhere else, and the status line says so.
+async function takePictures(files: File[]) {
+  if (!view) return;
   const lines: string[] = [];
+  let where = "";
   for (const f of files) {
     try {
-      const r = await fetch("/__modulate/asset?name=" + encodeURIComponent(f.name), { method: "POST", body: f });
-      if (!r.ok) throw new Error(await r.text());
-      const { name } = await r.json();
+      let name: string;
+      if (local.on) {
+        const r = await fetch("/__modulate/asset?name=" + encodeURIComponent(f.name), { method: "POST", body: f });
+        if (!r.ok) throw new Error(await r.text());
+        name = (await r.json()).name;
+        where = "saved beside " + ($("live").textContent || "your prototype");
+      } else {
+        const kept = await keepPicture(f);
+        name = kept.name;
+        frame.contentWindow!.postMessage({ type: "pictures", files: { [name]: f } }, "*");
+        where = kept.kept === "browser" ? "kept in this browser only · links and phones won't have it" : "kept until this tab closes (this browser won't store it)";
+      }
       lines.push(`${nameFor(name, view.state.doc.toString() + "\n" + lines.join("\n"))}: image("${name}", 240)`);
     } catch (err: any) {
       say("couldn't take " + f.name + ": " + (err?.message ?? err));
@@ -553,7 +585,8 @@ pane.addEventListener("drop", async (e) => {
   const at = line.text.trim() ? line.to : line.from;
   view.dispatch({ changes: { from: at, insert }, selection: { anchor: at + insert.length }, userEvent: "input.drop" });
   view.focus();
-});
+  setTimeout(() => say(where), 400); // after the run's own status line
+}
 
 // ——— go
 (async () => {

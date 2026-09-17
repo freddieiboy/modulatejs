@@ -147,7 +147,7 @@ export function device(width: number, height: number): void;
 export function theme(...names: string[]): void;
 /** Your words instead of the built-in bank. Strings split on commas; arrays are taken as they are. */
 export function content(yours: { titles?: string | string[]; prices?: string | string[]; names?: string | string[]; lines?: string | string[] }): void;
-export function provider(next: { image?(seed: string, w: number, h: number): string | null; avatar?(seed: string): string | null }): void;
+export function provider(next: { image?(seed: string, w: number, h: number): string | null; avatar?(seed: string): string | null; file?(name: string): string | null }): void;
 
 export interface RunResult {
   ok: boolean;

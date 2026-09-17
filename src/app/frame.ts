@@ -17,8 +17,19 @@ function run(code: string) {
   parent.postMessage({ type: "result", ...res, ms: Math.round(performance.now() - t0) }, "*");
 }
 
+const held = new Map<string, string>();
+Modulate.provider({ file: (name: string) => held.get(name) ?? null });
+
 addEventListener("message", (e) => {
   if (e.data?.type === "run") run(String(e.data.code ?? ""));
+  if (e.data?.type === "pictures") {
+    for (const [name, blob] of Object.entries<Blob>(e.data.files ?? {})) {
+      const old = held.get(name);
+      if (old) URL.revokeObjectURL(old);
+      held.set(name, URL.createObjectURL(blob));
+    }
+    if (e.data.rerun && last) run(last);
+  }
 });
 
 // A mouse becomes a fingertip: a soft white dot instead of an arrow, pressed while the button is down.

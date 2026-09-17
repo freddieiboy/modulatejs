@@ -4,6 +4,8 @@
 export interface Providers {
   image(seed: string, w: number, h: number): string | null;
   avatar(seed: string): string | null;
+  // your own pictures: given the name in image("stroller.png"), a URL that has it, or null to use the name as the URL
+  file?(name: string): string | null;
 }
 
 export const providers: Providers = {

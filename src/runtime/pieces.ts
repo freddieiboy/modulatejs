@@ -167,7 +167,8 @@ function own(url: string, nums: number[], args: any[]): Layer {
   const l = new Layer("image", { w, h, radius: 0 });
   l.colorMode = "none";
   l.el.classList.add("m-img", "m-own");
-  loadInto(l, url, (img) => {
+  const held = providers.file?.(url.replace(/^\.?\//, "")) ?? null; // the editor may be holding this picture itself
+  loadInto(l, held ?? url, (img) => {
     if (!img) {
       // it didn't load: say which, where the picture would have been
       l.el.style.backgroundImage = placeholder(url);
