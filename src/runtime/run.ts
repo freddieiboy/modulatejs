@@ -154,7 +154,7 @@ export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
-  device?: { name: string; w: number; h: number; radius: number };
+  device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean };
 }
 
 let api: Record<string, any> = {};
@@ -210,4 +210,7 @@ export function run(code: string, target?: HTMLElement): RunResult {
   }
 }
 
-const shape = (st: any) => ({ name: st.device.name, w: st.device.w, h: st.device.h, radius: st.device.radius });
+const shape = (st: any) => {
+  const d = st.device;
+  return { name: d.name, w: d.w, h: d.h, radius: d.radius, bezel: d.bezel, body: d.body, button: !!d.button, bar: !!d.bar };
+};

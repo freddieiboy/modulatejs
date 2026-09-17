@@ -50,14 +50,15 @@ frame.addEventListener("load", hello);
 hello();
 
 // the frame takes the shape of whatever device() the code asked for
-let dev = { name: "iphone", w: 390, h: 844, radius: 52 };
+let dev = { name: "iphone", w: 390, h: 844, radius: 52, bezel: [6, 6, 6], body: 58, button: false, bar: true };
 function shapeDevice(d?: typeof dev) {
-  if (!d || (d.w === dev.w && d.h === dev.h && d.radius === dev.radius)) return;
+  if (!d || !d.bezel || JSON.stringify(d) === JSON.stringify(dev)) return;
   dev = d;
   const el = $("device");
-  el.style.setProperty("--dw", d.w + "px");
-  el.style.setProperty("--dh", d.h + "px");
-  el.style.setProperty("--dr", d.radius + "px");
+  const px = { "--dw": d.w, "--dh": d.h, "--dr": d.radius, "--bt": d.bezel[0], "--bs": d.bezel[1], "--bb": d.bezel[2], "--body": d.body };
+  for (const [k, v] of Object.entries(px)) el.style.setProperty(k, v + "px");
+  el.classList.toggle("chin", d.button);
+  el.classList.toggle("no-bar", !d.bar);
   fitDevice(); // the iframe resizes, the frame notices and runs again at the new size
 }
 
@@ -73,7 +74,7 @@ function showResult(r: { ok: boolean; error?: string; line?: number; ms: number;
 function fitDevice() {
   if (player) return;
   const fit = $("fit"), device = $("device");
-  const W = dev.w + 12, H = dev.h + 12;
+  const W = dev.w + dev.bezel[1] * 2, H = dev.h + dev.bezel[0] + dev.bezel[2];
   const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / H, (fit.clientWidth - 24) / W));
   device.style.transform = `scale(${k})`;
   device.style.margin = `${(-H * (1 - k)) / 2}px ${(-W * (1 - k)) / 2}px`;
