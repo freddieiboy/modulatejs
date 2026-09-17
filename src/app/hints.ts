@@ -4,16 +4,18 @@
 import { EditorView, hoverTooltip, showTooltip, Tooltip, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { StateField, EditorState, RangeSetBuilder } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import { completionStatus } from "@codemirror/autocomplete";
 import { tint } from "./tint";
 
 let vocab: any = null;
+export const getVocab = () => vocab;
 
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
-const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, (_m, c) => `<code>${tint(c.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"))}</code>`).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+export const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, (_m, c) => `<code>${tint(c.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"))}</code>`).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
 
 // ——— which values a string slot can take: [callee][argument index], "*" for any position
 type Choice = { value: string; hint?: string; swatch?: string };
-function slots(): Record<string, Record<string, () => Choice[]>> {
+export function slots(): Record<string, Record<string, () => Choice[]>> {
   const presets = () => Object.entries<any>(vocab.presetTable).map(([value, p]) => ({ value, hint: `${p.response} s · ${p.overshoot ? "≈" + p.overshoot + "% past" : "no overshoot"}` }));
   const colours = () => [...vocab.palette.filter((c: string) => c !== "clear").map((value: string) => ({ value, swatch: vocab.paletteHex[value] })), ...vocab.roles.map((value: string) => ({ value, hint: "role" }))];
   const list = (...values: string[]) => () => values.map((value) => ({ value }));
@@ -33,7 +35,7 @@ function slots(): Record<string, Record<string, () => Choice[]>> {
   };
 }
 // slots where any other string is somebody's own words (a title, a label), so only offer options when it already is one
-const LOOSE = new Set(["box", "circle", "pill", "text", "card", "sheet", "x", "y", "scale", "rotate", "opacity", "color"]);
+export const LOOSE = new Set(["box", "circle", "pill", "text", "card", "sheet", "x", "y", "scale", "rotate", "opacity", "color"]);
 
 interface Target {
   from: number;
@@ -44,7 +46,7 @@ interface Target {
   choices?: Choice[];
 }
 
-function calleeName(state: EditorState, call: any): string | null {
+export function calleeName(state: EditorState, call: any): string | null {
   const c = call.firstChild;
   if (!c) return null;
   if (c.name === "VariableName") return state.sliceDoc(c.from, c.to);
@@ -140,6 +142,7 @@ const onSelect = StateField.define<Tooltip | null>({
 
 // pointing at it
 const onHover = hoverTooltip((view, pos, side) => {
+  if (completionStatus(view.state)) return null; // the completion list is up: one floating panel at a time
   const t = targetAt(view.state, pos, side);
   if (!t) return null;
   // selecting the same thing already put its card up; one is enough

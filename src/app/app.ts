@@ -12,6 +12,7 @@ import { encode, decode } from "../link";
 import { tint } from "./tint";
 import { renderSpec } from "./spec";
 import { hints, loadHints } from "./hints";
+import { completion } from "./complete";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -222,6 +223,7 @@ if (!player) {
         badLine,
         keepCentred,
         hints,
+        completion,
         placeholder("// type here, or paste a link"),
         keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),
         EditorView.lineWrapping,

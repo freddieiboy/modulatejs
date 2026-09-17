@@ -105,6 +105,23 @@ body.player .mode { display: none; }
 .tip-options button i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1px #ffffff2e; }
 .tip-options button.is { border-color: var(--str); background: #e9a38d1f; color: #fff; }
 
+/* completion: the same look as the hover card */
+.cm-complete.cm-tooltip-autocomplete > ul { font: 13.5px/1.5 var(--mono); max-height: 19em !important; padding: 5px; scrollbar-width: thin; min-width: 260px; }
+.cm-complete.cm-tooltip-autocomplete > ul > li { padding: 4px 12px 4px 10px !important; border-radius: 7px; color: var(--fn); display: flex; align-items: baseline; gap: 2px; }
+.cm-complete.cm-tooltip-autocomplete > ul > li[aria-selected] { background: #2a2f4a; color: #fff; }
+.cm-complete .cm-completionLabel { flex: none; }
+.cm-complete .cm-completionMatchedText { text-decoration: none; color: #fff; }
+.cm-complete .cm-completionDetail { font-style: normal; color: var(--dim); margin-left: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-complete li[aria-selected] .cm-completionDetail { color: #b9bfe0; }
+.cm-complete .cm-complete-enum .cm-completionLabel, .cm-complete .cm-complete-constant .cm-completionLabel { color: var(--str); }
+.cm-complete .cm-complete-enum .cm-completionDetail, .cm-complete .cm-complete-constant .cm-completionDetail { margin-left: 12px; }
+.cm-complete .cm-complete-variable .cm-completionLabel { color: #e6e6e9; }
+.cm-complete .cm-swatch { order: -1; width: 11px; height: 11px; border-radius: 50%; margin-right: 8px; align-self: center; box-shadow: inset 0 0 0 1px #ffffff2e; flex: none; }
+.cm-complete .cm-complete-constant .cm-completionDetail { display: none; }
+.cm-tooltip.cm-completionInfo { padding: 0 !important; max-width: 380px !important; margin: 0 8px; }
+.tip-info { padding: 10px 13px; }
+.tip-info .tip-text { margin-top: 0; }
+
 /* the device */
 .stage { background: var(--stage); flex: 0 0 auto; width: var(--stage-w, 40%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 0 10px; min-width: 260px; max-width: calc(100% - 420px); }
 .device-fit { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
