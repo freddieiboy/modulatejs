@@ -57,6 +57,10 @@ export function resolveDriver(source: any, self: Layer | null): Driver {
   throw new Error("on() needs a driver: \"tap\", another layer's .tap, drag(layer), scroll(), page(n), time(s), lfo(hz)");
 }
 
+// A mouse that moves with no button down is not dragging anything, whatever we believe: the lift was lost
+// somewhere (another window, a handler that swallowed it). Touch and pen only send moves while they are down.
+const lifted = (e: PointerEvent) => e.pointerType === "mouse" && e.buttons === 0;
+
 const pt = (e: PointerEvent) => ({ x: e.clientX / stage().scale, y: e.clientY / stage().scale });
 
 // ——— tap: fires when a press ends where it began
@@ -77,12 +81,15 @@ export function tap(layer?: Layer | null): Driver {
   });
   listen(el, "pointerup", (e: PointerEvent) => {
     if (!start) return;
+    if ((e as any).mTapped) return void (start = null); // something inside this one took the tap
     const p = pt(e);
     const moved = Math.hypot(p.x - start.x, p.y - start.y);
     const quick = performance.now() - start.time < 600;
     start = null;
     if (moved < 10 && quick) {
-      e.stopPropagation();
+      // marked, not stopped: whatever is around this layer leaves the tap alone, but the lift still reaches the
+      // window, where drags, holds and drift are listening for the finger to go
+      (e as any).mTapped = true;
       d.emit();
     }
   });
@@ -101,6 +108,7 @@ export function hold(layer?: Layer | null): Driver {
   listen(el, "pointerdown", () => d.t.set(1));
   listen(el.ownerDocument.defaultView!, "pointerup", () => d.t.set(0));
   listen(el.ownerDocument.defaultView!, "pointercancel", () => d.t.set(0));
+  listen(el.ownerDocument.defaultView!, "pointermove", (e: PointerEvent) => lifted(e) && d.t.get() > 0 && d.t.set(0));
   listen(el, "contextmenu", (e: Event) => e.preventDefault());
   return d;
 }
@@ -218,6 +226,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
 
   listen(win, "pointermove", (e: PointerEvent) => {
     if (!origin || !mine(e)) return;
+    if (lifted(e)) return void end(e);
     const p = pt(e);
     const mx = p.x - origin.x, my = p.y - origin.y;
     if (scrubbing) {
@@ -458,6 +467,7 @@ export class PageDriver extends Driver {
     });
     listen(win, "pointermove", (e: PointerEvent) => {
       if (!origin) return;
+      if (lifted(e)) return void end();
       const p = pt(e);
       const mx = p.x - origin.x;
       if (!origin.locked) {
