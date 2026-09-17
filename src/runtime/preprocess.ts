@@ -3,7 +3,7 @@
 
 // A prototype is JavaScript with three liberties:
 //   heart: circle(72)     a label names the layer and makes `heart` a variable
-//   init: { … }           a label on a block is a section: it groups and folds, and changes nothing else
+//   draw: { … }           a label on a block is a section: a fold, and a group of every layer made inside it
 //   js { … }              a plain block, for when the vocabulary runs out
 // preprocess() turns both into ordinary JavaScript without moving a line.
 
@@ -96,7 +96,24 @@ function atLine(src: string, index: number, message: string): SyntaxError {
   return e;
 }
 
+// what the names in a file have been used for so far, so a section and a layer can't share one
+interface Names {
+  reserved: Set<string>;
+  used: Map<string, { kind: "layer" | "section"; line: number }>;
+}
+
 export function preprocess(src: string, reserved: Set<string> = new Set()): string {
+  return pre(src, { reserved, used: new Map() }, 0);
+}
+
+// `before` is how many lines of the file come before this piece of it (a section's inside), for error messages
+function pre(src: string, names: Names, before: number): string {
+  const fail = (index: number, message: string) => {
+    const e: any = atLine(src, index, message);
+    e.line += before;
+    return e;
+  };
+  const taken = (name: string, what: string) => `"${name}:" — ${name} is already a verb, so a ${what} can't take that name. Try ${name}1 or my${name[0].toUpperCase()}${name.slice(1)}.`;
   let out = "", i = 0;
   while (i < src.length) {
     const start = skipBlank(src, i);
@@ -106,17 +123,28 @@ export function preprocess(src: string, reserved: Set<string> = new Set()): stri
     const rest = src.slice(i, i + 120);
     const label = /^([A-Za-z_$][\w$]*)[ \t]*:(?!:)[ \t]*/.exec(rest);
     if (label && label[1] !== "default" && src[i + label[0].length] === "{") {
-      // a section: init: { … }  draw: { … }  update: { … }. Its lines are ordinary lines.
+      // a section: draw: { … }. Its lines are ordinary lines, run where they are; afterwards its name is a
+      // group of every layer made inside. Until then the name is a placeholder that says it isn't ready.
+      const name = label[1];
       const open = i + label[0].length;
       const close = statementEnd(src, open) - 1;
-      if (src[close] !== "}") throw atLine(src, i, `"${label[1]}: {" is never closed`);
-      out += " ".repeat(label[0].length) + "{" + preprocess(src.slice(open + 1, close), reserved) + "}";
+      if (src[close] !== "}") throw fail(i, `"${name}: {" is never closed`);
+      if (names.reserved.has(name)) throw fail(i, taken(name, "section"));
+      const line = atLine(src, i, "").line + before;
+      const was = names.used.get(name);
+      if (was) throw fail(i, `"${name}: {" — ${name} is already the name of a ${was.kind} (line ${was.line}). A section is a name too, so it needs one of its own.`);
+      names.used.set(name, { kind: "section", line });
+      const q = JSON.stringify(name);
+      out += `{var ${name}=$open(${q});` + pre(src.slice(open + 1, close), names, line - 1 + src.slice(i, open + 1).split("\n").length - 1) + `}${name}=$close(${q});`;
       i = close + 1;
       continue;
     }
     if (label && label[1] !== "default") {
       const name = label[1];
-      if (reserved.has(name)) throw atLine(src, i, `"${name}:" — ${name} is already a verb, so a layer can't take that name. Try ${name}1 or my${name[0].toUpperCase()}${name.slice(1)}.`);
+      if (names.reserved.has(name)) throw fail(i, taken(name, "layer"));
+      const was = names.used.get(name);
+      if (was?.kind === "section") throw fail(i, `"${name}:" — ${name} is already the name of a section (line ${was.line}), so a layer can't take it.`);
+      if (!was) names.used.set(name, { kind: "layer", line: atLine(src, i, "").line + before });
       i += label[0].length;
       const end = statementEnd(src, i);
       out += `var ${name} = $name(${JSON.stringify(name)}, ${src.slice(i, end)});`;

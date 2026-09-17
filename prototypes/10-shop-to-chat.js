@@ -4,7 +4,7 @@ title: text("Canvas tote", 28).below(bag, 20)
 price: text("$48 · two left in sand", 17).color("dim").below(title, 6)
 buy: pill("Message Addie", "plum").below(price, 28)
 seller: avatar("Addie Moreau", 36).at(330, 62).hide()
-chat: bubbles(5).at("center", 150).hide()
+chat: messages(5).at("center", 150).hide()
 
 between(() => {
   bag.size(44).at(24, 58).radius(12)

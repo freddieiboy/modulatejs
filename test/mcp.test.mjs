@@ -87,6 +87,18 @@ test("check: group() with nobody in it is an error; a group's verbs and and() ar
   assert.match(p(`a: box()\ng: group(a)\ng.wobble()`)[0], /^3: \.wobble\(\) is not a verb/);
 });
 
+test("check: a section is a group: its name takes verbs; not inside its own braces, not when it has no layers", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(p(`bubbles: {\n  a: circle()\n  b: circle()\n}\nbubbles.on("hold").scale(1.2)\ndrops: circle(4).around(bubbles, 6)\ndrops.on(bubbles.tap).show().fly(30)`), []);
+  assert.match(p(`blk: {\n  a: circle()\n}\nblk.wobble()`)[0], /^4: \.wobble\(\) is not a verb/);
+  assert.deepEqual(p(`blk: {\n  a: circle()\n  blk.hide()\n}`), ["3: blk isn't finished yet — use it below the closing brace"]);
+  assert.deepEqual(p(`init: { device("iphone") }\ninit.hide()`), ["2: init has no layers in it, so init.hide() does nothing"]);
+  assert.match(p(`a: box()\na: {\n  b: box()\n}`)[0], /^2: "a: \{" — a is already the name of a layer \(line 1\)/);
+  const old = lint(`chat: bubbles(4)`, vocab);
+  assert.deepEqual(old.problems, []);
+  assert.match(old.warnings[0].message, /bubbles\(\) is now messages\(\)/);
+});
+
 test("check: toss, walls and bump are known; toss() with release() on one chain is flagged with the line", () => {
   const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
   assert.deepEqual(p(`a: circle(60)\nb: circle(90)\ng: group(a, b)\ng.drift(12).drag().toss(.3).walls()\ng.bump()\na.on("tap").scale(1.2).release("bounce")`), []);

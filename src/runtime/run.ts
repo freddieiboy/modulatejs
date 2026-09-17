@@ -15,6 +15,44 @@ function $name(name: string, value: any) {
   return value;
 }
 
+// ——— sections. `draw: { … }` runs as { var draw = $open("draw"); … } draw = $close("draw");
+// While it is open, every layer made is noted; when it closes, the ones standing on their own (not riding on
+// another layer, not thrown away) are its members, and the name becomes a group of them.
+const opened: { name: string; made: any[] }[] = [];
+
+function $open(name: string) {
+  opened.push({ name, made: [] });
+  const say = () => {
+    throw new Error(`${name} isn't finished yet — use it below the closing brace`);
+  };
+  return new Proxy(function () {}, { get: say, set: say, has: say, apply: say });
+}
+
+function $close(name: string) {
+  const s = opened.pop()!;
+  const st = stage();
+  const members = s.made.filter((l) => !l.parent && st.layers.includes(l));
+  if (members.length) {
+    const g: any = api.group(...members);
+    g.label = name;
+    return g;
+  }
+  // init: and update: are folds with nothing in them. A verb on one is a slip, and says so.
+  const quiet = new Set(["then", "toJSON", "constructor"]);
+  return new Proxy(
+    {},
+    {
+      get(_t, prop) {
+        if (typeof prop !== "string" || quiet.has(prop)) return undefined;
+        if (["tap", "hold", "snapped", "tapped", "members"].includes(prop)) throw new Error(`${name} has no layers in it, so ${name}.${prop} is nothing`);
+        return () => {
+          throw new Error(`${name} has no layers in it, so ${name}.${prop}() does nothing`);
+        };
+      },
+    }
+  );
+}
+
 export interface RunResult {
   ok: boolean;
   error?: string;
@@ -23,19 +61,23 @@ export interface RunResult {
 }
 
 let api: Record<string, any> = {};
-export function setApi(a: Record<string, any>) {
-  api = a;
+let retired = new Set<string>();
+export function setApi(a: Record<string, any>, old: Record<string, any> = {}) {
+  api = { ...a, ...old };
+  retired = new Set(Object.keys(old));
 }
 
 function compile(code: string): Function {
   const names = Object.keys(api);
-  const js = preprocess(code, new Set(names));
-  return new Function(...names, "$name", "screen", js);
+  const js = preprocess(code, new Set(names.filter((n) => !retired.has(n)))); // a retired word still runs, but no longer holds its name
+  // named, so an error's line can be found in the stack whatever else is on it (the runtime itself may be eval'd)
+  return new Function(...names, "$name", "$open", "$close", "screen", js + "\n//# sourceURL=prototype.js");
 }
 
 function describe(e: any): RunResult {
   const message = String(e?.message ?? e);
-  const m = e instanceof SyntaxError ? null : /<anonymous>:(\d+):\d+/.exec(String(e?.stack ?? ""));
+  const stack = String(e?.stack ?? "");
+  const m = e instanceof SyntaxError ? null : /prototype\.js:(\d+):\d+/.exec(stack) ?? /<anonymous>:(\d+):\d+/.exec(stack);
   const line: number | undefined = e?.line ?? (m ? Math.max(1, parseInt(m[1], 10) - 2) : undefined);
   return { ok: false, error: line ? `line ${line}: ${message}` : message, line };
 }
@@ -73,8 +115,10 @@ export function run(code: string, target?: HTMLElement): RunResult {
   }
   const st = mountStage(target ?? (hasStage() ? stage().mount : document.body));
   resetContent();
+  opened.length = 0;
+  st.made = (l: any) => opened.forEach((s) => s.made.push(l));
   try {
-    fn(...Object.values(api), $name, { get w() { return st.W; }, get h() { return st.H; } });
+    fn(...Object.values(api), $name, $open, $close, { get w() { return st.W; }, get h() { return st.H; } });
     st.commit();
     return { ok: true, device: shape(st) };
   } catch (e) {

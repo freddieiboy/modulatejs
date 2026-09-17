@@ -4,7 +4,7 @@ import { Value, modulate } from "./value";
 import { Layer, Group, VERBS } from "./layer";
 import { Reaction, between } from "./reaction";
 import { Driver, tap, hold, drag, scroll, time, lfo, page } from "./drivers";
-import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar } from "./pieces";
+import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar } from "./pieces";
 import { theme, palette } from "./theme";
 import { presets, presetTable } from "./presets";
 import { provider, bank, content } from "./content";
@@ -19,11 +19,14 @@ export const version: string = __VERSION__;
 
 // what a prototype can say without importing anything
 export const vocabulary = {
-  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar, group,
+  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, theme, content, provider,
 };
-setApi(vocabulary);
+// bubbles() was the conversation's first name. It gave the name up (it is too good a name for a layer or a
+// section), but links made with it still run.
+export const retired = { bubbles: messages };
+setApi(vocabulary, retired);
 
 export function install(target: any = globalThis) {
   for (const k in vocabulary) target[k] = (vocabulary as any)[k];
@@ -33,7 +36,7 @@ export function install(target: any = globalThis) {
 export const mount = (el: HTMLElement) => mountStage(el);
 
 export {
-  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar,
+  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage,

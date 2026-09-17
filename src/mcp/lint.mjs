@@ -3,7 +3,7 @@
 import { parse } from "acorn";
 import { preprocess } from "../runtime/preprocess";
 
-const JS_GLOBALS = new Set(["Math", "Number", "String", "Boolean", "Array", "Object", "JSON", "Date", "Map", "Set", "Promise", "Symbol", "RegExp", "Error", "parseInt", "parseFloat", "isNaN", "isFinite", "console", "setTimeout", "setInterval", "clearTimeout", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "fetch", "structuredClone", "queueMicrotask", "performance", "navigator", "document", "window", "globalThis", "alert", "screen", "Modulate", "$name", "undefined", "NaN", "Infinity"]);
+const JS_GLOBALS = new Set(["Math", "Number", "String", "Boolean", "Array", "Object", "JSON", "Date", "Map", "Set", "Promise", "Symbol", "RegExp", "Error", "parseInt", "parseFloat", "isNaN", "isFinite", "console", "setTimeout", "setInterval", "clearTimeout", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "fetch", "structuredClone", "queueMicrotask", "performance", "navigator", "document", "window", "globalThis", "alert", "screen", "Modulate", "$name", "$open", "$close", "undefined", "NaN", "Infinity"]);
 
 function distance(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
@@ -74,16 +74,34 @@ export function lint(code, vocab) {
   walk(ast, (n) => {
     if (n.type === "VariableDeclarator" && n.id.type === "Identifier") {
       declared.add(n.id.name);
-      if (n.init?.type === "CallExpression" && n.init.callee.name === "$name") layers.add(n.id.name);
+      if (n.init?.type === "CallExpression" && (n.init.callee.name === "$name" || n.init.callee.name === "$open")) layers.add(n.id.name);
     } else if (n.type === "FunctionDeclaration" && n.id) declared.add(n.id.name);
     if (/Function/.test(n.type)) for (const p of n.params) walk(p, (q) => q.type === "Identifier" && declared.add(q.name));
     if (n.type === "CatchClause" && n.param?.type === "Identifier") declared.add(n.param.name);
+  });
+
+  // sections: name: { … } arrives here as { var name = $open("name"); … }. Inside its own braces the name isn't
+  // ready; and one with no piece made in it is only a fold, so a verb on it would do nothing.
+  const emptySections = new Set();
+  const pieces = new Set(vocab.pieces ?? []);
+  walk(ast, (n) => {
+    const first = n.type === "BlockStatement" && n.body[0];
+    if (!first || first.type !== "VariableDeclaration" || first.declarations[0]?.init?.callee?.name !== "$open") return;
+    const name = first.declarations[0].id.name;
+    let makes = false;
+    for (const st of n.body.slice(1))
+      walk(st, (q) => {
+        if (q.type === "CallExpression" && q.callee.type === "Identifier" && (pieces.has(q.callee.name) || q.callee.name === "bubbles") && q.callee.name !== "group") makes = true;
+        if (q.type === "MemberExpression" && q.object.type === "Identifier" && q.object.name === name) problems.push({ line: q.loc.start.line, message: `${name} isn't finished yet — use it below the closing brace` });
+      });
+    if (!makes) emptySections.add(name);
   });
 
   walk(ast, (n) => {
     if (n.type !== "CallExpression") return;
     const c = n.callee, line = n.loc.start.line;
     if (c.type === "Identifier") {
+      if (c.name === "bubbles" && !declared.has("bubbles")) return void warnings.push({ line, message: "bubbles() is now messages(): it still runs, but the name has gone to layers and sections" });
       if (c.name === "group" && !n.arguments.length) problems.push({ line, message: "group() needs members: group(room, path, park)" });
       if (declared.has(c.name) || globals.has(c.name) || JS_GLOBALS.has(c.name)) return;
       const hint = nearest(c.name, vocab.globals);
@@ -92,6 +110,7 @@ export function lint(code, vocab) {
       const root = rootOfChain(c.object);
       if (!root || !(globals.has(root) || layers.has(root))) return; // someone else's object: not ours to judge
       const name = c.property.name;
+      if (emptySections.has(root) && c.object.type === "Identifier") return void problems.push({ line, message: `${root} has no layers in it, so ${root}.${name}() does nothing` });
       if (name === "toss" || name === "release") {
         // on a free drag, release() goes home and toss() goes on: a chain gets one or the other
         const other = name === "toss" ? "release" : "toss";

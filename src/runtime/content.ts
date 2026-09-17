@@ -45,7 +45,7 @@ export function resetContent() {
 
 // content({ titles: "Canvas tote, Stone mug", prices: ["$48", "$22"] })
 // Your words instead of the bank's. Set it once, on the first line; every piece that
-// fills itself (card, text, avatar, bubbles, sheet) draws from it, in order.
+// fills itself (card, text, avatar, messages, sheet) draws from it, in order.
 export function content(yours: Partial<Record<keyof Bank, string | string[]>>) {
   if (!yours || typeof yours !== "object" || Array.isArray(yours)) throw new Error(`content() takes your words by kind: content({ titles: "Canvas tote, Stone mug", prices: "$48, $22" })`);
   for (const [kind, value] of Object.entries(yours)) {

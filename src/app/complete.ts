@@ -47,7 +47,7 @@ function callable(name: string, boost = 0, type = "function"): Completion {
 }
 
 // the layers this prototype has named:  heart: circle(72)
-const labels = (doc: string) => [...new Set([...doc.matchAll(/^[ \t]*([A-Za-z_$][\w$]*)[ \t]*:(?!:)(?![ \t]*\{)/gm)].map((m) => m[1]))];
+const labels = (doc: string) => [...new Set([...doc.matchAll(/^[ \t]*([A-Za-z_$][\w$]*)[ \t]*:(?!:)/gm)].map((m) => m[1]))];
 
 function rootOfChain(state: any, node: any): string | null {
   for (let n = node; n; ) {

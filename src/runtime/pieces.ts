@@ -253,7 +253,7 @@ export function grid(...args: any[]): Layer {
   return new Group("grid", items, nums[0] ?? 3);
 }
 
-export function bubbles(...args: any[]): Layer {
+export function messages(...args: any[]): Layer {
   const { nums, strs } = sort(args);
   const lines = strs.length ? strs : Array.from({ length: nums[0] ?? 5 }, () => next("lines"));
   const W = Math.min(stage().W - 48, 420);
@@ -274,7 +274,7 @@ export function bubbles(...args: any[]): Layer {
     t.v.y.jump(10);
     return b;
   });
-  const g = new Group("bubbles", items);
+  const g = new Group("messages", items);
   let y = 0;
   items.forEach((b, i) => {
     b.placeOp = null;

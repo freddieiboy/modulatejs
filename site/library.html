@@ -39,7 +39,7 @@
       <section id="reads" class="prose">
         <h2>How it reads</h2>
 <pre><code id="reads-code"></code></pre>
-        <p>A <b>name and a colon</b> makes a layer you can refer to. A <b>piece</b> draws it, <b>verbs</b> chain on it, and after <b><code>.on(driver)</code></b> the verbs describe the other state instead. That is the whole model. It is JavaScript underneath, so anything else you need is there, and <code>init:</code> <code>draw:</code> <code>update:</code> blocks are optional labels for keeping a longer one tidy.</p>
+        <p>A <b>name and a colon</b> always means <i>this name refers to what follows</i>: a layer, or with braces a <b>section</b>, which is a group of every layer made inside it (<code>draw.drift(8)</code> floats them all). A <b>piece</b> draws a layer, <b>verbs</b> chain on it, and after <b><code>.on(driver)</code></b> the verbs describe the other state instead. That is the whole model. It is JavaScript underneath, so anything else you need is there.</p>
       </section>
       <nav class="toc" id="toc"></nav>
       <main id="sections"></main>

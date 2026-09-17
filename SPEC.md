@@ -17,9 +17,9 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 ## How a prototype reads
 
 - It is JavaScript. Pieces are functions that return a layer; verbs chain and return the layer.
-- `heart: circle(72)` names the layer and makes `heart` a variable. A name can't be a verb (`sheet: sheet()` is an error; use `filters: sheet()`).
+- A colon always means *this name refers to what follows*. `heart: circle(72)` names the layer and makes `heart` a variable. A name can't be a verb (`sheet: sheet()` is an error; use `filters: sheet()`).
 - The screen is **390 points wide and 844 tall** unless `device()` says otherwise (on a real phone, as tall as the phone allows; `screen.w`, `screen.h`). Origin top-left. Safe areas: 59 top, 34 bottom.
-- `init: { … }` is a **section**: a label on a block. Sections group lines and fold in the editor, and change nothing about how the code runs.
+- `name: { … }` is a **section**: a fold in the editor and a group of every layer made inside it. `init:` and `update:` are the same thing with nothing in them.
 - Every piece looks finished with no arguments and **starts centred on the screen**.
 - In a piece's arguments, **numbers are sizes, strings are content or colour, layers become children**, in any order: `circle(72, "plum")`, `card(photo, title)`, `pill("Follow", "coral")`.
 - Anywhere a number goes, a **Value** (from `modulate`) or a **pattern** string can go.
@@ -44,9 +44,18 @@ draw: {                     // what is on the screen: pieces and where they sit
 update: {                   // what changes: on(), between(), drag()
   heart.on("tap").spring("pop", 1.3)
 }
+
+draw.drift(6)               // a section's name is a group of what was made in it
 ```
 
 There is no frame loop to write. `draw` is declared once and the runtime keeps it on screen; `update` declares how drivers move it, and the runtime does the moving. The names are a convention, not keywords: any `name: { … }` is a section.
+
+**A section is a group.** Its lines run where they are, exactly as if the braces weren't there, and from the line after the closing brace its name is a `group()` of the layers made inside: every verb runs on each member, a `"<…>"` pattern is read per member, `bubbles.on("tap")` is each member's own tap, `bubbles.tap` fires when any of them is tapped, `around(bubbles, n)` rings each one. The members are the layers that stand on their own; one that rides on another (`icon` above, centred on `heart`) goes where that one goes and isn't counted twice. Feel lines inside a block add nothing to it.
+
+- Sections nest: in `screen: { header: { … }  list: { … } }`, `header` has its own layers and `screen` has everything in both.
+- Inside its own braces the name isn't ready: *"bubbles isn't finished yet — use it below the closing brace"*.
+- A section's name follows the rules for a layer's: not a verb, and not a name a layer or another section in the file already has.
+- A section with no layers in it (`init`, `update`) is only a fold, and a verb on it is an error rather than nothing: *"init has no layers in it, so init.hide() does nothing"*.
 
 What belongs in `init`, with its defaults:
 
@@ -109,21 +118,22 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `row(...layers)` · `row(n, layer)` | side by side, gap 12 |
 | `stack(...layers)` · `stack(n, layer)` | top to bottom, gap 12 |
 | `grid(cols = 3, rows = 3, layer = box(88))` | a grid, gap 12 |
-| `bubbles(n = 5)` · `bubbles("line", "line", …)` | a chat: grey on the left, plum on the right, words from the bank |
+| `messages(n = 5)` · `messages("line", "line", …)` | a conversation: grey on the left, plum on the right, words from the bank. (It used to be `bubbles()`; old links still run, and `bubbles` is free to be a name) |
 | `sheet(...words and children)` | bottom sheet, 560 tall, resting with 96 showing. What you give it stacks in the order written; strings are its words (a title, a dim line, then body). `rise()` lifts it fully, `rise("half")` to the middle of the screen |
 | `tabbar("Home Search Inbox Me")` | bottom tabs with a sliding indicator; `tabs.page` is its driver |
-| `group(a, b, c, …)` | a named set of layers you already made; `.and(d)` makes a bigger one. It is not a layer: no box, no colour of its own, and a layer can be in several. Every verb runs on each member: `floaters.color("coral")`. A `"<…>"` pattern is read per member, cycling (`.y("<-20 -14 -9>")`; `~` leaves a member alone), and so is a driver's: `lfo("<.08 .11 .13>")` is one oscillator each. `on("tap")` is each member's own tap; `floaters.tap` fires for another layer when any member is tapped, and `floaters.tapped` is which. Placing verbs (`at`, `center`, `below`…) place the first member and leave the rest, so a change shifts each from its own place. `stagger(s)` starts each member s later than the one before. `circle(7).around(floaters, 10)` makes a ring round every member, as a group that matches it member for member, so `drops.on(floaters.tap)` flies only the ring of the one that was tapped |
+| `group(a, b, c, …)` | a named set of layers you already made, for a set that doesn't match a block (a section, `name: { … }`, is the same thing for the layers made together); `.and(d)` makes a bigger one. It is not a layer: no box, no colour of its own, and a layer can be in several. Every verb runs on each member: `floaters.color("coral")`. A `"<…>"` pattern is read per member, cycling (`.y("<-20 -14 -9>")`; `~` leaves a member alone), and so is a driver's: `lfo("<.08 .11 .13>")` is one oscillator each. `on("tap")` is each member's own tap; `floaters.tap` fires for another layer when any member is tapped, and `floaters.tapped` is which. Placing verbs (`at`, `center`, `below`…) place the first member and leave the rest, so a change shifts each from its own place. `stagger(s)` starts each member s later than the one before. `circle(7).around(floaters, 10)` makes a ring round every member, as a group that matches it member for member, so `drops.on(floaters.tap)` flies only the ring of the one that was tapped |
 
 Three verbs name a point, and they don't all mean the same corner of a layer: `at(x, y)` is where its **top-left** goes; `center()` and the points in `snap()` are where its **centre** goes; `origin()` is a point inside it.
 
-`row`, `stack`, `grid`, `bubbles` and `around` make **containers**: many layers in one box that is placed and moved as one. Look verbs on a container reach its children (and read a `"<…>"` pattern per child); with `stagger()` or `peak()` so do feel verbs. `group()` is the other kind of many: a plain set, no box, every verb on every member.
+`row`, `stack`, `grid`, `messages` and `around` make **containers**: many layers in one box that is placed and moved as one. Look verbs on a container reach its children (and read a `"<…>"` pattern per child); with `stagger()` or `peak()` so do feel verbs. A section or a `group()` is the other kind of many: a plain set, no box, every verb on every member.
 
 ```js
 // three bubbles that float, can be thrown, stay on the screen and push each other
-a: circle(120, "sky").at(40, 120)
-b: circle(90, "plum").at(230, 260)
-c: circle(140, "mint").at(90, 480)
-things: group(a, b, c)
+things: {
+  a: circle(120, "sky").at(40, 120)
+  b: circle(90, "plum").at(230, 260)
+  c: circle(140, "mint").at(90, 480)
+}
 things.drift(12).drag().toss().walls()
 things.bump()
 ```
@@ -255,7 +265,7 @@ Before `.on()`, a cycle is 2 seconds (`.every(seconds)` changes it) and steps ar
 
 ## Demo content
 
-`text()`, `card()`, `image()`, `avatar()`, `sheet()` and `bubbles()` fill themselves from a built-in bank of names, prices, titles and chat lines, the same on every run. What you see with no arguments is demo content, never data.
+`text()`, `card()`, `image()`, `avatar()`, `sheet()` and `messages()` fill themselves from a built-in bank of names, prices, titles and chat lines, the same on every run. What you see with no arguments is demo content, never data.
 
 `content({ titles, prices, names, lines })` swaps in your words, once, on the first line, and everything below draws from them in order. A string splits on commas; an array is taken as it is.
 
@@ -319,7 +329,7 @@ map.on(item).blur(8).scale(.96)
 bag: image("tote", 300).at("center", 110)
 title: text("Canvas tote", 28).below(bag, 20)
 buy: pill("Message Addie", "plum").below(title, 28)
-chat: bubbles(5).at("center", 150).hide()
+chat: messages(5).at("center", 150).hide()
 
 between(() => {
   bag.size(44).at(24, 58).radius(12)

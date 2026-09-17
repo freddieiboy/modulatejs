@@ -5,7 +5,7 @@ home: box("sand", title, open).fill()
 
 back: text("‹ Inbox", 17).color("coral")
 subject: text("Saturday?", 28)
-body: bubbles(3)
+body: messages(3)
 detail: box("white", back, subject, body).fill().x(390)
 
 between(() => {

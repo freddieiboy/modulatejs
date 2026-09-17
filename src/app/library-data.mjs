@@ -4,12 +4,16 @@
 // be complete. Every example runs in the test suite.
 
 // the first thing on the page, and what the phone shows before anything is chosen
-export const hello = `heart: circle(96, "coral")
-icon: emoji("♥", 40).center(heart)
+export const hello = `draw: {
+  heart: circle(96, "coral")
+  icon: emoji("♥", 40).center(heart)
+  dots: row(3, circle(10, "grey")).at("center", 560)
+}
 burst: circle(7, "coral").around(heart, 10).hide()
 
 heart.on("tap").spring("pop", 1.3)
-burst.on(heart.tap).show().fly(48).fade().stagger(.02)`;
+burst.on(heart.tap).show().fly(48).fade().stagger(.02)
+draw.drift(8)`;
 
 export const sections = [
   {
@@ -21,8 +25,8 @@ export const sections = [
       { verbs: "image · avatar", text: "A photo by seed, a face by name, each on a placeholder that is the design when the network is off. A URL or a file name is your own picture, shown as it is: drop one onto coral and a transparent PNG stays transparent.", code: `stack(image("harbour", 300, 200), row(avatar("Addie Moreau"), avatar("Kenji Sato"), avatar("Noor Haddad")))` },
       { verbs: "card · content", text: "A card stacks what you give it; strings are its words. With nothing, the words come from a demo bank, and content() swaps in yours.", code: `content({ titles: "Canvas tote, Stone mug, Linen apron", prices: "$48, $22, $65" })\nstack(3, card()).gap(16).scale(.72)` },
       { verbs: "sheet", text: "Reads the way you would describe it: what goes in it, in order, how far it rises, how it lets go.", code: `buttons: row(pill("Cancel", "fill"), pill("Add to bag", "coral")).spread()\nitem: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand")\n\nitem.on("tap").rise("half").drag("y").dismiss()` },
-      { verbs: "row · stack · grid · group", text: "row, stack and grid lay layers out. A group is only a name for layers you already made: every verb runs on each member, and a \"<…>\" pattern gives each its own value.", code: `a: box(70, "coral").at(40, 200)\nb: box(70, "plum").at(160, 260)\nc: box(70, "mint").at(280, 200)\nall: group(a, b, c)\nall.radius("<8 35 20>").on(lfo("<.2 .3 .25>")).y("<-16 -10 -14>")\nall.on("tap").scale(1.4).fade().curve("out", .2)` },
-      { verbs: "tabbar · bubbles", text: "Bottom tabs whose .page is a driver anything can follow; bubbles(n) is a conversation.", code: `tabs: tabbar("Home Search Saved")\nscreens: row(3, card()).gap(48).at(24, 120)\nscreens.on(tabs.page).x(-2 * 390)` },
+      { verbs: "row · stack · grid · sections", text: "row, stack and grid lay layers out. A section, name: { … }, is a group of the layers made inside it (group(a, b) is the same for a set that isn't a block): every verb runs on each member, and a \"<…>\" pattern gives each its own value.", code: `all: {\n  a: box(70, "coral").at(40, 200)\n  b: box(70, "plum").at(160, 260)\n  c: box(70, "mint").at(280, 200)\n}\nall.radius("<8 35 20>").on(lfo("<.2 .3 .25>")).y("<-16 -10 -14>")\nall.on("tap").scale(1.4).fade().curve("out", .2)` },
+      { verbs: "tabbar · messages", text: "Bottom tabs whose .page is a driver anything can follow; messages(n) is a conversation.", code: `tabs: tabbar("Home Search Saved")\nscreens: row(3, card()).gap(48).at(24, 120)\nscreens.on(tabs.page).x(-2 * 390)` },
     ],
   },
   {

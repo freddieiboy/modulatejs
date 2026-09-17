@@ -37,6 +37,7 @@ export class Stage {
   ground: string | null = null;
   accent = "coral";
   layers: any[] = [];
+  made: ((l: any) => void) | null = null; // run.ts listens, to know which layers a section made
   reactions: any[] = [];
   cleanup: (() => void)[] = [];
   committed = false;

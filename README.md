@@ -14,7 +14,7 @@ heart.on("tap").spring("pop", 1.3)
 burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 ```
 
-Pieces that already look good (`card`, `sheet`, `bubbles`, `tabbar`…), drivers that all produce `t` from 0 to 1 (`tap`, `drag`, `scroll`, `page`, `time`…), and two states with a spring between them. The whole language is one page: **[SPEC.md](SPEC.md)**.
+Pieces that already look good (`card`, `sheet`, `messages`, `tabbar`…), drivers that all produce `t` from 0 to 1 (`tap`, `drag`, `scroll`, `page`, `time`…), and two states with a spring between them. The whole language is one page: **[SPEC.md](SPEC.md)**.
 
 The code lives in the URL fragment, so there is no login, no backend and nothing stored. A model that has read the spec can write a prototype and hand you a link; that is the point.
 

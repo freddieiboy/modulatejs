@@ -109,6 +109,7 @@ export class Layer {
     }
     st.view.appendChild(this.el);
     st.layers.push(this);
+    st.made?.(this);
     this.placeOp = (l) => l.placeCenter(null, null);
     this.invalidate();
   }

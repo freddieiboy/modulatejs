@@ -95,7 +95,7 @@ async function build() {
 
   // /vocab.json: every name the language has, for the lint, the MCP servers, and anyone's tooling
   const rt = await import(join(dist, "modulate.mjs") + "?" + Date.now());
-  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar", "group"];
+  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "messages", "sheet", "tabbar", "group"];
   const globals = Object.keys(rt.vocabulary);
   writeFileSync(join(site, "vocab.json"), JSON.stringify({
     version: pkg.version,
@@ -121,7 +121,7 @@ async function build() {
   const { sections, hello } = await import(join(root, "src/app/library-data.mjs") + "?" + Date.now());
   let md = "# ModulateJS — a lightweight prototyping library\n\nAbout eighty words for mobile-app feel, on Motion's animation engine: pieces that already look finished, two states, and a driver between them. This page is a short tour; every word, in full, is in [spec.md](https://modulatejs.com/spec.md). Every example runs as written: paste it into [coral.fm](https://coral.fm/).\n\n";
   md += "Install: `<script src=\"https://unpkg.com/modulatejs\"></script>` · `npm i modulatejs` · `npx modulatejs proto.js` · MCP: `npx -y modulatejs mcp` or `https://coral.fm/mcp`\n";
-  md += `\n## How it reads\n\n\`\`\`js\n${hello}\n\`\`\`\n\nA name and a colon makes a layer you can refer to. A piece draws it, verbs chain on it, and after \`.on(driver)\` the verbs describe the other state instead.\n`;
+  md += `\n## How it reads\n\n\`\`\`js\n${hello}\n\`\`\`\n\nA name and a colon always means \"this name refers to what follows\": a layer, or with braces a section, which is a group of every layer made inside it. A piece draws a layer, verbs chain on it, and after \`.on(driver)\` the verbs describe the other state instead.\n`;
   for (const sec of sections) {
     md += `\n## ${sec.title}\n\n${sec.intro}\n`;
     for (const it of sec.items) md += `\n### ${it.verbs}\n\n${it.text}\n\n\`\`\`js\n${it.code}\n\`\`\`\n`;

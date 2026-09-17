@@ -140,7 +140,7 @@ export function card(...args: PieceArg[]): Layer;
 export function row(...args: PieceArg[]): Layer;
 export function stack(...args: PieceArg[]): Layer;
 export function grid(...args: PieceArg[]): Layer;
-export function bubbles(...args: PieceArg[]): Layer;
+export function messages(...args: PieceArg[]): Layer;
 export function sheet(...args: PieceArg[]): Layer;
 export function tabbar(...names: string[]): Layer & { page: PageDriver };
 

@@ -516,7 +516,7 @@ const PICTURE = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
 function nameFor(fileName: string, taken: string): string {
   let id = fileName.replace(/\.[^.]+$/, "").replace(/[^A-Za-z0-9]+(.)?/g, (_m, c) => (c ? c.toUpperCase() : "")).replace(/^[^A-Za-z_]+/, "") || "picture";
   id = id[0].toLowerCase() + id.slice(1);
-  const verbs = new Set<string>(["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar", "tap", "hold", "drag", "scroll", "time", "lfo", "page", "between", "modulate", "device", "theme", "content", "provider"]);
+  const verbs = new Set<string>(["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "messages", "sheet", "tabbar", "tap", "hold", "drag", "scroll", "time", "lfo", "page", "between", "modulate", "device", "theme", "content", "provider"]);
   let out = verbs.has(id) ? id + "Pic" : id;
   // taken already? count up from whatever number it ends in: bubble, bubble2, bubble3
   const stem = out.replace(/\d+$/, ""), from = Number(/\d+$/.exec(out)?.[0] ?? 1);
