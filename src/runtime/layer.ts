@@ -602,10 +602,23 @@ verb("release", (L, ctx, name = "settle") => {
 // snap(): where a dragged layer goes when let go. release() is the spring; snap() is the place.
 //   snap(x, y) · snap([x, y], [x, y], …) · snap("edges" | "corners" | "x" | "y") · snap(layerA, layerB, …)
 const SNAP_WORDS = ["edges", "corners", "x", "y"];
+// one point: numbers, or "x" in the x slot / "y" in the y slot for an axis that stays where the finger left it
+function snapPoint(x: any, y: any): [number | null, number | null] {
+  const slot = (v: any, axis: "x" | "y") => {
+    if (typeof v === "number") return v;
+    if (v === axis) return null;
+    throw new Error(`snap(): the ${axis} of a point is a number, or "${axis}" to leave ${axis} where the finger left it` + (v === (axis === "x" ? "y" : "x") ? ` ("${v}" belongs in the other slot)` : ""));
+  };
+  const p: [number | null, number | null] = [slot(x, "x"), slot(y, "y")];
+  if (p[0] == null && p[1] == null) throw new Error(`snap("x", "y") leaves both axes free, so there is nowhere to go`);
+  return p;
+}
 verb("snap", (L, ctx, ...args: any[]) => {
   if (ctx) throw new Error("snap() is for a free drag. After .on(…) a drag scrubs the change, which already comes to rest at one end or the other");
   const snap: SnapConfig = { mode: "points", points: [], layers: [], start: false };
-  if (typeof args[0] === "string") {
+  if (args.length === 2 && !Array.isArray(args[0]) && !Array.isArray(args[1]) && (typeof args[0] === "number" || typeof args[1] === "number")) {
+    snap.points.push(snapPoint(args[0], args[1])); // snap(300, "y") · snap("x", 600) · snap(195, 120)
+  } else if (typeof args[0] === "string") {
     if (!SNAP_WORDS.includes(args[0])) throw new Error(`snap("${args[0]}"): the words are "edges", "corners", "x" and "y"; otherwise give it points or layers`);
     snap.mode = args[0] as any;
   } else if (typeof args[0] === "number") {
@@ -613,7 +626,7 @@ verb("snap", (L, ctx, ...args: any[]) => {
     snap.points.push([args[0], args[1]]);
   } else {
     for (const a of args) {
-      if (Array.isArray(a) && a.length === 2 && a.every((n) => typeof n === "number")) snap.points.push([a[0], a[1]]);
+      if (Array.isArray(a) && a.length === 2) snap.points.push(snapPoint(a[0], a[1]));
       else if (a && typeof a === "object" && "el" in rootOf(a)) snap.layers.push(rootOf(a));
       else throw new Error("snap(): give it points like [195, 120], or layers to land on");
     }

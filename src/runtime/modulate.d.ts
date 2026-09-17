@@ -103,9 +103,9 @@ export class Layer {
   rubberband(k?: number): this;
   release(preset?: Preset): this;
   dismiss(): this;
-  /** where a dragged layer goes when let go: a point (its centre), several points, "edges" | "corners" | "x" | "y", or layers to land on */
-  snap(x: number, y: number): this;
-  snap(...places: ([number, number] | Layer)[]): this;
+  /** where a dragged layer goes when let go: a point (its centre), several points, "edges" | "corners" | "x" | "y", or layers to land on. In a point, "x" or "y" in its own slot leaves that axis where the finger left it: snap(300, "y") */
+  snap(x: number | "x", y: number | "y"): this;
+  snap(...places: ([number | "x", number | "y"] | Layer)[]): this;
   snap(where: "edges" | "corners" | "x" | "y"): this;
   scrolls(): this;
 }

@@ -65,6 +65,41 @@ test('"edges" goes to the nearest edge and keeps the other axis exactly; "x" and
   near(s.centre(s.layer("p")), 285, 400, 'snap("y")');
 });
 
+test('snap(300, "y"): x goes to 300 exactly, y stays where the finger left it', async () => {
+  for (const to of [[-120, -300], [40, 12.5], [130, 260]]) {
+    const s = await scene(`p: circle(60).at(165, 370)\np.drag().snap(300, "y")`);
+    await s.drag(s.layer("p"), steps(to[0], to[1], 20));
+    near(s.centre(s.layer("p")), 300, 400 + to[1]);
+  }
+  const s = await scene(`p: circle(60).at(165, 370)\np.drag().snap("x", 600)`);
+  await s.drag(s.layer("p"), steps(-77, 40, 20));
+  near(s.centre(s.layer("p")), 195 - 77, 600, 'snap("x", 600)');
+});
+
+test("fixed and free points together: nearest counts a point's fixed axes only", async () => {
+  // a rail at x = 40 (any y), and a dock at 300, 700
+  const code = `p: circle(60).at(165, 370)\np.drag().snap([40, "y"], [300, 700])`;
+  let s = await scene(code);
+  await s.drag(s.layer("p"), steps(-30, 280, 20)); // to 165, 680: 125 from the rail, 136 from the dock
+  near(s.centre(s.layer("p")), 40, 680, "the rail, y kept");
+  s = await scene(code);
+  await s.drag(s.layer("p"), steps(60, 280, 20)); // to 255, 680: 215 from the rail, 49 from the dock
+  near(s.centre(s.layer("p")), 300, 700, "the dock");
+  s = await scene(code);
+  await s.drag(s.layer("p"), steps(-100, -350, 20)); // far from the dock in y, but y is free on the rail: 55 away
+  near(s.centre(s.layer("p")), 40, 50, "the rail, a long way up");
+});
+
+test("a point's slots are checked", async () => {
+  const { win } = await scene(`box()`);
+  const err = (code) => win.Modulate.run(code, win.document.body).error;
+  assert.match(err(`box().drag().snap("y", 600)`), /"y" belongs in the other slot/);
+  assert.match(err(`box().drag().snap([300, "x"])`), /"x" belongs in the other slot/);
+  assert.match(err(`box().drag().snap(["x", "y"])`), /nowhere to go/);
+  assert.equal(err(`box().drag().snap("x")`), undefined, 'snap("x") alone is still: x goes home, y stays');
+  assert.equal(err(`box().drag().snap([300, "y"], ["x", 600], [195, 120])`), undefined);
+});
+
 test("where it landed is where it lives: the next drag starts there and comes back there", async () => {
   const s = await scene(`p: circle(60).at(165, 370)\np.drag().snap("edges").release("settle")`);
   const p = s.layer("p");

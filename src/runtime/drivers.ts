@@ -110,7 +110,7 @@ export interface DragConfig {
 // snap(): the places a dragged layer can come to rest. Points are where its centre goes, in screen points.
 export interface SnapConfig {
   mode: "points" | "edges" | "corners" | "x" | "y";
-  points: [number, number][];
+  points: [number | null, number | null][]; // null: that axis stays where the finger left it
   layers: Layer[]; // drop targets: their centres, wherever they are at the moment of letting go
   start: boolean; // is where it was placed one of the places?
 }
@@ -285,7 +285,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     const heading = { x: at.x + vx * COAST, y: at.y + vy * COAST };
     const base = centreOf(L, true); // its centre with no drag offset: offsets below are measured from here
     const w = L.v.w.get(), h = L.v.h.get();
-    const places: { x: number; y: number; layer?: Layer }[] = [];
+    const places: { x: number; y: number; layer?: Layer; freeX?: boolean; freeY?: boolean }[] = [];
     if (snap.mode === "x") places.push({ x: 0, y: at.y });
     else if (snap.mode === "y") places.push({ x: at.x, y: 0 });
     else if (snap.mode === "edges" || snap.mode === "corners") {
@@ -295,7 +295,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
       if (snap.mode === "edges") places.push({ x: left, y: keepY }, { x: right, y: keepY }, { x: keepX, y: top }, { x: keepX, y: bottom });
       else places.push({ x: left, y: top }, { x: right, y: top }, { x: left, y: bottom }, { x: right, y: bottom });
     } else {
-      for (const [x, y] of snap.points) places.push({ x: x - base.x, y: y - base.y });
+      for (const [x, y] of snap.points) places.push({ x: x == null ? at.x : x - base.x, y: y == null ? at.y : y - base.y, freeX: x == null, freeY: y == null });
       for (const t of snap.layers) {
         if (t === L) continue; // itself means where it started, below
         const c = centreOf(t);
@@ -305,7 +305,8 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     }
     let best = places[0], near = Infinity;
     for (const p of places) {
-      const d = Math.hypot(p.x - heading.x, p.y - heading.y);
+      // a free axis has no opinion about which place is nearest
+      const d = Math.hypot(p.freeX ? 0 : p.x - heading.x, p.freeY ? 0 : p.y - heading.y);
       if (d < near) (best = p), (near = d);
     }
     if (!best) return;
