@@ -91,6 +91,7 @@ export class Layer {
   baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
   private originWatch: (() => void)[] = [];
+  channels: Record<string, any> = {}; // per property, what the reactions that touch it add up to (reaction.ts)
   shadowUp = false; // a sheet's shadow falls upward
   private shadowDrawn = 0;
   private dirty = false;
@@ -150,7 +151,7 @@ export class Layer {
     const o = g("opacity");
     s.opacity = String(o);
     s.pointerEvents = o < 0.02 || this.inert ? "none" : "auto";
-    s.zIndex = String(g("z"));
+    s.zIndex = String(Math.round(g("z"))); // a spring takes z through fractions, which CSS would ignore
     // glass with no colour of its own chosen is a translucent surface, so the frost reads; a colour you gave stays as given
     if (this.colorMode === "bg") s.backgroundColor = frost > 0.01 && this.colorAuto ? withAlpha("surface", 1 - 0.4 * Math.min(1, frost / 10)) : g("color");
     else if (this.colorMode === "text") s.color = g("color");

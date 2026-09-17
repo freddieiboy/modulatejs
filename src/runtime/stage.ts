@@ -104,6 +104,7 @@ export class Stage {
     clearTimeout(this.commitTimer);
     this.commitTimer = null;
     for (const r of this.reactions) r.build();
+    for (const r of this.reactions) r.wire();
     for (const l of this.layers) l.start?.();
     if (!this.drifting) (this.drifting = true), startDrift(this.layers), startPhysics(this.layers);
   }

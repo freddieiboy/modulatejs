@@ -26,12 +26,61 @@ export interface Target {
   into?: Layer;
 }
 
+// One reaction's say over one property. `to` and `weight` are there when it is a plain from → to, which is
+// what lets it be mixed with others; a track with a shape of its own (show-then-fade) only has its map.
+interface Track {
+  prop: string;
+  map: (t: number) => any;
+  rx: Reaction;
+  t: number;
+  to?: any;
+  weight?: (t: number) => number;
+  still?: boolean; // from and to are the same: alone, it has nothing to say
+}
+
+// Everything that reactions want of one property of one layer, settled into the one value the layer gets.
+//   one track                 what it says, as ever
+//   continuous drivers        (lfo, time, scroll, drag, page) add up: each brings its distance from rest
+//   a state                   (hold, tap, a Value…) takes over from all of that by as much as it is on: at 1 the
+//                             property is the state's, whatever the lfo is doing; on the way back the lfo's share
+//                             returns with the state's own way home, from wherever the lfo has got to meanwhile
+// States declared later take over from states declared earlier.
+const CONTINUOUS = new Set(["lfo", "time", "scroll", "drag", "page"]);
+class Channel {
+  tracks: Track[] = [];
+  constructor(private layer: Layer, private prop: string, public base: any) {}
+  update() {
+    const ts = this.tracks, val = this.layer.v[this.prop];
+    if (ts.length === 1) return void (ts[0].still || val.set(ts[0].map(ts[0].t)));
+    const numeric = typeof this.base === "number";
+    let v = this.base;
+    for (const k of ts) {
+      if (k.rx.discrete) continue;
+      const m = k.map(k.t);
+      v = numeric && typeof m === "number" ? v + (m - this.base) : m;
+    }
+    for (const k of ts) {
+      if (!k.rx.discrete) continue;
+      const plain = k.weight != null;
+      const w = plain ? k.weight!(k.t) : Math.max(0, Math.min(1, k.t / 0.05));
+      if (w === 0) continue;
+      const to = plain ? k.to : k.map(k.t);
+      if (numeric && typeof to === "number") v = v + (to - v) * w;
+      else v = w >= 1 ? to : w <= 0 ? v : mapRange([0, 1], [v, to])(w);
+    }
+    val.set(v);
+  }
+}
+function channelOf(layer: Layer, prop: string): Channel {
+  return (layer.channels[prop] ??= new Channel(layer, prop, layer.v[prop].get()));
+}
+
 interface Entry {
   layer: Layer;
   index: number;
   count: number;
   t: Value;
-  tracks: { prop: string; map: (t: number) => any }[];
+  tracks: Track[];
   peak: boolean;
   stagger: number;
 }
@@ -76,6 +125,7 @@ export class Reaction extends Driver {
   comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
   private returning: (() => void) | null = null;
   drivers: Driver[] = [];
+  discrete = true; // a state, rather than something that follows a continuous driver: see Channel
   goal = 0;
   fires = 0;
   built = false;
@@ -225,7 +275,7 @@ export class Reaction extends Driver {
       if (tg.into) {
         const other = tg.into;
         other.v.opacity.jump(0);
-        this.entries.push({ layer: other, index: 0, count: 1, t: new Value(0), peak: false, stagger: 0, tracks: [{ prop: "opacity", map: mapRange([0.45, 1], [0, 1]) }] });
+        this.entries.push({ layer: other, index: 0, count: 1, t: new Value(0), peak: false, stagger: 0, tracks: [this.track(other, "opacity", mapRange([0.45, 1], [0, 1]))] });
         layer.v.z.jump(40);
         other.v.z.jump(50);
         this.drive(resolveDriver("tap", other));
@@ -241,6 +291,15 @@ export class Reaction extends Driver {
     this.transient = vanishes;
     this.comesBack = vanishes && this.entries.some((e) => (opacityAt(e, 0) ?? 1) >= 0.02);
 
+    this.discrete = !this.drivers.length || this.drivers.some((d) => !CONTINUOUS.has(d.kind));
+  }
+
+  // Listening starts only when every reaction has been built: a driver that is already somewhere (an lfo, a
+  // scroll) moves its layers at once, and nothing should mistake that for where they rest.
+  private wired = false;
+  wire() {
+    if (this.wired) return;
+    this.wired = true;
     for (const e of this.entries) e.t.on((t) => this.apply(e, t));
     for (const d of this.drivers) {
       if (d.played)
@@ -258,10 +317,13 @@ export class Reaction extends Driver {
 
   private entry(layer: Layer, tg: Target, index: number, count: number): Entry {
     const [a, b] = tg.range ?? [0, 1];
-    const tracks: Entry["tracks"] = [];
-    const add = (prop: string, to: any, from: any = layer.v[prop].get(), lo = a, hi = b) => {
-      if (from === to) return;
-      tracks.push({ prop, map: springy(prop, lo, hi, from, to) });
+    const tracks: Track[] = [];
+    // rest is what the property was before any reaction touched it, which its channel remembers
+    const add = (prop: string, to: any, from?: any, lo = a, hi = b) => {
+      const rest = channelOf(layer, prop).base;
+      const k = this.track(layer, prop, springy(prop, lo, hi, from ?? rest, to));
+      if (from === undefined || from === rest) (k.to = to), (k.weight = springy(prop, lo, hi, 0, 1)), (k.still = rest === to);
+      tracks.push(k);
     };
     const props = { ...tg.props };
     if ((layer.kind === "text" || layer.kind === "emoji") && props.w != null) {
@@ -276,7 +338,7 @@ export class Reaction extends Driver {
     const base = layer.v.opacity.get();
     const hidden = base < 0.02;
     if (tg.props.opacity != null) add("opacity", tg.props.opacity);
-    else if (tg.show && tg.fade) tracks.push({ prop: "opacity", map: mapRange([a, a + (b - a) * 0.06, a + (b - a) * 0.45, b], [base, 1, 1, 0]) });
+    else if (tg.show && tg.fade) tracks.push(this.track(layer, "opacity", mapRange([a, a + (b - a) * 0.06, a + (b - a) * 0.45, b], [base, 1, 1, 0])));
     else if (tg.show) add("opacity", 1, base, a, a + (b - a) * 0.2);
     else if (tg.fade || (tg.rise != null && hidden)) add("opacity", hidden ? 1 : 0);
 
@@ -305,8 +367,14 @@ export class Reaction extends Driver {
     return e;
   }
 
+  private track(layer: Layer, prop: string, map: (t: number) => any): Track {
+    const k: Track = { prop, map, rx: this, t: 0 };
+    channelOf(layer, prop).tracks.push(k);
+    return k;
+  }
+
   private apply(e: Entry, t: number) {
-    for (const k of e.tracks) e.layer.v[k.prop].set(k.map(t));
+    for (const k of e.tracks) (k.t = t), e.layer.channels[k.prop].update();
   }
 
   // where an entry sits for a given main t

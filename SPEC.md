@@ -84,6 +84,14 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | another layer: `.on(sheet)` | follow that layer's own `.on()` | its t |
 | a Value | anything from `modulate()` | the value |
 
+**Several changes on one property.** Continuous drivers (`lfo`, `time`, `scroll`, `page`, a drag) add up: each brings its distance from rest. A state (`hold`, `tap`, another layer, a Value) takes the property over from all of that for as long as it is on, and at its own speed; when it lets go, what it interrupted comes back with the state's way home, from wherever it has got to meanwhile. Of two states, the one written later is on top.
+
+```js
+b: circle(160, "coral").center()
+b.on(lfo(.2)).blur(6)               // drifts in and out of focus by itself
+b.on("hold").scale(1.2).blur(0)     // sharp under a finger, whatever the lfo is doing
+```
+
 Two rules for taps. **A tap plays the change; tapping again plays it back.** A change that is only a spring kick (`.on("tap").spring("pop", 1.3)`) or that ends with everything in it invisible **rewinds by itself**, so it can play again: a hidden burst (`.show().fly(40).fade()`) at once, and a visible layer that pops (`.on("tap").scale(1.3).fade()`) a second later, snapping back the way `dismiss()` does. A layer that fades as one part of a bigger `between()` stays a toggle.
 
 ## Pieces
