@@ -1,0 +1,38 @@
+# modulate
+
+> modulatejs.com is a runtime and a small app for prototyping mobile-app feel. You write ten to fifteen lines in a toy vocabulary (pieces, drivers, springs, on top of Motion's animation engine), and the code itself becomes a link that runs in a device frame on the desktop and full screen on a phone. No login, no API, nothing stored: the link is the file.
+
+To hand someone a working prototype: read the spec, write the code, encode it into a link, reply with the link.
+
+## Read this first
+
+- [spec.md](https://modulatejs.com/spec.md): the whole vocabulary on one page, with defaults, the two-state model, drivers, patterns and the link scheme
+- [The ten prototypes](https://modulatejs.com/examples/index.json): a JSON list of files under /examples/, each under fifteen lines, e.g. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js), [bottom sheet](https://modulatejs.com/examples/03-sheet.js), [like button](https://modulatejs.com/examples/07-like-button.js), [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js)
+
+## Making a link
+
+A link is `https://modulatejs.com/#1` followed by the source compressed with lz-string's `compressToEncodedURIComponent`. `1` is the format version.
+
+```js
+import LZ from "lz-string"
+const link = "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code)
+```
+
+- [link.mjs](https://modulatejs.com/link.mjs): the same encoder as a dependency-free ES module exporting `encode(code)`, `decode(fragment)`, `link(code)`
+- From a shell: `npx modulatejs link proto.js`
+
+## Rules of thumb
+
+- Every piece looks finished with no arguments and starts centred; write less than you think you need
+- `name: piece()` names a layer; a name can't be a verb (`filters: sheet()`, not `sheet: sheet()`)
+- After `.on(driver)` or inside `between(() => { … })`, verbs describe the other state; never animate by hand
+- Presets are frozen: pop, settle, snappy, lazy, bounce
+- Place a layer after the layers it refers to
+- Keep it under fifteen lines and check it against the spec's tables before replying
+
+## Optional
+
+- [library.md](https://modulatejs.com/library.md): every verb with a paragraph and a one-line example
+- [modulate.js](https://modulatejs.com/modulate.js): the runtime, one file, MIT, `Modulate.run(code, element)`
+- `npx modulatejs proto.js`: the editor on a file on disk, mirrored live to phones on the same network (for working with Claude Code)
+- Rooms (watching a model edit live) and published short links are not live yet

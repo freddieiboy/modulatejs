@@ -1,0 +1,328 @@
+import { Value } from "./value";
+import { mapRange, Transition } from "./engine";
+import { preset, curve as makeCurve } from "./presets";
+import { stage } from "./stage";
+import { resolveColor } from "./theme";
+import type { Layer } from "./layer";
+import type { Pattern } from "./mini";
+import { Driver, resolveDriver } from "./drivers";
+
+// What a layer becomes at t = 1.
+export interface Target {
+  props: Record<string, any>;
+  patterns: Record<string, Pattern>;
+  show?: boolean;
+  fade?: boolean;
+  rise?: number;
+  fly?: number;
+  flyAngle?: number;
+  peak?: boolean;
+  stagger?: number;
+  range?: [number, number];
+  into?: Layer;
+}
+
+interface Entry {
+  layer: Layer;
+  index: number;
+  count: number;
+  t: Value;
+  tracks: { prop: string; map: (t: number) => any }[];
+  peak: boolean;
+  stagger: number;
+}
+
+let active: Reaction | null = null;
+export const capturing = () => active;
+
+const POSITION = new Set(["x", "y", "w", "h"]);
+const NOMINAL = 0.5; // seconds a played reaction is assumed to take, to turn stagger seconds into a share of t
+
+// Two states and a t between them. layer.on(driver)… makes one for a single
+// layer; between(() => {…}) makes one for as many as the function touches.
+export class Reaction extends Driver {
+  owner: Layer | null = null;
+  targets = new Map<Layer, Target>();
+  entries: Entry[] = [];
+  transition: Transition = preset("settle");
+  springSet = false;
+  impulseCandidate: { layer: Layer; amount?: number } | null = null;
+  impulse = false;
+  transient = false;
+  drivers: Driver[] = [];
+  goal = 0;
+  fires = 0;
+  built = false;
+  run = 0;
+
+  constructor() {
+    super("reaction", false);
+    stage().reactions.push(this);
+    stage().scheduleCommit();
+  }
+
+  // ——— describing
+
+  target(layer: Layer): Target {
+    let t = this.targets.get(layer);
+    if (!t) this.targets.set(layer, (t = { props: {}, patterns: {} }));
+    return t;
+  }
+
+  peek(layer: Layer, prop: string): any {
+    return this.targets.get(layer)?.props[prop];
+  }
+
+  capture(fn: () => void) {
+    const prev = active;
+    active = this;
+    try {
+      fn();
+    } finally {
+      active = prev;
+    }
+    return this;
+  }
+
+  drive(...sources: any[]) {
+    for (const s of sources) this.drivers.push(resolveDriver(s, this.owner));
+    return this;
+  }
+
+  spring(name: string) {
+    this.transition = preset(name);
+    this.springSet = true;
+    return this;
+  }
+
+  curve(name?: string, duration?: number) {
+    this.transition = makeCurve(name, duration);
+    this.springSet = true;
+    return this;
+  }
+
+  // ——— wiring, once the script has finished
+
+  build() {
+    if (this.built) return;
+    this.built = true;
+
+    // .on("tap").spring("pop", 1.3) with nothing else: a kick and a spring back
+    const ic = this.impulseCandidate;
+    if (ic) {
+      const tg = this.target(ic.layer);
+      const bare = !Object.keys(tg.props).length && !Object.keys(tg.patterns).length && !tg.fade && !tg.show && tg.rise == null && tg.fly == null && !tg.into && this.targets.size === 1;
+      if (bare || ic.amount != null) tg.props.scale = ic.amount ?? 1.2;
+      this.impulse = bare;
+    }
+
+    for (const [layer, tg] of this.targets) {
+      const kids = layer.fan();
+      const fans = kids && kids.length && (tg.stagger != null || tg.peak || (tg.fly != null && layer.kind === "ring"));
+      if (fans) {
+        // the group keeps its own frame; the feel goes to the children
+        const own: Target = { props: {}, patterns: {}, range: tg.range };
+        const down: Target = { ...tg, props: {} };
+        for (const p in tg.props) (POSITION.has(p) ? own : down).props[p] = tg.props[p];
+        if (layer.v.opacity.get() < 0.02 && (tg.show || tg.fade || tg.rise != null)) {
+          layer.v.opacity.jump(1);
+          for (const k of kids!) k.v.opacity.jump(0);
+        }
+        if (Object.keys(own.props).length) this.entries.push(this.entry(layer, own, 0, 1));
+        kids!.forEach((k, i) => this.entries.push(this.entry(k, down, i, kids!.length)));
+      } else this.entries.push(this.entry(layer, tg, 0, 1));
+
+      if (tg.into) {
+        const other = tg.into;
+        other.v.opacity.jump(0);
+        this.entries.push({ layer: other, index: 0, count: 1, t: new Value(0), peak: false, stagger: 0, tracks: [{ prop: "opacity", map: mapRange([0.45, 1], [0, 1]) }] });
+        layer.v.z.jump(40);
+        other.v.z.jump(50);
+        this.drive(resolveDriver("tap", other));
+      }
+    }
+
+    this.transient = !this.impulse && this.entries.length > 0 && this.entries.every((e) => {
+      const o = e.tracks.find((k) => k.prop === "opacity");
+      return o && o.map(0) < 0.02 && o.map(1) < 0.02;
+    });
+
+    for (const e of this.entries) e.t.on((t) => this.apply(e, t));
+    for (const d of this.drivers) {
+      if (d.played) d.onFire(() => this.fire());
+      else {
+        d.t.on((t) => this.follow(t));
+        this.follow(d.t.get(), true);
+      }
+    }
+  }
+
+  private entry(layer: Layer, tg: Target, index: number, count: number): Entry {
+    const [a, b] = tg.range ?? [0, 1];
+    const tracks: Entry["tracks"] = [];
+    const add = (prop: string, to: any, from: any = layer.v[prop].get(), lo = a, hi = b) => {
+      if (from === to) return;
+      tracks.push({ prop, map: mapRange([lo, hi], [from, to]) });
+    };
+    const props = { ...tg.props };
+    if ((layer.kind === "text" || layer.kind === "emoji") && props.w != null) {
+      // scaled type grows from its middle; shift it so its corner lands where it was placed
+      props.x = (props.x ?? layer.v.x.get()) + (props.w - layer.v.w.get()) / 2;
+      props.y = (props.y ?? layer.v.y.get()) + (props.h - layer.v.h.get()) / 2;
+      delete props.w;
+      delete props.h;
+    }
+    for (const p in props) if (p !== "opacity") add(p, props[p]);
+
+    const base = layer.v.opacity.get();
+    const hidden = base < 0.02;
+    if (tg.props.opacity != null) add("opacity", tg.props.opacity);
+    else if (tg.show && tg.fade) tracks.push({ prop: "opacity", map: mapRange([a, a + (b - a) * 0.06, a + (b - a) * 0.45, b], [base, 1, 1, 0]) });
+    else if (tg.show) add("opacity", 1, base, a, a + (b - a) * 0.2);
+    else if (tg.fade || (tg.rise != null && hidden)) add("opacity", hidden ? 1 : 0);
+
+    if (tg.rise != null) {
+      const oy = layer.v.oy.get();
+      if (hidden) add("oy", tg.props.oy ?? oy, oy + tg.rise);
+      else add("oy", oy - tg.rise);
+    }
+    if (tg.fly != null) {
+      const ang = tg.flyAngle != null ? (tg.flyAngle * Math.PI) / 180 : layer.dir ?? -Math.PI / 2;
+      add("ox", layer.v.ox.get() + Math.cos(ang) * tg.fly);
+      add("oy", layer.v.oy.get() + Math.sin(ang) * tg.fly);
+    }
+    if (tg.into) {
+      const f = tg.into.abs();
+      const me = layer.abs();
+      add("x", layer.v.x.get() + f.x - me.x);
+      add("y", layer.v.y.get() + f.y - me.y);
+      add("w", f.w);
+      add("h", f.h);
+      add("radius", tg.into.v.radius.get());
+      layer.el.style.overflow = "hidden";
+    }
+    const e: Entry = { layer, index, count, t: new Value(0), tracks, peak: !!tg.peak, stagger: tg.stagger ?? 0 };
+    (e as any).patterns = tg.patterns;
+    return e;
+  }
+
+  private apply(e: Entry, t: number) {
+    for (const k of e.tracks) e.layer.v[k.prop].set(k.map(t));
+  }
+
+  // where an entry sits for a given main t
+  private shape(e: Entry, t: number): number {
+    if (e.peak) return Math.max(0, 1 - Math.abs(t * (e.count - 1) - e.index));
+    if (e.stagger && e.count > 1) {
+      const played = this.drivers.some((d) => d.played);
+      let f = played ? e.stagger / NOMINAL : e.stagger;
+      f = Math.min(f, 0.8 / (e.count - 1));
+      return Math.max(0, Math.min(1.5, (t - e.index * f) / (1 - (e.count - 1) * f)));
+    }
+    return t;
+  }
+
+  // a continuous driver moved, or a drag is scrubbing
+  follow(t: number, instant = false) {
+    if (this.springSet && !instant) {
+      this.t.to(t, this.transition);
+      return this.ensureLinked();
+    }
+    this.t.stop();
+    this.t.set(t);
+    for (const e of this.entries) {
+      e.t.stop();
+      e.t.set(this.shape(e, t));
+    }
+  }
+
+  private linked = false;
+  private ensureLinked() {
+    if (this.linked) return;
+    this.linked = true;
+    this.t.on((t) => {
+      if (this.playing) return;
+      for (const e of this.entries) e.t.set(this.shape(e, t));
+    });
+  }
+
+  private playing = false;
+
+  // a played driver fired
+  fire() {
+    const n = this.fires++;
+    for (const e of this.entries) {
+      const pats: Record<string, Pattern> = (e as any).patterns ?? {};
+      for (const prop in pats) {
+        let val = pats[prop].at(n);
+        if (val === null) continue;
+        if (prop === "color") val = resolveColor(String(val));
+        e.layer.v[prop].to(val as any, this.transition, { delay: e.index * e.stagger });
+      }
+    }
+    if (this.impulse) return this.kick();
+    if (this.transient) {
+      this.jump(0);
+      return this.play(1).then((done) => done && this.jump(0));
+    }
+    return this.play(this.goal === 1 ? 0 : 1);
+  }
+
+  private kick() {
+    const id = ++this.run;
+    this.playing = true;
+    const all = (to: number, tr: Transition) => Promise.all([this.t.to(to, tr), ...this.entries.map((e) => e.t.to(to, tr))]);
+    return all(1, { type: "tween", duration: 0.09, ease: "easeOut" }).then(() => {
+      if (id !== this.run) return;
+      return all(0, this.transition).then(() => {
+        if (id === this.run) this.playing = false;
+      });
+    });
+  }
+
+  jump(t: number) {
+    this.run++;
+    this.t.jump(t);
+    for (const e of this.entries) e.t.jump(this.shape(e, t));
+    this.goal = t;
+  }
+
+  // animate to an end; entries with a stagger leave late
+  play(to: number, velocity?: number): Promise<boolean> {
+    const id = ++this.run;
+    this.goal = to;
+    this.playing = true;
+    const jobs = [this.t.to(to, this.transition, { velocity })];
+    for (const e of this.entries) {
+      if (e.peak) continue;
+      const order = to === 1 ? e.index : e.count - 1 - e.index;
+      jobs.push(e.t.to(to, this.transition, { delay: order * e.stagger, velocity: e.stagger ? undefined : velocity }));
+    }
+    const peaks = this.entries.filter((e) => e.peak);
+    const off = peaks.length ? this.t.on((t) => peaks.forEach((e) => e.t.set(this.shape(e, t)))) : null;
+    return Promise.all(jobs).then(() => {
+      off?.();
+      if (id === this.run) this.playing = false;
+      return id === this.run;
+    });
+  }
+
+  // how far the owner travels along an axis, for a drag that scrubs this reaction
+  travel(layer: Layer, axis: "x" | "y"): number {
+    const e = this.entries.find((k) => k.layer === layer);
+    if (!e) return 0;
+    let d = 0;
+    for (const k of e.tracks) if (k.prop === axis || k.prop === "o" + axis) d += k.map(1) - k.map(0);
+    return d;
+  }
+}
+
+// between(() => { bag.size(44).at(16, 56); chat.show() }).drive(scroll())
+export function between(a: any, b?: any): Reaction {
+  const fn = typeof a === "function" ? a : b;
+  const driver = typeof a === "function" ? b : a;
+  if (typeof fn !== "function") throw new Error("between() needs a function that describes the other state");
+  const rx = new Reaction().capture(fn);
+  if (driver) rx.drive(driver);
+  return rx;
+}

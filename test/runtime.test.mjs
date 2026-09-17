@@ -1,0 +1,104 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { JSDOM } from "jsdom";
+import { encode, decode, link } from "../dist/link.mjs";
+
+const root = new URL("..", import.meta.url).pathname;
+const runtime = readFileSync(root + "dist/modulate.js", "utf8");
+
+function browser() {
+  const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", { runScripts: "outside-only", pretendToBeVisual: true });
+  dom.window.eval(runtime);
+  return dom.window;
+}
+
+const protos = readdirSync(root + "prototypes").filter((f) => f.endsWith(".js")).sort();
+
+test("there are ten prototypes, each under fifteen lines of code", () => {
+  assert.equal(protos.length, 10);
+  for (const f of protos) {
+    const lines = readFileSync(root + "prototypes/" + f, "utf8").split("\n").filter((l) => l.trim() && !l.trim().startsWith("//"));
+    assert.ok(lines.length <= 15, `${f} has ${lines.length} lines`);
+  }
+});
+
+for (const f of protos) {
+  test(`prototype ${f}: compiles, runs, survives a link`, () => {
+    const code = readFileSync(root + "prototypes/" + f, "utf8");
+    const win = browser();
+    assert.equal(win.Modulate.check(code).error, undefined);
+    const res = win.Modulate.run(code, win.document.body);
+    assert.equal(res.error, undefined);
+    assert.equal(res.ok, true);
+    assert.ok(win.document.querySelectorAll(".m-layer").length > 0);
+    const round = decode(link(code));
+    assert.equal(round.code, code);
+    win.close();
+  });
+}
+
+test("labels become variables and names", () => {
+  const win = browser();
+  const js = win.Modulate.preprocess(`heart: circle(72)\n  .color("coral") // trailing\nheart.on("tap").spring("pop")`);
+  assert.match(js, /var heart = \$name\("heart", circle\(72\)\n  \.color\("coral"\)\);/);
+  assert.equal(js.split("\n").length, 3, "line count is preserved");
+  win.Modulate.run(`heart: circle(72)`, win.document.body);
+  assert.ok(win.document.querySelector('[data-name="heart"]'));
+});
+
+test("object literals and js blocks are left alone", () => {
+  const win = browser();
+  const src = `const o = {\n  a: 1,\n  b: 2\n}\njs {\n  inner: for (;;) { break inner }\n}`;
+  const js = win.Modulate.preprocess(src);
+  assert.ok(!js.includes("$name"));
+  assert.doesNotThrow(() => new Function(js));
+});
+
+test("a label can't shadow a verb", () => {
+  const win = browser();
+  const r = win.Modulate.run(`box()\nsheet: sheet()`, win.document.body);
+  assert.equal(r.ok, false);
+  assert.equal(r.line, 2);
+});
+
+test("errors come back, they don't throw", () => {
+  const win = browser();
+  assert.equal(win.Modulate.run(`box(`, win.document.body).ok, false);
+  const r = win.Modulate.run(`box().wobble()`, win.document.body);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /wobble/);
+});
+
+test("mini-notation", () => {
+  const win = browser();
+  const at = (src, pos) => win.Modulate.mini(src).at(pos);
+  assert.equal(at("a b c", 0.4), "b");
+  assert.equal(at("<a b>", 0), "a");
+  assert.equal(at("<a b>", 1.5), "b");
+  assert.equal(at("0 [20 40]", 0.8), 40);
+  assert.equal(at("a!3 b", 0.6), "a");
+  assert.equal(at("a ~", 0.6), null);
+  assert.equal(at("[a b]!2 c", 0.4), "a");
+});
+
+test("link codec", () => {
+  assert.equal(encode("box()")[0], "1");
+  assert.equal(decode("#" + encode("box()") + "&r=k7f2").params.r, "k7f2");
+  assert.equal(decode("#9zzz"), null);
+  assert.equal(decode("").code, "");
+});
+
+test("every library example and every js block in the spec runs", async () => {
+  const { sections } = await import("../src/app/library-data.mjs");
+  const codes = sections.flatMap((s) => s.items.map((i) => i.code));
+  const spec = readFileSync(root + "SPEC.md", "utf8");
+  for (const m of spec.matchAll(/```js\n([\s\S]*?)```/g)) if (!/\bimport\b/.test(m[1])) codes.push(m[1]);
+  assert.ok(codes.length > 25);
+  for (const code of codes) {
+    const win = browser();
+    const res = win.Modulate.run(code, win.document.body);
+    assert.equal(res.error, undefined, code);
+    win.close();
+  }
+});

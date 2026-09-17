@@ -1,0 +1,96 @@
+import * as esbuild from "esbuild";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
+
+const root = new URL("..", import.meta.url).pathname;
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const motion = JSON.parse(readFileSync(join(root, "node_modules/motion/package.json"), "utf8"));
+const runtimeOnly = process.argv.includes("--runtime-only");
+const watch = process.argv.includes("--watch");
+
+const banner = `/*! modulate.js ${pkg.version} — https://modulatejs.com — MIT
+ *  Built on Motion ${motion.version} (MIT, © Framer B.V. / Matt Perry) — https://motion.dev
+ *  Third-party notices: https://modulatejs.com/THIRD_PARTY.md */`;
+
+const common = {
+  bundle: true,
+  minify: true,
+  target: "es2020",
+  legalComments: "none",
+  define: { __VERSION__: JSON.stringify(pkg.version) },
+  logLevel: "warning",
+};
+
+async function build() {
+  const dist = join(root, "dist");
+  mkdirSync(dist, { recursive: true });
+
+  await esbuild.build({
+    ...common,
+    entryPoints: [join(root, "src/runtime/index.ts")],
+    outfile: join(dist, "modulate.js"),
+    format: "iife",
+    globalName: "Modulate",
+    banner: { js: banner },
+    footer: { js: "Modulate.install(globalThis);" },
+  });
+  await esbuild.build({
+    ...common,
+    entryPoints: [join(root, "src/runtime/index.ts")],
+    outfile: join(dist, "modulate.mjs"),
+    format: "esm",
+    banner: { js: banner },
+  });
+  await esbuild.build({ ...common, entryPoints: [join(root, "src/link.ts")], outfile: join(dist, "link.mjs"), format: "esm" });
+  cpSync(join(root, "src/runtime/modulate.d.ts"), join(dist, "modulate.d.ts"));
+  if (runtimeOnly) return;
+
+  // the site: what Cloudflare serves, and what `npx modulatejs` serves locally
+  const site = join(dist, "site");
+  rmSync(site, { recursive: true, force: true });
+  mkdirSync(join(site, "examples"), { recursive: true });
+  await esbuild.build({
+    ...common,
+    entryPoints: { app: join(root, "src/app/app.ts"), library: join(root, "src/app/library.ts"), frame: join(root, "src/app/frame.ts") },
+    outdir: site,
+    format: "iife",
+    loader: { ".md": "text", ".css": "text" },
+  });
+  cpSync(join(root, "site"), site, { recursive: true });
+  await esbuild.build({ ...common, minify: false, entryPoints: [join(root, "src/cli/cli.mjs")], outfile: join(dist, "cli.mjs"), format: "esm", platform: "node", banner: { js: "// modulatejs CLI — AGPL-3.0 — https://modulatejs.com" } });
+  cpSync(join(dist, "modulate.js"), join(site, "modulate.js"));
+  cpSync(join(dist, "modulate.mjs"), join(site, "modulate.mjs"));
+  cpSync(join(dist, "link.mjs"), join(site, "link.mjs"));
+  cpSync(join(root, "SPEC.md"), join(site, "spec.md"));
+  if (existsSync(join(root, "THIRD_PARTY.md"))) cpSync(join(root, "THIRD_PARTY.md"), join(site, "THIRD_PARTY.md"));
+  const protos = readdirSync(join(root, "prototypes")).filter((f) => f.endsWith(".js")).sort();
+  for (const f of protos) cpSync(join(root, "prototypes", f), join(site, "examples", f));
+  writeFileSync(join(site, "examples/index.json"), JSON.stringify(protos));
+
+  // /library.md: the library page for readers who don't run JavaScript
+  const { sections } = await import(join(root, "src/app/library-data.mjs") + "?" + Date.now());
+  let md = "# modulate.js — the library\n\nA toy vocabulary for mobile-app feel, on Motion's animation engine. The canonical vocabulary is [spec.md](https://modulatejs.com/spec.md); this page walks through it with one example per idea. Every example runs as written at https://modulatejs.com.\n\n";
+  md += "Install: `<script src=\"https://unpkg.com/modulatejs\"></script>` · `npm i modulatejs` · `npx modulatejs proto.js`\n";
+  for (const sec of sections) {
+    md += `\n## ${sec.title}\n\n${sec.intro}\n`;
+    for (const it of sec.items) md += `\n### ${it.verbs}\n\n${it.text}\n\n\`\`\`js\n${it.code}\n\`\`\`\n`;
+  }
+  md += "\n## The ten prototypes\n\n" + protos.map((f) => `- [${f}](https://modulatejs.com/examples/${f})`).join("\n") + "\n";
+  md += "\n## Licences\n\nmodulate.js (the runtime) is MIT. The editor page and CLI are AGPL-3.0. The spec and prototypes are CC BY 4.0. Built on Motion (MIT).\n";
+  writeFileSync(join(site, "library.md"), md);
+
+  const size = (f) => (readFileSync(join(dist, f)).length / 1024).toFixed(0) + " KB";
+  console.log(`modulate.js ${size("modulate.js")} · app ${size("site/app.js")} · ${protos.length} prototypes`);
+}
+
+await build();
+if (watch) {
+  const { watch: fsWatch } = await import("node:fs");
+  let timer;
+  for (const dir of ["src", "site", "prototypes", "SPEC.md"])
+    fsWatch(join(root, dir), { recursive: true }, () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => build().catch((e) => console.error(e.message)), 80);
+    });
+  console.log("watching…");
+}

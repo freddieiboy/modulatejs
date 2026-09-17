@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>modulate.js — the library</title>
+<meta name="description" content="modulate.js: a toy vocabulary for mobile-app feel, on Motion's animation engine. Every verb with a live example you can poke.">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="text/markdown" href="/library.md" title="This page, as markdown">
+<link rel="alternate" type="text/markdown" href="/spec.md" title="The spec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/library.css">
+</head>
+<body class="lib">
+<!-- The same content as markdown: /library.md. The canonical vocabulary: /spec.md. -->
+<header class="bar">
+  <a class="brand" href="/"><i class="dot"></i><b>modulate</b></a>
+  <span class="dim host">library</span>
+  <span class="grow"></span>
+  <nav class="links top"><a href="/">editor</a><a href="/spec.md">spec.md</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/freddieiboy/modulate">github</a></nav>
+</header>
+<div class="scroll">
+  <div class="hero">
+    <h1>A toy vocabulary<br>for mobile-app feel.</h1>
+    <p>modulate.js is about sixty verbs on top of <a href="https://motion.dev">Motion</a>'s animation engine. Pieces that already look good, drivers that all speak <code>t</code>, and two states with a spring between them. Fifteen lines is a prototype; a prototype is a link; the link runs on your phone.</p>
+    <div class="install" id="install">
+      <div><span class="dim">in a page</span><code>&lt;script src="https://unpkg.com/modulatejs"&gt;&lt;/script&gt;</code><button data-copy='<script src="https://unpkg.com/modulatejs"></script>'>copy</button></div>
+      <div><span class="dim">in a project</span><code>npm i modulatejs</code><button data-copy="npm i modulatejs">copy</button></div>
+      <div><span class="dim">on a file, with your phone</span><code>npx modulatejs proto.js</code><button data-copy="npx modulatejs proto.js">copy</button></div>
+    </div>
+    <nav class="toc"><a href="#pieces">pieces</a><a href="#placement">placement</a><a href="#look">look</a><a href="#drivers">drivers</a><a href="#feel">feel</a><a href="#drag">dragging</a><a href="#patterns">patterns</a><a href="#prototypes">ten prototypes</a><a href="#licences">licences</a></nav>
+  </div>
+  <main id="sections"></main>
+  <section id="prototypes">
+    <h2>The ten prototypes</h2>
+    <p class="lede">Each under fifteen lines, each runs as written. They are the test suite, the examples a model reads, and the proof the language is enough.</p>
+  </section>
+  <section id="licences" class="prose">
+    <h2>Licences</h2>
+    <p><b>modulate.js</b>, the runtime, is MIT: embed it anywhere, no conditions. The <b>editor page and the CLI</b> are AGPL-3.0: read them, fork them, run them locally; a hosted clone publishes its changes. The <b>spec and the prototypes</b> are CC BY 4.0, meant to be copied into prompts and docs. The name and modulatejs.com are what's kept.</p>
+    <p>Built on <a href="https://motion.dev">Motion</a> (MIT). Also inside: lz-string, CodeMirror 6, qrcode-generator, marked, all MIT. Avatars are DiceBear's Notionists Neutral (CC0); photos come from picsum.photos. Full notices in <a href="/THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+  </section>
+  <footer class="foot"><span class="dim">no login · the link is the file</span><nav class="links"><a href="/">editor</a><a href="/spec.md">spec.md</a><a href="/library.md">library.md</a><a href="/llms.txt">llms.txt</a></nav></footer>
+</div>
+<script src="/library.js" defer></script>
+</body>
+</html>

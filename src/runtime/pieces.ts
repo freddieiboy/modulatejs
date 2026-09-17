@@ -1,0 +1,317 @@
+import { Layer, Group, rootOf } from "./layer";
+import { stage, SAFE_BOTTOM } from "./stage";
+import { resolveColor, luminance } from "./theme";
+import { providers, next, placeholder, duo, looksLikeUrl, initials } from "./content";
+import { PageDriver } from "./drivers";
+import { mapRange } from "./engine";
+
+// The pieces. Each one looks finished with no arguments.
+// Numbers are sizes, strings are content or colour, layers become children.
+
+function sort(args: any[]) {
+  const nums: number[] = [], strs: string[] = [], kids: Layer[] = [];
+  for (const a of args) {
+    if (typeof a === "number") nums.push(a);
+    else if (typeof a === "string") strs.push(a);
+    else if (a && typeof a === "object" && "el" in rootOf(a)) kids.push(rootOf(a));
+  }
+  return { nums, strs, kids };
+}
+
+function paint(l: Layer, color: string, mode: "bg" | "text" = "bg") {
+  l.colorMode = mode;
+  l.colorSrc = color;
+  l.v.color.jump(resolveColor(color));
+}
+
+function finish<T extends Layer>(l: T, make: () => Layer, kids: Layer[] = []): T {
+  l.factory = make;
+  for (const k of kids) l.adopt(k);
+  if (kids.length) l.layout();
+  l.replace();
+  return l;
+}
+
+const cloneArgs = (args: any[]) => args.map((a) => (a && typeof a === "object" && "el" in rootOf(a) ? rootOf(a).clone() : a));
+
+function shape(kind: string, args: any[], size: number, radius: (w: number, h: number) => number) {
+  const { nums, strs, kids } = sort(args);
+  const w = nums[0] ?? size, h = nums[1] ?? w;
+  const l = new Layer(kind, { w, h, radius: radius(w, h) });
+  paint(l, strs[0] ?? "accent");
+  l.stacks = kids.length > 0;
+  l.pad = 24;
+  return { l, kids };
+}
+
+export function box(...args: any[]): Layer {
+  const { l, kids } = shape("box", args, 120, (w, h) => Math.min(20, w / 4, h / 4));
+  if (kids.length) l.el.style.overflow = "hidden";
+  return finish(l, () => box(...cloneArgs(args)), kids);
+}
+
+export function circle(...args: any[]): Layer {
+  const { l, kids } = shape("circle", args, 72, (w, h) => Math.min(w, h) / 2);
+  l.stacks = false;
+  return finish(l, () => circle(...cloneArgs(args)), kids);
+}
+
+export class TextLayer extends Layer {
+  constructor(kind: string, content: string, public fontSize: number) {
+    super(kind);
+    this.el.classList.add("m-text");
+    this.el.textContent = content;
+    this.inert = true;
+    this.el.style.fontSize = fontSize + "px";
+    if (kind === "text" && fontSize >= 24) {
+      this.el.style.fontWeight = "700";
+      this.el.style.letterSpacing = "-0.02em";
+    }
+    this.measure();
+  }
+  measure() {
+    const size = parseFloat(this.el.style.fontSize) || this.fontSize;
+    const chars = [...(this.el.textContent ?? "")].length;
+    this.v.w.jump(this.el.offsetWidth || Math.ceil(chars * size * 0.56));
+    this.v.h.jump(this.el.offsetHeight || Math.ceil(size * 1.25));
+  }
+}
+
+export function text(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const l = new TextLayer("text", strs[0] ?? next("titles"), nums[0] ?? 17);
+  paint(l, strs[1] ?? "text", "text");
+  return finish(l, () => text(...args));
+}
+
+export function emoji(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  let ch = strs[0] ?? "✨";
+  // plain symbols (♥ ★ ↻) should take a colour, not turn into emoji art
+  if (ch.length === 1 && ch.charCodeAt(0) < 0x3000) ch += "\uFE0E";
+  const l = new TextLayer("emoji", ch, nums[0] ?? 32);
+  l.el.style.lineHeight = "1";
+  l.measure();
+  paint(l, "text", "text");
+  return finish(l, () => emoji(...args));
+}
+
+export function pill(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const label = strs[0] ? new TextLayer("text", strs[0], 16) : null;
+  if (label) label.el.style.fontWeight = "600";
+  const w = nums[0] ?? (label ? Math.max(120, label.v.w.get() + 56) : 160);
+  const h = nums[1] ?? 52;
+  const l = new Layer("pill", { w, h, radius: h / 2 });
+  paint(l, strs[1] ?? "text");
+  if (label) {
+    l.adopt(label);
+    label.colorMode = "text";
+    label.v.color.jump(luminance(l.v.color.get()) < 0.62 ? "#ffffff" : "#17171b");
+    label.place((c) => c.placeCenter(null, null), null);
+    label.el.style.pointerEvents = "none";
+  }
+  return finish(l, () => pill(...args));
+}
+
+function loadInto(l: Layer, url: string | null) {
+  if (!url || typeof Image === "undefined") return;
+  const img = l.el.ownerDocument.createElement("img");
+  img.alt = "";
+  img.draggable = false;
+  img.decoding = "async";
+  img.onload = () => img.classList.add("m-ok");
+  img.onerror = () => img.remove(); // the placeholder underneath is already the design
+  img.src = url;
+  l.el.appendChild(img);
+}
+
+export function image(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const seed = strs[0] ?? next("titles");
+  const w = nums[0] ?? 342, h = nums[1] ?? (nums[0] ? nums[0] : 220);
+  const l = new Layer("image", { w, h, radius: Math.min(20, w / 4) });
+  l.colorMode = "none";
+  l.el.classList.add("m-img");
+  l.el.style.backgroundImage = placeholder(seed);
+  loadInto(l, looksLikeUrl(seed) ? seed : providers.image(seed, w, h));
+  return finish(l, () => image(...args));
+}
+
+export function avatar(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const who = strs[0] ?? next("names");
+  const size = nums[0] ?? 44;
+  const l = new Layer("avatar", { w: size, h: size, radius: size / 2 });
+  l.colorMode = "none";
+  l.el.classList.add("m-img");
+  l.el.style.background = duo(who)[0];
+  const mark = l.el.ownerDocument.createElement("span");
+  mark.textContent = initials(who);
+  mark.style.cssText = `position:absolute;inset:0;display:grid;place-items:center;font-weight:600;font-size:${size * 0.36}px;color:rgba(0,0,0,.55)`;
+  l.el.appendChild(mark);
+  loadInto(l, looksLikeUrl(who) ? who : providers.avatar(who));
+  return finish(l, () => avatar(...args));
+}
+
+export function card(...args: any[]): Layer {
+  const { nums, strs, kids } = sort(args);
+  // a card with nothing in it is still a finished card
+  if (!args.length) kids.push(image(310, 180), (text() as any).bold(), (text(next("prices") + " · " + next("names"), 15) as any).color("dim"));
+  const w = nums[0] ?? 342, h = nums[1] ?? 220;
+  const l = new Layer("card", { w, h, radius: 28 });
+  paint(l, strs[0] ?? "surface");
+  l.el.style.boxShadow = "0 2px 4px rgba(0,0,0,.05), 0 12px 32px rgba(0,0,0,.10)";
+  l.el.style.overflow = "hidden";
+  l.pad = 16;
+  l.stacks = true;
+  l.grows = nums.length < 2;
+  l.sized = nums.length >= 2;
+  return finish(l, () => card(...(args.length ? cloneArgs(args) : [])), kids);
+}
+
+// row(a, b, c) · row(3, circle(8)) · grid(3, 3) · grid(2, 4, card())
+function repeated(args: any[], fallback: () => Layer): { items: Layer[]; nums: number[] } {
+  const { nums, kids } = sort(args);
+  if (nums.length && kids.length <= 1) {
+    const count = nums.length > 1 ? nums[0] * nums[1] : nums[0];
+    const proto = kids[0] ?? fallback();
+    return { items: [proto, ...Array.from({ length: count - 1 }, () => proto.clone())], nums };
+  }
+  return { items: kids, nums };
+}
+
+export function row(...args: any[]): Layer {
+  return new Group("row", repeated(args, () => box(64)).items);
+}
+
+export function stack(...args: any[]): Layer {
+  return new Group("stack", repeated(args, () => card()).items);
+}
+
+export function grid(...args: any[]): Layer {
+  const { items, nums } = repeated(args.length ? args : [3, 3], () => box(88));
+  return new Group("grid", items, nums[0] ?? 3);
+}
+
+export function bubbles(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const lines = strs.length ? strs : Array.from({ length: nums[0] ?? 5 }, () => next("lines"));
+  const W = 342;
+  const items = lines.map((line, i) => {
+    const mine = i % 2 === 1;
+    const t = new TextLayer("text", line, 16);
+    t.el.classList.add("m-wrap");
+    t.el.style.maxWidth = "230px";
+    t.el.style.width = "max-content";
+    t.measure();
+    const b = new Layer("bubble", { w: t.v.w.get() + 28, h: t.v.h.get() + 20, radius: 20 });
+    paint(b, mine ? "plum" : "fill");
+    b.adopt(t);
+    t.colorMode = "text";
+    t.v.color.jump(mine ? "#ffffff" : resolveColor("text"));
+    t.placeOp = null;
+    t.v.x.jump(14);
+    t.v.y.jump(10);
+    return b;
+  });
+  const g = new Group("bubbles", items);
+  let y = 0;
+  items.forEach((b, i) => {
+    b.placeOp = null;
+    b.v.x.jump(i % 2 === 1 ? W - b.v.w.get() : 0);
+    b.v.y.jump(y);
+    y += b.v.h.get() + 8;
+  });
+  g.v.w.jump(W);
+  g.v.h.jump(Math.max(0, y - 8));
+  g.replace();
+  return g;
+}
+
+export function sheet(...args: any[]): Layer {
+  const { nums, strs, kids } = sort(args);
+  if (!args.length) kids.push(text(next("titles"), 28), (text("Pull me up, push me down", 15) as any).color("dim"), row(pill("Nearby"), pill("Open now", "fill")));
+  const st = stage();
+  const h = nums[0] ?? 560, peek = nums[1] ?? 96;
+  const l = new Layer("sheet", { w: st.W, h: h + 80, radius: 32, z: 10 });
+  paint(l, strs[0] ?? "surface");
+  l.el.style.boxShadow = "0 -2px 6px rgba(0,0,0,.04), 0 -16px 48px rgba(0,0,0,.14)";
+  const grab = new Layer("grabber", { w: 40, h: 5, radius: 3 });
+  paint(grab, "line");
+  l.adopt(grab);
+  grab.place((c) => {
+    c.v.x.jump((st.W - 40) / 2);
+    c.v.y.jump(10);
+  }, null);
+  l.pad = 24;
+  l.stacks = true;
+  l.riseBy = h - peek;
+  l.place((c) => {
+    c.v.x.jump(0);
+    c.v.y.jump(st.H - peek);
+  }, null);
+  l.placed = false;
+  return finish(l, () => sheet(...(args.length ? cloneArgs(args) : [])), kids);
+}
+
+export function tabbar(...args: any[]): Layer {
+  const { strs } = sort(args);
+  const st = stage();
+  const names = (strs.length > 1 ? strs : (strs[0] ?? "Home Search Inbox Me").split(/\s+/)).filter(Boolean);
+  const n = names.length;
+  const h = 56 + SAFE_BOTTOM;
+  const bar = new Layer("tabbar", { w: st.W, h, z: 20 });
+  paint(bar, "surface");
+  bar.el.style.boxShadow = `0 -1px 0 ${resolveColor("line")}`;
+  const slot = st.W / n;
+  const pill = new Layer("indicator", { w: 64, h: 32, radius: 16, opacity: 0.16 });
+  paint(pill, "accent");
+  bar.adopt(pill);
+  pill.placeOp = null;
+  pill.v.x.jump(slot / 2 - 32);
+  pill.v.y.jump(8);
+  const driver = new PageDriver(n, false);
+  const glyphs = names.map((name, i) => {
+    const dot = new Layer("tab", { w: 22, h: 22, radius: 7 });
+    paint(dot, "dim");
+    const label = new TextLayer("text", name, 11);
+    paint(label, "dim", "text");
+    label.el.style.fontWeight = "600";
+    for (const c of [dot, label]) {
+      bar.adopt(c);
+      c.placeOp = null;
+      c.el.style.pointerEvents = "none";
+    }
+    dot.v.x.jump(slot * i + slot / 2 - 11);
+    dot.v.y.jump(13);
+    label.v.x.jump(slot * i + slot / 2 - label.v.w.get() / 2);
+    label.v.y.jump(40);
+    return { dot, label };
+  });
+  const dim = resolveColor("dim"), accent = resolveColor("accent");
+  const move = mapRange([0, 1], [slot / 2 - 32, slot * (n - 1) + slot / 2 - 32]);
+  const paintTabs = (t: number) => {
+    pill.v.x.set(move(t));
+    glyphs.forEach((g, i) => {
+      const near = Math.max(0, 1 - Math.abs(t * (n - 1) - i));
+      const c = mapRange([0, 1], [dim, accent])(near);
+      g.dot.v.color.set(c);
+      g.label.v.color.set(c);
+    });
+  };
+  driver.t.on(paintTabs);
+  paintTabs(0);
+  bar.el.addEventListener("pointerup", (e: PointerEvent) => {
+    const r = bar.el.getBoundingClientRect();
+    driver.go(Math.floor(((e.clientX - r.left) / r.width) * n));
+  });
+  bar.el.style.cursor = "pointer";
+  (bar as any).page = driver;
+  bar.place((c) => {
+    c.v.x.jump(0);
+    c.v.y.jump(st.H - h);
+  }, null);
+  bar.placed = false;
+  return finish(bar, () => tabbar(...args));
+}

@@ -1,0 +1,85 @@
+// The library page and /library.md are both made from this. CC BY 4.0.
+// Each entry: the verbs it teaches, a paragraph, and a one-liner you can poke.
+
+export const sections = [
+  {
+    id: "pieces",
+    title: "Pieces",
+    intro: "Thirteen things an app is made of, plus emoji. Each looks finished with no arguments and starts centred. Numbers are sizes, strings are content or colour, layers become children.",
+    items: [
+      { verbs: "box · circle · pill", text: "The plain shapes. A box is 120 square, a circle 72 across, a pill is a 52-tall button with a label. All take the accent colour unless you name one.", code: `row(box(), circle(), pill("Follow")).gap(16)` },
+      { verbs: "text · emoji", text: "Type is 17 points in ink; 24 and up turns bold. With no string, text() hands out a line from the built-in bank. An emoji is one glyph, and it turns white when you centre it on a strong colour.", code: `stack(text("Morning light", 34), text("Tuesday, 7:30", 17).color("dim"), emoji("☀️", 56)).gap(10)` },
+      { verbs: "image · avatar", text: "A photo by seed from picsum, a face by name from DiceBear. Both sit on a placeholder (a gradient, initials) that is the design when the network is off. Bytes are never inlined: an image is always a URL.", code: `stack(image("harbour", 300, 200), row(avatar("Addie Moreau"), avatar("Kenji Sato"), avatar("Noor Haddad")))` },
+      { verbs: "card", text: "White, 342 wide, radius 28, a soft shadow. It stacks its children with 16 of padding and grows to fit. With no arguments it fills itself: a photo, a title, a line.", code: `card()` },
+      { verbs: "row · stack · grid", text: "Groups. row(a, b, c) lays layers side by side; row(3, circle(8)) repeats one. Look verbs on a group reach its children, and with stagger() so do feel verbs.", code: `grid(3, 3).color("plum").y("wave").stagger(.1)` },
+      { verbs: "bubbles", text: "A conversation: grey on the left, plum on the right, lines from the bank or your own. It is a group, so it staggers.", code: `chat: bubbles(5).hide()\nchat.on(tap()).rise(40).stagger(.09)\ntext("tap anywhere", 13).color("dim").at("center", "bottom")` },
+      { verbs: "sheet", text: "A bottom sheet, 560 tall, resting with 96 showing. rise() on a sheet means all the way up, and a drag() after on() scrubs the same motion.", code: `sheet().on("tap").rise().drag("y")` },
+      { verbs: "tabbar", text: "Bottom tabs with a sliding indicator. tabs.page is a driver that runs 0 to 1 across the tabs, so anything can follow it.", code: `tabs: tabbar("Home Search Saved")\nscreens: row(3, card()).gap(48).at(24, 120)\nscreens.on(tabs.page).x(-2 * 390)` },
+    ],
+  },
+  {
+    id: "placement",
+    title: "Placement",
+    intro: "Everything is a transform on a 390 × 844 screen with the origin top-left. Placement is computed when the line runs, so refer to layers that already exist.",
+    items: [
+      { verbs: "size · at · center · fill", text: "size(w, h) resizes and keeps a centred layer centred. at(x, y) sets the top-left corner, in numbers or in words: \"left\" \"center\" \"right\", \"top\" \"center\" \"bottom\", with margins and safe areas respected.", code: `box(80).at("left", "top")\ncircle(80, "plum").at("right", "bottom")\npill("centre").center()` },
+      { verbs: "below · above · right · left · move", text: "Sit next to another layer, centres aligned, 12 apart unless you say otherwise. move(dx, dy) nudges.", code: `photo: image("tote", 220)\nname: text("Canvas tote", 22).below(photo, 16)\nprice: text("$48", 17).color("dim").below(name, 4)\ntag: pill("new", "coral").size(64, 28).right(name, 10)` },
+      { verbs: "center(layer) · around", text: "Centring on a layer also rides on it: it moves, scales and fades along. around(layer, n) puts n copies on a ring just outside it, and fly() sends them outward.", code: `sun: circle(90, "sun")\nface: emoji("😎", 44).center(sun)\nrays: circle(10, "sun").around(sun, 10)\nsun.on("tap").spring("bounce", 1.25)\nrays.on(sun.tap).fly(24).spring("bounce")` },
+    ],
+  },
+  {
+    id: "look",
+    title: "Look",
+    intro: "One look, yours. Colours are the palette (coral plum mint sky sun rose sand ink grey), a role (accent surface text dim fill line) or any CSS colour.",
+    items: [
+      { verbs: "color · radius · opacity · shadow · hide · show", text: "The usual. shadow takes a level from 0 to 3. hide() and show() are opacity, so a hidden layer can fade in.", code: `row(box(96, "coral").shadow(1), box(96, "mint").radius(48).shadow(2), box(96, "sky").radius(4).shadow(3).opacity(.6)).gap(20)` },
+      { verbs: "theme", text: "theme(\"dark\") flips everything. A palette name sets the accent; \"sand\" or \"ink\" sets the ground. Put it on the first line.", code: `theme("dark", "mint")\ncard(row(avatar(), text().bold()), image(), row(pill("Follow", "accent"), pill("Message", "fill")))` },
+    ],
+  },
+  {
+    id: "drivers",
+    title: "Drivers",
+    intro: "Everything that moves a prototype produces t from 0 to 1, so any driver can drive any change. After .on(driver), verbs describe the other state; the runtime diffs the two and moves what changed.",
+    items: [
+      { verbs: "on · tap", text: "A tap plays the change with a spring; tapping again plays it back. \"tap\" is the layer's own; other.tap listens to another layer; tap() is anywhere on the screen.", code: `door: box(140, "plum")\ndoor.on("tap").rotate(90).radius(70).color("coral")` },
+      { verbs: "hold", text: "1 while a finger is down, 0 when it lifts.", code: `b: circle(120, "rose")\nb.on("hold").scale(.8).color("plum").spring("snappy")\ntext("press and hold", 13).color("dim").below(b, 40)` },
+      { verbs: "scroll", text: "The screen scrolls natively, with the phone's own momentum. t is how far through the length you are. Layers stay put unless they follow it, or scrolls() with it.", code: `hero: image("dunes", 390, 420).at(0, 0).radius(0)\ntitle: text("Dune walk", 34).at(24, 440)\nhero.on(scroll(300)).height(140).opacity(.5)\ntitle.on("scroll").y(-280).size(20)` },
+      { verbs: "page", text: "Swipe sideways through n pages. It snaps, it rubber-bands at the ends, and t runs 0 to 1 across all of them. peak() lights child i at page i.", code: `p: page(3)\nslides: row(3, card()).gap(48).at(24, 150)\ndots: row(3, circle(8, "grey")).gap(10).at("center", 620)\nslides.on(p).x(-2 * 390)\ndots.on(p).peak().color("coral").scale(1.5)` },
+      { verbs: "time · lfo", text: "time(seconds) is a looping clock you can pause(); lfo(hz) is an oscillator. Both are just t.", code: `track: pill(300, 6).color("grey")\nbar: pill(300, 6).color("coral").width(0)\nbar.on(time(3).pause(hold())).width(300)\ndot: circle(24, "plum").below(track, 60)\ndot.on(lfo(.5)).x(120).scale(1.6)` },
+      { verbs: "on(layer)", text: "Follow another layer's change. The shade doesn't know about taps or drags; it knows about the sheet.", code: `shade: box("ink").fill().hide()\nfilters: sheet()\nfilters.on("tap").rise().drag("y")\nshade.on(filters).opacity(.5)` },
+    ],
+  },
+  {
+    id: "feel",
+    title: "Feel",
+    intro: "Five frozen presets: pop, settle, snappy, lazy, bounce. Nobody tunes stiffness in a prototype.",
+    items: [
+      { verbs: "spring", text: "spring(preset) picks which spring plays the change. On its own after on(\"tap\") it is a kick: scale up to the amount and spring back.", code: `row(pill("pop").on("tap").spring("pop"), pill("bounce", "plum").on("tap").spring("bounce", 1.3)).gap(12)` },
+      { verbs: "curve", text: "A timed ease when you want one: linear, ease, in, out, and a duration in seconds.", code: `b: box("sky")\nb.on("tap").x(120).rotate(180).curve("ease", .6)` },
+      { verbs: "between · drive", text: "The same two-state idea for many layers at once. Inside the function, verbs describe the other state of every layer they touch. drive() takes any number of drivers.", code: `a: circle(90, "coral").at(60, 200)\nb: box(90, "plum").at(240, 520)\nbetween(() => {\n  a.at(240, 520).size(40)\n  b.at(60, 200).rotate(45)\n}).drive(tap()).spring("bounce")` },
+      { verbs: "range · fade · rise · show", text: "range(a, b) gives a layer its own slice of t. fade() dissolves either way. rise(d) moves up, or brings a hidden layer in from below.", code: `s: scroll(400)\none: card().at("center", 140)\ntwo: pill("Continue", "plum").at("center", 640).hide()\none.on(s).range(0, .5).fade().scale(.9)\ntwo.on(s).range(.5, 1).rise(40)` },
+      { verbs: "fly · stagger", text: "fly(d) sends a layer along its direction: outward for around() copies, otherwise up. stagger(s) lets a group's children go one after another.", code: `heart: circle(72, "coral")\nicon: emoji("♥").center(heart)\nburst: circle(6).around(heart, 8).hide()\nheart.on("tap").spring("pop", 1.3)\nburst.on(heart.tap).show().fly(40).fade().stagger(.03)` },
+      { verbs: "into", text: "A shared-element move: grow into another layer's frame while it fades in over the top. Tapping the destination goes back.", code: `thumb: card(image("tote", 120, 120), 152, 152).at(24, 120)\ndetail: box("white", image("tote", 342, 300), text("Canvas tote", 28), pill("Add to bag", "coral")).fill()\nthumb.on("tap").into(detail).spring("snappy")` },
+      { verbs: "modulate", text: "The namesake. A Value that follows another through a mapping, with any number of stops, in numbers or colours. Every property takes one.", code: `knob: circle(64, "ink").drag("x", [-120, 120])\nbar: box(200, 24).at("center", 260)\nbar.color(modulate(drag(knob).x, [-120, 0, 120], ["#3f8ef7", "#e9e9ee", "#e2694f"]))\nbar.rotate(modulate(drag(knob).x, [-120, 120], [-30, 30]))` },
+    ],
+  },
+  {
+    id: "drag",
+    title: "Dragging",
+    intro: "Vanilla Motion has no drag, so this one is ours: pointer events, velocity, and the iOS rubber-band curve.",
+    items: [
+      { verbs: "drag · rubberband · release · dismiss", text: "drag(axis, [min, max]) follows the finger. rubberband() resists past the limits, or everywhere if there are none. release(preset) springs home. dismiss() lets a flick throw it away; it comes back, because this is a toy.", code: `card().drag("x").rubberband(.8).release("settle").dismiss()` },
+      { verbs: "drag(layer)", text: "The driver side of a drag: t is distance over 160 (range(px) changes that), and .x .y are the raw offsets for modulate().", code: `puck: circle(80, "plum").drag().release("bounce")\nhalo: circle(80, "plum").opacity(.2).z(-1)\nhalo.on(drag(puck)).scale(3).opacity(0)` },
+    ],
+  },
+  {
+    id: "patterns",
+    title: "Patterns",
+    intro: "A string where a number or colour goes is a pattern. Four things borrowed from Tidal and nothing else: sequence \"a b c\", alternation \"<a b>\", subdivision \"[a b]\", repeat \"a!4\", and ~ for a rest.",
+    items: [
+      { verbs: "sequences in time", text: "Before on(), a cycle is two seconds and each step is sprung. every(seconds) changes the cycle.", code: `box().y("0 -80 0 [40 -40]").rotate("0 90 180 270").color("<coral plum> sun")` },
+      { verbs: "sequences per tap", text: "After on(\"tap\"), a cycle is one tap, so alternation walks through its values a tap at a time.", code: `b: box(140)\nb.on("tap").color("<plum mint sun coral>").rotate("<45 90 135 180>").spring("pop")` },
+      { verbs: "wave · saw · square · noise", text: "Continuous shapes. The second argument is the amplitude; stagger() offsets the phase down a group.", code: `row(7, pill(16, 80).color("sky")).gap(10).y("wave", 40).stagger(.12)` },
+    ],
+  },
+];

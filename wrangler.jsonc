@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "modulatejs",
+  "main": "src/worker/worker.js",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist/site",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/", "/library", "/library/"]
+  },
+  // once modulatejs.com is a zone in this Cloudflare account, uncomment and `npx wrangler deploy`:
+  // "routes": [
+  //   { "pattern": "modulatejs.com", "custom_domain": true },
+  //   { "pattern": "www.modulatejs.com", "custom_domain": true }
+  // ],
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>modulate — the link is the file</title>
+<meta name="description" content="A toy vocabulary for mobile-app feel. Write fifteen lines, get a link, feel it on your phone. No login, nothing stored: the code lives in the URL.">
+<meta name="theme-color" content="#0b0b0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="text/markdown" href="/index.md" title="This page, for models">
+<link rel="alternate" type="text/markdown" href="/spec.md" title="The spec">
+<link rel="help" href="/llms.txt">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<!--
+  Reading this without running JavaScript? Everything you need is plain text:
+    /llms.txt        what this site is, in a few lines
+    /spec.md         the whole vocabulary, one page
+    /examples/       ten prototypes, each under fifteen lines
+  A link is  https://modulatejs.com/#1<lz-string compressToEncodedURIComponent(code)>
+-->
+<header class="bar">
+  <a class="brand" href="/"><i class="dot"></i><b>modulate</b></a>
+  <span class="dim host" id="host">modulatejs.com</span>
+  <span class="grow"></span>
+  <span class="pill" id="live" hidden></span>
+  <span class="dim tagline">no login · the link is the file</span>
+</header>
+
+<main class="work">
+  <section class="pane" id="pane">
+    <div id="editor"></div>
+    <div class="try" id="try" hidden>
+      <div class="try-label">try one</div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="device-fit" id="fit">
+      <div class="device" id="device">
+        <iframe id="frame" src="/frame" title="device" allow="clipboard-write"></iframe>
+        <i class="home"></i>
+      </div>
+    </div>
+    <div class="status"><span id="status-left"></span><span id="status-right"></span></div>
+  </section>
+
+  <button class="strip" id="strip" aria-expanded="false" aria-controls="spec" title="the spec">SPEC · <span id="verbs">60</span> verbs</button>
+  <aside class="spec" id="spec" hidden>
+    <div class="spec-head"><span>spec.md</span><a href="/spec.md" target="_blank" rel="noopener">raw</a><a href="/library">library</a><button id="spec-close" aria-label="close">×</button></div>
+    <article class="md" id="spec-body"></article>
+  </aside>
+</main>
+
+<footer class="foot">
+  <div class="actions">
+    <button class="btn primary" id="phone"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M0 0h6v6H0zm1.5 1.5v3h3v-3zM8 0h6v6H8zm1.5 1.5v3h3v-3zM0 8h6v6H0zm1.5 1.5v3h3v-3zM8 8h2v2H8zm4 0h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2H8zm4 0h2v2h-2z"/></svg>open on phone</button>
+    <button class="btn" id="copy">copy link</button>
+    <button class="btn" id="room" aria-disabled="true" title="rooms come with the relay: watch a model edit live">room</button>
+    <span class="dim hint" id="hint" hidden>back = undo · every old link is a version</span>
+  </div>
+  <nav class="links">
+    <a href="/spec.md">spec.md</a>
+    <a href="/llms.txt">llms.txt</a>
+    <a href="/library">library</a>
+    <a href="/library#install">npx modulatejs</a>
+    <a href="https://github.com/freddieiboy/modulate">github</a>
+  </nav>
+</footer>
+
+<div class="pop" id="qr" hidden>
+  <div id="qr-code"></div>
+  <p id="qr-note">scan to open this on your phone</p>
+</div>
+
+<noscript>
+  <div class="noscript">
+    <h1>modulate</h1>
+    <p>A toy vocabulary for mobile-app feel: write fifteen lines, get a link, feel it on a phone. The editor needs JavaScript; the language doesn't need the editor.</p>
+    <p><a href="/spec.md">spec.md</a> · <a href="/llms.txt">llms.txt</a> · <a href="/library.md">library.md</a> · <a href="/examples/index.json">examples</a></p>
+  </div>
+</noscript>
+<script src="/app.js" defer></script>
+</body>
+</html>

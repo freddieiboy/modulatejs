@@ -1,0 +1,33 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+/examples/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+/modulate.js
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=300
+
+/modulate.mjs
+  Access-Control-Allow-Origin: *
+
+/link.mjs
+  Access-Control-Allow-Origin: *
+
+/app.js
+  Cache-Control: public, max-age=300
+
+/frame.html
+  Cache-Control: public, max-age=300
