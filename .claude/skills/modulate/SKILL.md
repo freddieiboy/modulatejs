@@ -1,6 +1,6 @@
 ---
 name: modulate
-description: Write a modulate prototype (mobile-app feel in about fifteen lines) and hand back a modulatejs.com link, or iterate on one live with npx modulatejs. Use when asked to "use modulate", prototype an interaction, a transition, a gesture, or how something should feel on a phone.
+description: Write a modulate prototype (mobile-app feel in about fifteen lines) and hand back a coral.fm link, or iterate on one live with npx modulatejs. Use when asked to "use modulate", prototype an interaction, a transition, a gesture, or how something should feel on a phone.
 ---
 
 # modulate
@@ -12,7 +12,7 @@ description: Write a modulate prototype (mobile-app feel in about fifteen lines)
 
    ```js
    import LZ from "lz-string"
-   "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code)
+   "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
    ```
 
    Reply with the link and the code. The person opens it, taps "open on phone", scans, and feels it.

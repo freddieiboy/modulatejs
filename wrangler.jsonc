@@ -10,10 +10,14 @@
     "not_found_handling": "404-page",
     "run_worker_first": ["/", "/library", "/library/"]
   },
-  // once modulatejs.com is a zone in this Cloudflare account, uncomment and `npx wrangler deploy`:
-  // "routes": [
-  //   { "pattern": "modulatejs.com", "custom_domain": true },
-  //   { "pattern": "www.modulatejs.com", "custom_domain": true }
-  // ],
+  // coral.fm is the app, modulatejs.com is the library; the worker routes by host
+  // Zone routes, not custom domains: both zones already have proxied DNS records for the apex and www.
+  "routes": [
+    { "pattern": "coral.fm/*", "zone_name": "coral.fm" },
+    { "pattern": "www.coral.fm/*", "zone_name": "coral.fm" },
+    { "pattern": "modulatejs.com/*", "zone_name": "modulatejs.com" },
+    { "pattern": "www.modulatejs.com/*", "zone_name": "modulatejs.com" }
+  ],
+  "workers_dev": true,
   "observability": { "enabled": true }
 }

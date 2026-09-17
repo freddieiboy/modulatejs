@@ -1,8 +1,9 @@
-// The link is the file: modulatejs.com/#<version><lz-string code>[&r=<room>]
+// The link is the file: coral.fm/#<version><lz-string code>[&r=<room>]
+// coral.fm is the app (the editor and the device); modulatejs is the library it runs.
 import LZ from "lz-string";
 
 export const LINK_VERSION = "1";
-export const ORIGIN = "https://modulatejs.com/";
+export const ORIGIN = "https://coral.fm/";
 
 export function encode(code: string): string {
   return LINK_VERSION + LZ.compressToEncodedURIComponent(code);

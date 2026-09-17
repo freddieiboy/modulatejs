@@ -1,4 +1,4 @@
-// modulatejs.com — the editor page. AGPL-3.0.
+// coral.fm — the editor page for modulatejs. AGPL-3.0.
 // One static page: a raw editor, a device, the spec in a side panel. All state is in the URL.
 import { EditorView, keymap, lineNumbers, placeholder, highlightActiveLineGutter, drawSelection, Decoration, DecorationSet } from "@codemirror/view";
 import { EditorState, StateEffect, StateField } from "@codemirror/state";

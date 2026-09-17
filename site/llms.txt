@@ -1,8 +1,8 @@
-# modulate
+# modulatejs and coral.fm
 
-> modulatejs.com is a runtime and a small app for prototyping mobile-app feel. You write ten to fifteen lines in a toy vocabulary (pieces, drivers, springs, on top of Motion's animation engine), and the code itself becomes a link that runs in a device frame on the desktop and full screen on a phone. No login, no API, nothing stored: the link is the file.
+> modulatejs is a library: a toy vocabulary for prototyping mobile-app feel in ten to fifteen lines (pieces, drivers and springs on top of Motion's animation engine). coral.fm is the app that runs it: a code editor beside a phone-sized device, where the code itself is the link. A coral.fm link opens in a device frame on a desktop and full screen on a phone. No login, no API, nothing stored: the link is the file.
 
-To hand someone a working prototype: read the spec, write the code, encode it into a link, reply with the link.
+To hand someone a working prototype: read the spec, write the code, encode it into a coral.fm link, reply with the link.
 
 ## Read this first
 
@@ -11,11 +11,11 @@ To hand someone a working prototype: read the spec, write the code, encode it in
 
 ## Making a link
 
-A link is `https://modulatejs.com/#1` followed by the source compressed with lz-string's `compressToEncodedURIComponent`. `1` is the format version.
+A link is `https://coral.fm/#1` followed by the source compressed with lz-string's `compressToEncodedURIComponent`. `1` is the format version.
 
 ```js
 import LZ from "lz-string"
-const link = "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code)
+const link = "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
 ```
 
 - [link.mjs](https://modulatejs.com/link.mjs): the same encoder as a dependency-free ES module exporting `encode(code)`, `decode(fragment)`, `link(code)`
@@ -33,6 +33,7 @@ const link = "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code
 ## Optional
 
 - [library.md](https://modulatejs.com/library.md): every verb with a paragraph and a one-line example
-- [modulate.js](https://modulatejs.com/modulate.js): the runtime, one file, MIT, `Modulate.run(code, element)`
-- `npx modulatejs proto.js`: the editor on a file on disk, mirrored live to phones on the same network (for working with Claude Code)
+- [modulate.js](https://modulatejs.com/modulate.js): the runtime, one file, MIT, `Modulate.run(code, element)`; also `npm i modulatejs` and https://unpkg.com/modulatejs
+- `npx modulatejs proto.js`: the coral editor on a file on disk, mirrored live to phones on the same network (for working with Claude Code)
+- Every file here is served on both domains; coral.fm/spec.md and modulatejs.com/spec.md are the same document
 - Rooms (watching a model edit live) and published short links are not live yet

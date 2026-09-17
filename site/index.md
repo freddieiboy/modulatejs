@@ -1,6 +1,6 @@
-# modulatejs.com
+# coral.fm
 
-This is the editor page of modulate: a raw code editor on the left, a phone-sized device on the right, the spec folded into a side panel. It is one static page. There is no login, no chat and no API; all state lives in the URL fragment. You are reading the markdown version because you asked for `text/markdown` or don't run JavaScript. Nothing here is hidden from people: the spec panel in the editor renders the same spec.md.
+This is coral, the editor for [modulatejs](https://modulatejs.com): a raw code editor on the left, a phone-sized device on the right, the spec folded into a side panel. It is one static page. There is no login, no chat and no API; all state lives in the URL fragment. You are reading the markdown version because you asked for `text/markdown` or don't run JavaScript. Nothing here is hidden from people: the spec panel in the editor renders the same spec.md.
 
 ## What you can do from here
 
@@ -12,14 +12,14 @@ This is the editor page of modulate: a raw code editor on the left, a phone-size
 ## The link scheme
 
 ```
-https://modulatejs.com/#1<code>
+https://coral.fm/#1<code>
 ```
 
 `1` is the format version. `<code>` is the source run through lz-string's `compressToEncodedURIComponent`.
 
 ```js
 import LZ from "lz-string"
-const link = "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code)
+const link = "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
 ```
 
 A ready-made encoder with no dependencies: [https://modulatejs.com/link.mjs](https://modulatejs.com/link.mjs) (`encode`, `decode`, `link`). From a shell: `npx modulatejs link proto.js`.
@@ -40,5 +40,5 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 
 - [llms.txt](https://modulatejs.com/llms.txt)
 - [library.md](https://modulatejs.com/library.md): every verb with an example
-- [modulate.js](https://modulatejs.com/modulate.js): the runtime (MIT), built on Motion
+- [modulatejs.com](https://modulatejs.com): the library's own page. [modulate.js](https://modulatejs.com/modulate.js) is the runtime (MIT), built on Motion; `npm i modulatejs`
 - Rooms and published short links are planned and not live yet; there are no endpoints to call.

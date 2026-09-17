@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>modulate — the link is the file</title>
-<meta name="description" content="A toy vocabulary for mobile-app feel. Write fifteen lines, get a link, feel it on your phone. No login, nothing stored: the code lives in the URL.">
+<title>coral — the link is the file</title>
+<meta name="description" content="Prototype mobile-app feel in modulatejs. Write fifteen lines, get a link, feel it on your phone. No login, nothing stored: the code lives in the URL.">
 <meta name="theme-color" content="#0b0b0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="text/markdown" href="/index.md" title="This page, for models">
@@ -21,11 +21,12 @@
     /llms.txt        what this site is, in a few lines
     /spec.md         the whole vocabulary, one page
     /examples/       ten prototypes, each under fifteen lines
-  A link is  https://modulatejs.com/#1<lz-string compressToEncodedURIComponent(code)>
+  The language is modulatejs: https://modulatejs.com
+  A link is  https://coral.fm/#1<lz-string compressToEncodedURIComponent(code)>
 -->
 <header class="bar">
-  <a class="brand" href="/"><i class="dot"></i><b>modulate</b></a>
-  <span class="dim host" id="host">modulatejs.com</span>
+  <a class="brand" href="/"><i class="dot"></i><b>coral</b></a>
+  <span class="dim host" id="host">coral.fm</span>
   <span class="grow"></span>
   <span class="pill" id="live" hidden></span>
   <span class="dim tagline">no login · the link is the file</span>
@@ -51,7 +52,7 @@
 
   <button class="strip" id="strip" aria-expanded="false" aria-controls="spec" title="the spec">SPEC · <span id="verbs">60</span> verbs</button>
   <aside class="spec" id="spec" hidden>
-    <div class="spec-head"><span>spec.md</span><a href="/spec.md" target="_blank" rel="noopener">raw</a><a href="/library">library</a><button id="spec-close" aria-label="close">×</button></div>
+    <div class="spec-head"><span>spec.md</span><a href="/spec.md" target="_blank" rel="noopener">raw</a><a href="/library">modulatejs</a><button id="spec-close" aria-label="close">×</button></div>
     <article class="md" id="spec-body"></article>
   </aside>
 </main>
@@ -66,7 +67,7 @@
   <nav class="links">
     <a href="/spec.md">spec.md</a>
     <a href="/llms.txt">llms.txt</a>
-    <a href="/library">library</a>
+    <a href="/library">modulatejs</a>
     <a href="/library#install">npx modulatejs</a>
     <a href="https://github.com/freddieiboy/modulate">github</a>
   </nav>
@@ -79,8 +80,8 @@
 
 <noscript>
   <div class="noscript">
-    <h1>modulate</h1>
-    <p>A toy vocabulary for mobile-app feel: write fifteen lines, get a link, feel it on a phone. The editor needs JavaScript; the language doesn't need the editor.</p>
+    <h1>coral</h1>
+    <p>Prototype mobile-app feel in <a href="https://modulatejs.com">modulatejs</a>: write fifteen lines, get a link, feel it on a phone. The editor needs JavaScript; the language doesn't need the editor.</p>
     <p><a href="/spec.md">spec.md</a> · <a href="/llms.txt">llms.txt</a> · <a href="/library.md">library.md</a> · <a href="/examples/index.json">examples</a></p>
   </div>
 </noscript>

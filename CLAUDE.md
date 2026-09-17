@@ -1,6 +1,6 @@
 # modulate
 
-A toy vocabulary for mobile-app feel (the runtime, `modulate.js`) and a one-page editor at modulatejs.com where the code lives in the URL. Plan: `Modulate v1 plan.md`.
+Two names. **modulatejs** is the library: a toy vocabulary for mobile-app feel (`modulate.js`, npm `modulatejs`, docs at modulatejs.com). **coral** is the app at coral.fm: a one-page editor and device where the code lives in the URL (`https://coral.fm/#1…`). One repo, one Cloudflare worker serving both domains. Plan: `Modulate v1 plan.md`.
 
 ## Rules
 
@@ -20,7 +20,7 @@ A toy vocabulary for mobile-app feel (the runtime, `modulate.js`) and a one-page
 - `src/runtime/`: value, layer (verbs), reaction (`on`/`between`), drivers, pieces, mini (patterns), run (labels, `js {}`) (MIT)
 - `src/app/`, `site/`: editor page, library page, static files (AGPL-3.0)
 - `src/cli/cli.mjs`: `npx modulatejs` (file watcher, SSE relay, LAN address)
-- `src/worker/worker.js`, `wrangler.jsonc`: Cloudflare deploy
+- `src/worker/worker.js`, `wrangler.jsonc`: Cloudflare deploy. The worker routes by host: coral.fm `/` is the editor, modulatejs.com `/` is the library page; every other file is on both
 
 ## Working on it
 

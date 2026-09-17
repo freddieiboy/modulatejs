@@ -7,7 +7,7 @@ Open everything that runs on your machine. The name and the domain are what's ke
 | The runtime, **modulate.js** | `src/runtime/`, `src/link.ts`, `dist/modulate.js`, `dist/modulate.mjs`, `dist/modulate.d.ts`, `dist/link.mjs` | MIT (below) |
 | The editor page and the CLI | `src/app/`, `src/cli/`, `src/worker/`, `site/`, `bin/`, `dist/site/` (except the runtime files copied into it), `dist/cli.mjs` | AGPL-3.0-only ([LICENSE-AGPL-3.0.txt](LICENSE-AGPL-3.0.txt)) |
 | The spec and the prototypes | `SPEC.md`, `prototypes/`, `site/llms.txt`, `site/index.md`, `src/app/library-data.mjs` | CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) |
-| The name "modulate", the wordmark, modulatejs.com | | Not licensed. Fork the code, not the name. |
+| The names "modulate" and "coral", the wordmarks, modulatejs.com and coral.fm | | Not licensed. Fork the code, not the name. |
 
 Third-party notices are in [THIRD_PARTY.md](THIRD_PARTY.md).
 

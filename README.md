@@ -1,6 +1,6 @@
 # modulate
 
-A toy vocabulary for mobile-app feel. You write fifteen lines, you get a link, and the link runs on your phone. **[modulatejs.com](https://modulatejs.com)**
+A toy vocabulary for mobile-app feel. You write fifteen lines, you get a link, and the link runs on your phone. **[modulatejs.com](https://modulatejs.com)** is the library. **[coral.fm](https://coral.fm)** is the app that runs it: an editor, a device frame, and links.
 
 ```js
 // like button that pops
@@ -28,7 +28,7 @@ The code lives in the URL fragment, so there is no login, no backend and nothing
 ```sh
 npm i modulatejs            # import { box, between, run } from "modulatejs"
 npx modulatejs proto.js     # the editor on a file on disk, live on your phone over wifi
-npx modulatejs link proto.js   # print the modulatejs.com link for a file
+npx modulatejs link proto.js   # print the coral.fm link for a file
 ```
 
 `npx modulatejs` is the mode for working with Claude Code: it edits `proto.js`, the page and your phone follow.
@@ -40,13 +40,13 @@ npm install
 npm run build    # dist/modulate.js, dist/site/, dist/cli.mjs
 npm test         # the ten prototypes, the spec's examples, the link codec
 npm run dev      # rebuild on change; serve with: node bin/modulate.mjs proto.js
-npx wrangler deploy   # the site, to Cloudflare
+npx wrangler deploy   # both sites, to Cloudflare: one worker, coral.fm and modulatejs.com
 ```
 
 - `SPEC.md`: the vocabulary. Served verbatim at modulatejs.com/spec.md. Source of truth.
 - `prototypes/`: ten hand-sized prototypes. They are the test suite and the examples models read.
 - `src/runtime/`: the library. Only `engine.ts` touches Motion.
-- `src/app/`: the editor page and the library page. `site/`: their static files.
+- `src/app/`: the editor page (coral.fm) and the library page (modulatejs.com). `site/`: their static files.
 - `src/cli/`: `npx modulatejs`. `src/worker/`: the Cloudflare worker (static assets plus a markdown route).
 
 ## Licences

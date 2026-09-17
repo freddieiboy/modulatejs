@@ -2,6 +2,8 @@
 
 A toy vocabulary for mobile-app feel. You write ten to fifteen lines, you get a link, and the link runs on a phone. This page is everything a person or a model needs.
 
+modulatejs is the library ([modulatejs.com](https://modulatejs.com)). [coral.fm](https://coral.fm) is the app that runs it: an editor, a device, and links.
+
 ```js
 // like button that pops
 heart: circle(72).center().color("coral")
@@ -157,17 +159,17 @@ Before `.on()`, a cycle is 2 seconds (`.every(seconds)` changes it) and steps ar
 
 ## Links
 
-The link is the file. Nothing is stored anywhere.
+The link is the file, and it opens in coral.fm. Nothing is stored anywhere.
 
 ```
-https://modulatejs.com/#1<code>
+https://coral.fm/#1<code>
 ```
 
 `1` is the format version; `<code>` is the source compressed with lz-string's `compressToEncodedURIComponent`. To make one:
 
 ```js
 import LZ from "lz-string"
-const link = "https://modulatejs.com/#1" + LZ.compressToEncodedURIComponent(code)
+const link = "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
 ```
 
 or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. A thirty-line prototype is 300–600 characters. Opened on a phone the link shows only the prototype, full screen.

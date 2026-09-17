@@ -30,10 +30,10 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 `;
 
 if (flag("--help") || flag("-h")) {
-  console.log(`modulate — https://modulatejs.com
+  console.log(`modulatejs — https://modulatejs.com · the editor is coral, https://coral.fm
 
   npx modulatejs [file]         open the editor on a file (default proto.js), live on your phone too
-  npx modulatejs link [file]    print the modulatejs.com link for a file
+  npx modulatejs link [file]    print the coral.fm link for a file
 
   --port <n>    default 4173
   --no-open     don't open the browser`);
@@ -144,7 +144,7 @@ server.on("error", (e) => {
 
 server.listen(port, "0.0.0.0", () => {
   const local = `http://localhost:${port}`;
-  console.log(`\n  modulate · ${basename(file)}\n`);
+  console.log(`\n  coral · ${basename(file)}\n`);
   console.log(`  editor   ${local}`);
   if (lanUrl) {
     console.log(`  phone    ${lanUrl}   (same wifi)\n`);

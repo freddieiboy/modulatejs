@@ -1,7 +1,15 @@
-// modulatejs.com/library — docs that double as the marketing page. AGPL-3.0.
+// modulatejs.com — the library's page: docs that double as the marketing page. AGPL-3.0.
+// The editor lives at coral.fm. Served locally (npx modulatejs, wrangler dev) both are one origin.
 import { sections } from "./library-data.mjs";
 import { encode } from "../link";
 import { tint } from "./tint";
+
+const isLocal = /^(localhost|\[::1\]|\d+\.\d+\.\d+\.\d+|.*\.local|.*\.workers\.dev)$/.test(location.hostname);
+const EDITOR = isLocal ? "/" : "https://coral.fm/";
+
+// links made before the app had its own name pointed here: send them on
+if (/^#1./.test(location.hash)) location.replace(EDITOR + location.hash);
+for (const a of document.querySelectorAll<HTMLAnchorElement>("a[data-editor]")) a.href = EDITOR;
 
 const root = document.getElementById("sections")!;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -14,7 +22,7 @@ function example(code: string, title: string, text: string): HTMLElement {
       <h3>${esc(title)}</h3>
       <p>${esc(text)}</p>
       <pre><code>${tint(code)}</code></pre>
-      <a class="open" href="/#${encode(code)}">open in editor →</a>
+      <a class="open" href="${EDITOR}#${encode(code)}">open in coral →</a>
     </div>
     <div class="mini"><iframe title="${esc(title)}" data-code="${esc(code)}"></iframe></div>`;
   return el;
