@@ -45,3 +45,4 @@ If your client speaks the Model Context Protocol, you don't have to fetch or enc
 - `npx modulatejs proto.js`: the coral editor on a file on disk, mirrored live to phones on the same network (for working with Claude Code)
 - Every file here is served on both domains; coral.fm/spec.md and modulatejs.com/spec.md are the same document
 - Rooms (watching a model edit live) and published short links are not live yet
+- Stay in the vocabulary. Use a `js: { … }` section only when a person asks for something the verbs can't say; the lint is quiet in there and loud everywhere else.

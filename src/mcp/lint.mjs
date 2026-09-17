@@ -97,8 +97,16 @@ export function lint(code, vocab) {
     if (!makes) emptySections.add(name);
   });
 
+  // js: { … } is the home for plain JavaScript: inside it nothing is judged
+  const quiet = [];
   walk(ast, (n) => {
-    if (n.type !== "CallExpression") return;
+    const first = n.type === "BlockStatement" && n.body[0];
+    if (first && first.type === "VariableDeclaration" && first.declarations[0]?.id?.name === "js" && first.declarations[0]?.init?.callee?.name === "$open") quiet.push([n.start, n.end]);
+  });
+  const inJs = (n) => quiet.some(([a, b]) => n.start >= a && n.end <= b);
+
+  walk(ast, (n) => {
+    if (n.type !== "CallExpression" || inJs(n)) return;
     const c = n.callee, line = n.loc.start.line;
     if (c.type === "Identifier") {
       if (c.name === "bubbles" && !declared.has("bubbles")) return void warnings.push({ line, message: "bubbles() is now messages(): it still runs, but the name has gone to layers and sections" });
@@ -110,7 +118,7 @@ export function lint(code, vocab) {
       const root = rootOfChain(c.object);
       if (!root || !(globals.has(root) || layers.has(root))) return; // someone else's object: not ours to judge
       const name = c.property.name;
-      if (emptySections.has(root) && c.object.type === "Identifier") return void problems.push({ line, message: `${root} has no layers in it, so ${root}.${name}() does nothing` });
+      if (emptySections.has(root) && c.object.type === "Identifier" && name !== "hide" && name !== "show") return void problems.push({ line, message: `${root} has no layers in it, so ${root}.${name}() does nothing` });
       if (name === "toss" || name === "release") {
         // on a free drag, release() goes home and toss() goes on: a chain gets one or the other
         const other = name === "toss" ? "release" : "toss";

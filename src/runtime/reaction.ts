@@ -16,6 +16,7 @@ export interface Target {
   origin?: Origin; // what stays still while this change scales or rotates the layer
   props: Record<string, any>;
   patterns: Record<string, Pattern>;
+  curves: Record<string, (t: number) => any>; // x(t => …): the property is whatever the function says of t
   show?: boolean;
   fade?: boolean;
   rise?: number;
@@ -188,7 +189,7 @@ export class Reaction extends Driver {
 
   target(layer: Layer): Target {
     let t = this.targets.get(layer);
-    if (!t) this.targets.set(layer, (t = { props: {}, patterns: {} }));
+    if (!t) this.targets.set(layer, (t = { props: {}, patterns: {}, curves: {} }));
     return t;
   }
 
@@ -314,7 +315,7 @@ export class Reaction extends Driver {
       const fans = kids && kids.length && (tg.stagger != null || tg.peak || (tg.fly != null && layer.kind === "ring"));
       if (fans) {
         // the group keeps its own frame; the feel goes to the children
-        const own: Target = { props: {}, patterns: {}, range: tg.range };
+        const own: Target = { props: {}, patterns: {}, curves: {}, range: tg.range };
         const down: Target = { ...tg, props: {} };
         for (const p in tg.props) (POSITION.has(p) ? own : down).props[p] = tg.props[p];
         if (layer.v.opacity.get() < 0.02 && (tg.show || tg.fade || tg.rise != null)) {
@@ -412,6 +413,13 @@ export class Reaction extends Driver {
       delete props.h;
     }
     for (const p in props) if (p !== "opacity") add(p, props[p]);
+    for (const p in tg.curves ?? {}) {
+      const fn = tg.curves[p];
+      tracks.push(this.track(layer, p, (t) => {
+        const v = fn(t);
+        return p === "color" || p === "ringColor" ? resolveColor(String(v)) : Number(v) || 0;
+      }));
+    }
 
     const base = layer.v.opacity.get();
     const hidden = base < 0.02;

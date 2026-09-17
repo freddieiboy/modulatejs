@@ -173,7 +173,7 @@ test("what go() won't take", () => {
 
 test("the run reports its sections, and solo() frames one by itself with the clock held", async () => {
   const p = await scene(`init: { theme("light") }\n` + HOME + S + `float: {\n  f: circle().at(300, 700).drift(10, .2)\n}\na.on("tap").go(s)`);
-  assert.equal(JSON.stringify(p.r.sections), `["home","s","float"]`);
+  assert.equal(JSON.stringify(p.r.sections), `[{"name":"home","layers":2},{"name":"s","layers":2},{"name":"float","layers":1}]`);
   assert.equal(p.win.Modulate.solo("s"), true);
   await p.tick(3);
   assert.equal(JSON.stringify(["a", "note", "bar", "body", "f"].map((n) => p.layer(n).el.style.display === "none")), "[true,true,false,false,true]");

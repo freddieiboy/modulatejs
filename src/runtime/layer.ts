@@ -197,6 +197,12 @@ export class Layer {
   // The one place a property is written: straight to the layer, or into the
   // reaction that is being described.
   put(prop: string, value: any, ctx: Reaction | null, amp?: number) {
+    // a function is a curve of your own: after .on(driver) the property is fn(t), whatever t the driver gives
+    if (typeof value === "function" && !isValue(value)) {
+      if (!ctx) throw new Error(`${this.label || this.kind}: a function needs a driver to feed it: put it after .on(…), as in b.on(time(2)).x(t => Math.sin(t * 6.28) * 100)`);
+      ctx.target(this).curves[prop] = value;
+      return;
+    }
     const colour = prop === "color" || prop === "ringColor";
     if (typeof value === "string" && !colour && !looksLikePattern(value) && Number.isNaN(Number(value)))
       throw new Error(`${this.kind}: "${value}" isn't a number or a pattern`);

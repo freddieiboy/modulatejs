@@ -1,5 +1,5 @@
 // coral.fm — the editor page for modulatejs. AGPL-3.0.
-// One static page: a raw editor, a device, the spec in a side panel. All state is in the URL.
+// One static page: a raw editor with the file's sections as tabs, and a device. All state is in the URL.
 import { EditorView, keymap, lineNumbers, placeholder, highlightActiveLineGutter, drawSelection, Decoration, DecorationSet } from "@codemirror/view";
 import { EditorState, StateEffect, StateField, Transaction } from "@codemirror/state";
 import { defaultKeymap, history as undoHistory, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -10,11 +10,11 @@ import { tags as t } from "@lezer/highlight";
 import qrcode from "qrcode-generator";
 import { encode, decode } from "../link";
 import { tint } from "./tint";
-import { renderSpec } from "./spec";
 import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
 import { allPictures, keepPicture, removePicture, heldPictures } from "./assets";
-import { makeStrip, screensInEditor, type Strip } from "./screens";
+import { Tabs, attach, whole } from "./tabs";
+import { getVocab } from "./hints";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -35,17 +35,15 @@ let frameReady = false;
 let code = "";
 let lastPushed = "";
 
-let screens: Strip | null = null;
+let tabs: Tabs | null = null;
 function send() {
-  if (frameReady) frame.contentWindow!.postMessage({ type: "run", code }, "*");
-  screens?.clear();
+  if (frameReady) frame.contentWindow!.postMessage({ type: "run", code, solo: tabs?.framed ?? null }, "*");
 }
 
 addEventListener("message", (e) => {
   if (e.source !== frame.contentWindow) return;
   const d = e.data;
   if (d?.type === "ready") {
-    $("verbs").textContent = String(d.verbs);
     // the pictures this browser is keeping go in first, so the first run already finds them
     pictures.then((files) => {
       frame.contentWindow!.postMessage({ type: "pictures", files }, "*");
@@ -75,13 +73,21 @@ function shapeDevice(d?: typeof dev) {
 
 const pictures: Promise<Record<string, Blob>> = player ? Promise.resolve({}) : allPictures().catch(() => ({}));
 
-function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev; sections?: string[] }) {
+function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev; sections?: { name: string; layers: number }[] }) {
   if (!player) shapeDevice(r.device);
-  if (!player && r.ok) pictures.then((files) => (screens ??= makeStrip($("screens"), frame)).show(r.sections ?? [], code, dev, files));
+  tabs?.result(r.sections, r.ok ? null : r.line ?? null);
   const left = $("status-left"), right = $("status-right");
-  left.className = r.ok ? "" : "bad";
-  left.textContent = r.ok ? (code.trim() ? `${dev.name} · ${dev.w} × ${dev.h}` : "") : r.error ?? "error";
-  right.textContent = r.ok && code.trim() ? `updated · ${r.ms} ms` : "";
+  const framed = tabs?.framed ?? null;
+  left.className = r.ok ? (framed ? "framed" : "") : "bad";
+  left.textContent = r.ok ? (framed ? `● ${framed} · framed alone · drift paused` : code.trim() ? `${dev.name} · ${dev.w} × ${dev.h}` : "") : r.error ?? "error";
+  right.textContent = "";
+  if (r.ok && framed) {
+    const all = document.createElement("button");
+    all.className = "runs-it";
+    all.textContent = "all ▸ runs it";
+    all.onclick = () => tabs?.open("all");
+    right.appendChild(all);
+  } else if (r.ok && code.trim()) right.textContent = `updated · ${r.ms} ms`;
   markLine(r.ok ? null : r.line ?? null);
 }
 
@@ -232,7 +238,7 @@ if (!player) {
         javascript(),
         syntaxHighlighting(look),
         badLine,
-        screensInEditor(() => screens),
+        Tabs.extension(),
         keepCentred,
         hints,
         completion,
@@ -244,7 +250,7 @@ if (!player) {
             const held = fromLink(e.clipboardData?.getData("text/plain") ?? "");
             if (held == null) return false;
             e.preventDefault();
-            v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: held } });
+            v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: held }, annotations: whole.of(true) });
             return true;
           },
         }),
@@ -257,6 +263,11 @@ if (!player) {
     }),
   });
   loadHints(view);
+  tabs = new Tabs($("tabs"), view, {
+    onFrame: () => send(),
+    reserved: () => ({ globals: getVocab()?.globals ?? [], verbs: getVocab()?.verbs ?? [] }),
+  });
+  attach(tabs);
 
   $("typewriter").onclick = () => {
     typewriter = !typewriter;
@@ -296,7 +307,7 @@ function setDoc(next: string) {
   let b = 0;
   while (b < cur.length - a && b < next.length - a && cur[cur.length - 1 - b] === next[next.length - 1 - b]) b++;
   quiet = true;
-  view.dispatch({ changes: { from: a, to: cur.length - b, insert: next.slice(a, next.length - b) } });
+  view.dispatch({ changes: { from: a, to: cur.length - b, insert: next.slice(a, next.length - b) }, annotations: whole.of(true) });
   quiet = false;
   chrome();
 }
@@ -329,7 +340,7 @@ const ghost = $("ghost");
 ghost.innerHTML = `› <b>init</b>: { device("iphone") · theme("light", "coral") }`;
 ghost.onclick = () => {
   if (!view) return;
-  view.dispatch({ changes: { from: 0, insert: INIT + "\n" }, selection: { anchor: INIT.indexOf('"iphone"') + 1, head: INIT.indexOf('"iphone"') + 7 } });
+  view.dispatch({ annotations: whole.of(true), changes: { from: 0, insert: INIT + "\n" }, selection: { anchor: INIT.indexOf('"iphone"') + 1, head: INIT.indexOf('"iphone"') + 7 } });
   view.focus();
 };
 
@@ -451,22 +462,6 @@ $("copy").onclick = async () => {
   }
   setTimeout(() => (b.textContent = "copy link"), 1400);
 };
-
-// ——— the spec, the very same spec.md a model reads
-let specLoaded = false;
-function toggleSpec(open = $("spec").hidden) {
-  $("spec").hidden = !open;
-  $("strip").setAttribute("aria-expanded", String(open));
-  if (open && !specLoaded) {
-    specLoaded = true;
-    renderSpec($("spec-body"), (example) => {
-      setDoc(example);
-      edited(example, true);
-    });
-  }
-}
-$("strip").onclick = () => toggleSpec();
-$("spec-close").onclick = () => toggleSpec(false);
 
 // ——— npx modulatejs: the same page, pointed at a file on disk
 const local = {

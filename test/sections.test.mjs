@@ -68,7 +68,8 @@ test("inside its own braces the name isn't ready, and the error says where", () 
 });
 
 test("a section with no layers is only a fold: a verb on it is an error, not nothing", () => {
-  assert.equal(failing(`init: { device("iphone") }\ninit.hide()`), "line 2: init has no layers in it, so init.hide() does nothing");
+  assert.equal(failing(`init: { device("iphone") }\ninit.color("plum")`), "line 2: init has no layers in it, so init.color() does nothing");
+  assert.equal(failing(`settings: {\n  \n}\nsettings.hide()`), "", "hide() and show() are what you say about a screen you haven't filled yet");
   assert.match(failing(`init: { theme("dark") }\nb: box()\nb.on(init.tap).hide()`), /line 3: init has no layers in it, so init\.tap is nothing/);
   assert.equal(failing(`init: { device("iphone") }\nupdate: { }\nbox()`), "", "left alone, they are as quiet as ever");
 });
@@ -107,4 +108,20 @@ test("the Addie screen as a section is the group() version, value for value", as
   const asGroup = await snapshot(`${ADDIE.join("\n")}\nbubbles: group(room, path, park, family, bag, cream, nursery)\n${FEEL}`);
   assert.ok(asSection.length > 2000);
   assert.equal(asSection, asGroup);
+});
+
+test("js: { … } is plain JavaScript: nothing in it is read as a label, and what it makes still counts", async () => {
+  const s = await scene(`js: {\n  const sizes = { small: 40, big: 80 }\n  const pick = (n) => n > 1 ? sizes.big : sizes.small\n  outer: for (let i = 0; i < 3; i++) {\n    if (i === 1) continue outer\n    globalThis["made" + i] = box(pick(i)).at(10 + i * 100, 10)\n  }\n}\njs.color("plum")`);
+  assert.equal(s.win.made0.v.w.get(), 40);
+  assert.equal(s.win.made2.v.w.get(), 80);
+  assert.equal(s.win.made2.v.color.get(), "#7a5af8", "the layers made in js are its group, like any section's");
+});
+
+test("a function is a value: after .on(driver) the property is fn(t)", async () => {
+  const s = await scene(`b: box(40).at(100, 100)\nb.on(time(2)).x(t => Math.sin(t * 6.28) * 100).scale(t => 1 + t)`, 1);
+  let least = Infinity, most = -Infinity;
+  for (let i = 0; i < 125; i++) (await s.tick(1), (least = Math.min(least, s.layer("b").v.ox.get())), (most = Math.max(most, s.layer("b").v.ox.get())));
+  assert.ok(most > 95 && least < -95, `x swings with the sine: ${Math.round(least)} … ${Math.round(most)}`);
+  assert.ok(s.layer("b").v.scale.get() >= 1 && s.layer("b").v.scale.get() <= 2);
+  assert.match(failing(`b: box()\nb.x(t => t * 100)`), /line 2: b: a function needs a driver to feed it/);
 });

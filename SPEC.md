@@ -24,7 +24,7 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 - In a piece's arguments, **numbers are sizes, strings are content or colour, layers become children**, in any order: `circle(72, "plum")`, `card(photo, title)`, `pill("Follow", "coral")`.
 - Anywhere a number goes, a **Value** (from `modulate`) or a **pattern** string can go.
 - A verb on a **group** runs on each member; a `"<…>"` pattern in a slot is read per member, in order, cycling.
-- `js { … }` is a plain block for when the vocabulary runs out. Everything is ordinary JS anyway.
+- It is JavaScript: `const`, loops and functions all work. Put them in `js: { … }`, so the rest reads as a sentence and nothing in there is read as a label; a file with a `js` block may not open the same everywhere. (`js { … }` without the colon is the same block inline.) A function is a value too: `b.on(time(2)).x(t => Math.sin(t * 6.28) * 100)` drives x with a curve of your own.
 
 ## init, draw, update
 
@@ -55,7 +55,7 @@ There is no frame loop to write. `draw` is declared once and the runtime keeps i
 - Sections nest: in `screen: { header: { … }  list: { … } }`, `header` has its own layers and `screen` has everything in both.
 - Inside its own braces the name isn't ready: *"bubbles isn't finished yet — use it below the closing brace"*.
 - A section's name follows the rules for a layer's: not a verb, and not a name a layer or another section in the file already has.
-- A section with no layers in it (`init`, `update`) is only a fold, and a verb on it is an error rather than nothing: *"init has no layers in it, so init.hide() does nothing"*.
+- A section with no layers in it (`init`, `update`) is only a fold, and a verb on it is an error rather than nothing: *"init has no layers in it, so init.color() does nothing"*. `hide()` and `show()` are allowed, since a screen is often hidden before it is filled.
 
 ### Screens
 

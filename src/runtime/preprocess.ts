@@ -5,6 +5,7 @@
 //   heart: circle(72)     a label names the layer and makes `heart` a variable
 //   draw: { … }           a label on a block is a section: a fold, and a group of every layer made inside it
 //   js { … }              a plain block, for when the vocabulary runs out
+//   js: { … }             the same as a section: JavaScript left exactly as written (no labels read in it)
 // preprocess() turns both into ordinary JavaScript without moving a line.
 
 const CONTINUES = new Set([",", "+", "-", "*", "/", "=", "&", "|", "?", ":", "<", ">", "(", "[", "{", "."]);
@@ -102,6 +103,36 @@ interface Names {
   used: Map<string, { kind: "layer" | "section"; line: number }>;
 }
 
+// The top-level sections of a file, as the preprocessor sees them: for the editor's tabs. Offsets are into src;
+// `open` is the brace, `close` the matching one. An unclosed section ends the list there (error says which).
+export interface SectionSpan {
+  name: string;
+  from: number; // start of the line the label is on
+  open: number;
+  close: number;
+  to: number; // just past the closing brace
+}
+export function sectionsOf(src: string): { sections: SectionSpan[]; error?: string } {
+  const sections: SectionSpan[] = [];
+  let i = 0;
+  while (i < src.length) {
+    const start = skipBlank(src, i);
+    if (start >= src.length) break;
+    const label = /^([A-Za-z_$][\w$]*)[ \t]*:(?!:)[ \t]*/.exec(src.slice(start, start + 120));
+    if (label && label[1] !== "default" && src[start + label[0].length] === "{") {
+      const open = start + label[0].length;
+      const close = statementEnd(src, open) - 1;
+      if (src[close] !== "}") return { sections, error: `"${label[1]}: {" is never closed` };
+      sections.push({ name: label[1], from: src.lastIndexOf("\n", start) + 1, open, close, to: close + 1 });
+      i = close + 1;
+      continue;
+    }
+    const end = statementEnd(src, label && label[1] !== "default" ? start + label[0].length : start);
+    i = Math.max(src[end] === ";" ? end + 1 : end, start + 1);
+  }
+  return { sections };
+}
+
 export function preprocess(src: string, reserved: Set<string> = new Set()): string {
   return pre(src, { reserved, used: new Map() }, 0);
 }
@@ -135,7 +166,10 @@ function pre(src: string, names: Names, before: number): string {
       if (was) throw fail(i, `"${name}: {" — ${name} is already the name of a ${was.kind} (line ${was.line}). A section is a name too, so it needs one of its own.`);
       names.used.set(name, { kind: "section", line });
       const q = JSON.stringify(name);
-      out += `{var ${name}=$open(${q});` + pre(src.slice(open + 1, close), names, line - 1 + src.slice(i, open + 1).split("\n").length - 1) + `}${name}=$close(${q});`;
+      // js: { … } is where plain JavaScript lives: nothing in it is read as a label (an object literal, a ternary
+      // and a labelled loop all have colons of their own)
+      if (name === "js") out += `{var js=$open("js");` + src.slice(open + 1, close) + `}js=$close("js");`;
+      else out += `{var ${name}=$open(${q});` + pre(src.slice(open + 1, close), names, line - 1 + src.slice(i, open + 1).split("\n").length - 1) + `}${name}=$close(${q});`;
       i = close + 1;
       continue;
     }

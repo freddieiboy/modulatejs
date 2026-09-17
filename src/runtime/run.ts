@@ -40,28 +40,32 @@ function $close(name: string) {
     sections.push(g);
     return g;
   }
-  // init: and update: are folds with nothing in them. A verb on one is a slip, and says so.
+  // init: and update: are folds with nothing in them. A verb on one is a slip, and says so; except hide() and
+  // show(), which are what you say about a screen you haven't filled yet.
   const quiet = new Set(["then", "toJSON", "constructor"]);
-  return new Proxy(
+  const fine = new Set(["hide", "show"]);
+  const empty: any = new Proxy(
     {},
     {
       get(_t, prop) {
         if (prop === "emptySection") return name;
         if (typeof prop !== "string" || quiet.has(prop)) return undefined;
         if (["tap", "hold", "snapped", "tapped", "members"].includes(prop)) throw new Error(`${name} has no layers in it, so ${name}.${prop} is nothing`);
+        if (fine.has(prop)) return () => empty;
         return () => {
           throw new Error(`${name} has no layers in it, so ${name}.${prop}() does nothing`);
         };
       },
     }
   );
+  return empty;
 }
 
 export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
-  sections?: string[]; // the sections that have layers in them: the editor shows one thumbnail each
+  sections?: { name: string; layers: number }[]; // the sections that have layers in them, and how many: the editor's tabs show which are screens
   device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean; dark: boolean };
 }
 
@@ -127,7 +131,7 @@ export function run(code: string, target?: HTMLElement): RunResult {
   try {
     fn(...Object.values(api), $name, $open, $close, { get w() { return st.W; }, get h() { return st.H; } });
     st.commit();
-    return { ok: true, device: shape(st), sections: sections.map((s) => s.label) };
+    return { ok: true, device: shape(st), sections: sections.map((s) => ({ name: s.label, layers: s.members.length })) };
   } catch (e) {
     const r = describe(e);
     try {

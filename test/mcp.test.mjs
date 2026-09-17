@@ -92,11 +92,19 @@ test("check: a section is a group: its name takes verbs; not inside its own brac
   assert.deepEqual(p(`bubbles: {\n  a: circle()\n  b: circle()\n}\nbubbles.on("hold").scale(1.2)\ndrops: circle(4).around(bubbles, 6)\ndrops.on(bubbles.tap).show().fly(30)`), []);
   assert.match(p(`blk: {\n  a: circle()\n}\nblk.wobble()`)[0], /^4: \.wobble\(\) is not a verb/);
   assert.deepEqual(p(`blk: {\n  a: circle()\n  blk.hide()\n}`), ["3: blk isn't finished yet — use it below the closing brace"]);
-  assert.deepEqual(p(`init: { device("iphone") }\ninit.hide()`), ["2: init has no layers in it, so init.hide() does nothing"]);
+  assert.deepEqual(p(`init: { device("iphone") }\ninit.color("plum")`), ["2: init has no layers in it, so init.color() does nothing"]);
+  assert.deepEqual(p(`settings: {\n  \n}\nsettings.hide()`), []);
   assert.match(p(`a: box()\na: {\n  b: box()\n}`)[0], /^2: "a: \{" — a is already the name of a layer \(line 1\)/);
   const old = lint(`chat: bubbles(4)`, vocab);
   assert.deepEqual(old.problems, []);
   assert.match(old.warnings[0].message, /bubbles\(\) is now messages\(\)/);
+});
+
+test("check: the lint is quiet inside js: { … } and as loud as ever outside it", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(p(`js: {\n  const n = 4\n  const o = { bubbles: 1, sheet: 2 }\n  for (let i = 0; i < n; i++) helper(i).wobble()\n  function helper(i) { return box(i * 10) }\n}\nb: box()`), []);
+  assert.match(p(`js: {\n  const n = 4\n}\nsheet: box()`)[0], /^4: "sheet:" — sheet is already a verb/);
+  assert.match(p(`js: {\n  const n = 4\n}\nb: box()\nb.wobble()`)[0], /^5: \.wobble\(\) is not a verb/);
 });
 
 test("check: pick, others, words, image and ring are known", () => {

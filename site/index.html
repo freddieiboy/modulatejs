@@ -34,6 +34,7 @@
 
 <main class="work">
   <section class="pane" id="pane">
+    <div class="tabs" id="tabs"></div>
     <button class="mode tray-button" id="tray-button" hidden aria-expanded="false" title="the pictures this browser is keeping for you"></button>
     <div class="tray" id="tray" hidden></div>
     <button class="mode" id="typewriter" role="switch" aria-checked="false" title="typewriter mode: the line you're writing stays in the middle of the editor, and the text grows from there"><i class="led"></i>typewriter</button>
@@ -53,15 +54,9 @@
         <i class="home"></i><i class="speaker"></i><i class="camera"></i><i class="button"></i>
       </div>
     </div>
-    <div class="screens" id="screens" hidden></div>
     <div class="status"><span id="status-left"></span><span id="status-right"></span></div>
   </section>
 
-  <button class="strip" id="strip" aria-expanded="false" aria-controls="spec" title="the spec">SPEC · <span id="verbs">60</span> verbs</button>
-  <aside class="spec" id="spec" hidden>
-    <div class="spec-head"><span>spec.md</span><a href="/spec.md" target="_blank" rel="noopener">raw</a><a href="/library">modulatejs</a><button id="spec-close" aria-label="close">×</button></div>
-    <article class="md" id="spec-body"></article>
-  </aside>
 </main>
 
 <footer class="foot">

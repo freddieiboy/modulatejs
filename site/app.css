@@ -34,7 +34,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* the work area */
 .work { flex: 1; display: flex; min-height: 0; position: relative; }
-.pane { flex: 1 1 0; min-width: 0; position: relative; padding: 24px 0 0 8px; display: flex; flex-direction: column; }
+.pane { flex: 1 1 0; min-width: 0; position: relative; padding: 0 0 0 8px; display: flex; flex-direction: column; }
 #editor { flex: 0 1 auto; min-height: 120px; max-height: 100%; overflow: hidden; }
 .pane.has-code #editor { flex: 1; }
 
@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .t-fn { color: var(--fn); } .t-str { color: var(--str); } .t-num { color: var(--num); } .t-punc { color: #a2a2ab; } .t-com { color: var(--dim); } .t-label { color: var(--str); }
 
 /* init, offered: a folded-looking line above code that has no init of its own */
-.ghost { display: block; margin: 0 0 2px 58px; padding: 0; font-size: 16px; line-height: 1.85; color: var(--dimmer); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 210px); }
+.ghost { display: block; margin: 14px 0 2px 58px; padding: 0; font-size: 16px; line-height: 1.85; color: var(--dimmer); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 210px); }
 .ghost:hover { color: #c4c4cb; }
 .ghost b { font-weight: 400; color: var(--dim); }
 .ghost:hover b { color: var(--str); }
@@ -68,7 +68,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* typewriter: the line you're writing stays in the middle of the pane, the way iA Writer does it.
    Half the editor's height pads the text above and below, so even line one can sit at the centre. */
-.mode { position: absolute; top: 12px; right: 22px; z-index: 3; display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 12px 0 11px; border: 1px solid #3a3a40; border-radius: 9px; background: #101012; font-size: 12.5px; color: #8e8e97; transition: color .15s, border-color .15s; }
+.mode { position: absolute; top: 56px; right: 22px; z-index: 3; display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 12px 0 11px; border: 1px solid #3a3a40; border-radius: 9px; background: #101012; font-size: 12.5px; color: #8e8e97; transition: color .15s, border-color .15s; }
 .mode:hover { border-color: #5a5a62; color: #d6d6db; }
 .mode .led { width: 8px; height: 8px; border-radius: 50%; background: #4a4a52; box-shadow: inset 0 0 0 1px #00000055; transition: background .15s, box-shadow .15s; }
 .mode[aria-checked="true"] { color: #e4e4e8; }
@@ -166,15 +166,7 @@ body.player .tray, body.player .tray-button { display: none; }
 body.resizing { cursor: col-resize; user-select: none; -webkit-user-select: none; }
 body.resizing iframe { pointer-events: none; }
 
-/* the spec, folded to a strip */
-.strip { flex: none; width: 44px; border-left: 1px solid var(--line); writing-mode: vertical-rl; transform: rotate(180deg); text-align: right; padding: 0 0 28px; font-size: 12px; letter-spacing: .12em; color: var(--dim); }
-.strip:hover { color: #fff; }
-.pane { order: 1; } .spec { order: 2; } .split { order: 3; } .stage { order: 4; } .strip { order: 5; }
-.spec { flex: 0 0 min(460px, 36%); min-width: 0; background: #0e0e0f; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
-.spec-head { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); color: #a9a9b2; font-size: 13px; }
-.spec-head span { flex: 1; color: var(--text); }
-.spec-head a:hover { color: var(--text); }
-.spec-head button { font-size: 18px; line-height: 1; color: #8b8b90; }
+.pane { order: 1; } .split { order: 3; } .stage { order: 4; }
 
 .md { overflow: auto; padding: 8px 24px 60px; font: 15.5px/1.6 var(--sans); color: #d6d6db; }
 .md h1 { font: 500 24px var(--sans); color: #fff; margin: 24px 0 8px; letter-spacing: -.01em; }
@@ -211,7 +203,7 @@ body.resizing iframe { pointer-events: none; }
 .noscript a { color: var(--fn); }
 
 /* a phone shows only the prototype */
-body.player .bar, body.player .pane, body.player .strip, body.player .split, body.player .foot, body.player .status, body.player .home, body.player .spec { display: none; }
+body.player .bar, body.player .pane, body.player .split, body.player .foot, body.player .status, body.player .home { display: none; }
 body.player .stage { width: 100%; padding: 0; min-width: 0; max-width: none; }
 body.player .device { all: unset; position: fixed; inset: 0; }
 body.player .device iframe { width: 100vw; height: 100dvh; border-radius: 0; }
@@ -227,18 +219,33 @@ body.player .edit { display: flex; }
   .links a:nth-child(n+3) { display: none; }
 }
 
-/* the sections of the file, as screens: one small picture each, under the phone */
-.screens { display: flex; gap: 10px; justify-content: center; align-items: flex-start; flex: none; padding: 12px 12px 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-.screen { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #a9a9b2; font: 11.5px var(--mono); }
-.screen-box { display: block; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px #2c2c33; position: relative; transition: box-shadow .15s; }
-.screen-box iframe { border: 0; transform-origin: 0 0; pointer-events: none; display: block; }
-.screen:hover { color: #fff; }
-.screen:hover .screen-box { box-shadow: 0 0 0 1px #55555f; }
-.screen[aria-pressed="true"] { color: #5ad17c; }
-.screen[aria-pressed="true"] .screen-box { box-shadow: 0 0 0 2px #5ad17c; }
-.screen-name { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-body.player .screens { display: none; }
-.cm-goes-gutter { width: 14px; }
-.cm-goes { color: #6f6f7a; font-size: 12px; cursor: pointer; }
-.cm-goes:hover { color: var(--fn); }
-.cm-goes-here { background: rgba(155, 140, 255, .12); }
+
+/* the file's sections as tabs across the top of the editor */
+.tabs { display: flex; align-items: stretch; height: 44px; flex: none; padding-left: 36px; border-bottom: 1px solid #1a1a1e; font: 12.5px var(--mono); position: relative; z-index: 4; white-space: nowrap; overflow: visible; }
+.tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; color: #5a5a64; border-bottom: 2px solid transparent; cursor: default; user-select: none; position: relative; }
+.tab:hover { color: #8a8a94; }
+.tab[aria-selected="true"] { color: #e8e6e1; font-weight: 600; border-bottom-color: #f0634a; }
+.tab.lit { color: #9db4ff; }
+.tab-dot { width: 5px; height: 5px; border-radius: 50%; background: #3a3a42; }
+.tab-dot.framed { background: #9db4ff; }
+.tab.bad { color: #f0634a; }
+.tab-chip { font: 600 10px var(--mono); background: #f0634a; color: #17171b; border-radius: 8px; padding: 1px 6px; }
+.tab-plus { color: #5a5a64; font-size: 14px; }
+.tab.lifted { opacity: .25; }
+.tab-card { position: fixed; z-index: 50; top: 0; left: 0; pointer-events: none; background: #15151a; border: 1px solid #2a2a30; border-bottom: 1px solid #2a2a30; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); color: #e8e6e1; height: 32px; }
+.tab-bar { position: fixed; z-index: 49; width: 2px; background: #f0634a; pointer-events: none; }
+.tab-new, .tab-rename { display: inline-flex; align-items: center; gap: 8px; padding: 0 8px; }
+.tab-new input, .tab-rename, input.tab-rename { font: 12.5px var(--mono); color: #e8e6e1; background: #15151a; border: 1px solid #2a2a30; border-radius: 6px; padding: 4px 8px; width: 96px; outline: none; }
+.tab-note { font: 11px var(--sans); color: #f0634a; max-width: 360px; white-space: normal; line-height: 1.2; }
+.tab-help { margin-left: auto; align-self: center; padding-right: 22px; font: 11px var(--sans); color: #3a3a42; }
+.cm-tab-fold { color: #5a5a64; cursor: pointer; }
+.cm-tab-fold:hover { color: #8a8a94; }
+.cm-tab-hint { color: #3a3a42; margin-left: 14px; cursor: default; }
+.cm-tab-hint:hover { color: #9db4ff; }
+.cm-tab-foot { font: 12.5px var(--sans); color: #5a5a64; padding: 14px 0 0 4px; }
+.cm-tab-foot a { color: #8a8a94; text-decoration: underline; text-underline-offset: 3px; }
+.status .framed { color: #9db4ff; }
+.runs-it { font: inherit; color: var(--dim); }
+.runs-it:hover { color: #fff; }
+body.player .tabs { display: none; }
+.pane.typewriter #editor { flex: 1; }
