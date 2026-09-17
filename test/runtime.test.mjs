@@ -102,3 +102,13 @@ test("every library example and every js block in the spec runs", async () => {
     win.close();
   }
 });
+
+test("a wrong drag axis says what to write instead", () => {
+  const win = browser();
+  const both = win.Modulate.run(`card().drag("x, y")`, win.document.body);
+  assert.equal(both.ok, false);
+  assert.match(both.error, /write drag\(\) with nothing in it/);
+  const odd = win.Modulate.run(`card().drag("sideways")`, win.document.body);
+  assert.match(odd.error, /the axis is "x" or "y"/);
+  assert.equal(win.Modulate.run(`card().drag()`, win.document.body).ok, true);
+});

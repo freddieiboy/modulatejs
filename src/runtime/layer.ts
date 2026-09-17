@@ -547,6 +547,11 @@ verb("every", (L, _c, seconds: number) => {
 
 // drag
 verb("drag", (L, ctx, axis: "x" | "y" | "both" = "both", limits?: [number, number]) => {
+  if (axis !== "x" && axis !== "y" && axis !== "both") {
+    const both = typeof axis === "string" && /x/i.test(axis) && /y/i.test(axis);
+    throw new Error(both ? `drag(${JSON.stringify(axis)}): for both directions write drag() with nothing in it` : `drag(${JSON.stringify(axis)}): the axis is "x" or "y"; drag() alone goes both ways`);
+  }
+  if (limits !== undefined && !(Array.isArray(limits) && limits.length === 2)) throw new Error(`drag("${axis}", …): limits are a pair, like drag("${axis}", [-120, 120])`);
   const cfg = (L.dragCfg ??= { axis });
   cfg.axis = axis;
   if (limits) cfg.limits = limits;

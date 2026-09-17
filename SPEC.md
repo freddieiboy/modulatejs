@@ -130,7 +130,7 @@ Presets are frozen: `pop` (fast, overshoots) · `settle` (the default, no fuss) 
 
 | verb | does |
 | --- | --- |
-| `drag(axis = "both", [min, max]?)` | follow the finger on `"x"`, `"y"` or both, optionally within limits |
+| `drag()` · `drag("x")` · `drag("y", [min, max])` | follow the finger: both ways with nothing in it, or along one axis, optionally within limits. Anything else is an error that says so |
 | `rubberband(k = .55)` | resist past the limits, like iOS; with no limits the whole drag resists |
 | `release(preset = "settle")` | spring home when let go |
 | `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy) |
