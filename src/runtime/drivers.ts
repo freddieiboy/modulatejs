@@ -1,6 +1,6 @@
 import { Value, isValue } from "./value";
 import { onFrame } from "./engine";
-import { preset } from "./presets";
+import { preset, timed } from "./presets";
 import { stage, listen, track } from "./stage";
 import type { Layer } from "./layer";
 
@@ -100,6 +100,7 @@ export interface DragConfig {
   limits?: [number, number];
   band?: number;
   release?: string;
+  releaseOver?: number; // over() after release(): how long coming home takes
   dismiss?: boolean;
   scrub?: any; // a Reaction the drag moves instead of the layer
 }
@@ -207,7 +208,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
       }
       return;
     }
-    const spring = preset(cfg.release ?? "settle");
+    const spring = timed(cfg.release ?? "settle", cfg.releaseOver);
     if (cfg.dismiss) {
       const st = stage();
       const horizontal = cfg.axis !== "y";
@@ -318,6 +319,9 @@ export function lfo(hz = 1, shape: "wave" | "saw" | "square" = "wave"): Driver {
   return d;
 }
 
+// a page travels a whole screen: the same no-overshoot character as snappy, at the pace iOS pages turn
+const PAGE_SNAP = timed("snappy", 0.3);
+
 // ——— page: swipe sideways through n pages; t runs 0 → 1 across all of them
 export class PageDriver extends Driver {
   index = new Value(0);
@@ -329,7 +333,7 @@ export class PageDriver extends Driver {
 
   go(i: number, velocity?: number) {
     const n = Math.max(0, Math.min(this.count - 1, i));
-    return this.t.to(n / Math.max(1, this.count - 1), preset("snappy"), { velocity });
+    return this.t.to(n / Math.max(1, this.count - 1), PAGE_SNAP, { velocity });
   }
 
   private listenForSwipes() {

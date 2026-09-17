@@ -39,6 +39,8 @@ export class Reaction extends Driver {
   curve(name?: CurveName, seconds?: number): this;
   /** a different spring for the way back */
   release(preset?: Preset): this;
+  /** how long the spring (or curve) before it takes, 0.05 to 3 seconds; damping and overshoot don't change */
+  over(seconds: number): this;
 }
 
 export type DriverSource = "tap" | "hold" | "drag" | "scroll" | Driver | Layer | Value<number>;
@@ -84,6 +86,8 @@ export class Layer {
   on(driver?: DriverSource): this;
   spring(preset: Preset, amount?: number): this;
   curve(name?: CurveName, seconds?: number): this;
+  /** how long the spring (or curve) before it takes, 0.05 to 3 seconds; damping and overshoot don't change */
+  over(seconds: number): this;
   range(from: number, to: number): this;
   fade(): this;
   rise(distance?: number | "half" | "full"): this;

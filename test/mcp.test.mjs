@@ -44,6 +44,19 @@ test("the lint catches what a model gets wrong", () => {
   assert.deepEqual(p(`const xs = [1, 2].map((n) => Math.max(n, 1))\njs { console.log(xs.join(",")) }`), []);
 });
 
+test("check accepts over(), and warns with the line when the seconds are out of range", async () => {
+  const good = lint(`b: box()\nb.on("hold").rotate(-45).spring("snappy").over(.2).release("bounce").over(.4)`, vocab);
+  assert.deepEqual(good.problems, []);
+  assert.deepEqual(good.warnings, []);
+  const far = lint(`b: box()\nb.on("tap").scale(1.2).spring("pop").over(5)\nb.on("hold").x(4).over(.01)`, vocab);
+  assert.equal(far.ok, true, "out of range is a warning, the value is clamped");
+  assert.deepEqual(far.warnings.map((w) => w.line), [2, 3]);
+  assert.match(far.warnings[0].message, /over\(5\) is outside 0\.05–3 seconds; it will run as over\(3\)/);
+  const said = (await call("check", { code: `b: box()\nb.on("tap").x(9).over(5)` })).content[0].text;
+  assert.match(said, /line 2: over\(5\)/);
+  assert.match(lint(`box().on("tap").x(1).ovre(.2)`, vocab).problems[0].message, /Did you mean \.over\(\)/);
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");

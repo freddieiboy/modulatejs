@@ -34,7 +34,7 @@ If your client speaks the Model Context Protocol, you don't have to fetch or enc
 - Every piece looks finished with no arguments and starts centred; write less than you think you need
 - `name: piece()` names a layer; a name can't be a verb (`filters: sheet()`, not `sheet: sheet()`)
 - After `.on(driver)` or inside `between(() => { … })`, verbs describe the other state; never animate by hand
-- Presets are frozen: pop, settle, snappy, lazy, bounce
+- Presets are frozen: pop, settle, snappy, lazy, bounce. `spring(p)` is the way there, `release(p)` the way home, and `over(seconds)` after either makes that preset quicker or slower without changing how far it overshoots: `b.on("hold").scale(.85).spring("snappy").over(.2).release("bounce")`. There is no other way to set a duration, and no stiffness or damping to tune
 - Place a layer after the layers it refers to
 - Keep it under fifteen lines and check it against the spec's tables before replying
 

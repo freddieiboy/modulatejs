@@ -1,6 +1,6 @@
 import { Value } from "./value";
 import { mapRange, Transition } from "./engine";
-import { preset, curve as makeCurve } from "./presets";
+import { preset, timed, checkOver, curve as makeCurve } from "./presets";
 import { stage } from "./stage";
 import { resolveColor } from "./theme";
 import type { Layer } from "./layer";
@@ -57,6 +57,14 @@ export class Reaction extends Driver {
   transition: Transition = preset("settle");
   springSet = false;
   back: Transition | null = null; // release(): a different feel for the way home
+  // what the chain said, resolved into transition and back when the reaction is built
+  private inPreset: string | null = null;
+  private inCurve: { name?: string; seconds?: number } | null = null;
+  private inOver: number | null = null;
+  private outPreset: string | null = null;
+  private outOver: number | null = null;
+  private bothOver: number | null = null; // over() with no spring() or release() before it
+  private lastFeel: "in" | "out" | null = null;
   impulseCandidate: { layer: Layer; amount?: number } | null = null;
   impulse = false;
   transient = false;
@@ -103,19 +111,46 @@ export class Reaction extends Driver {
   spring(name: string) {
     this.transition = preset(name);
     this.springSet = true;
+    this.inPreset = name;
+    this.inCurve = null;
+    this.lastFeel = "in";
     return this;
   }
 
   curve(name?: string, duration?: number) {
     this.transition = makeCurve(name, duration);
     this.springSet = true;
+    this.inCurve = { name, seconds: duration };
+    this.inPreset = null;
+    this.lastFeel = "in";
     return this;
+  }
+
+  // over(seconds): how long the spring before it takes. After spring() or curve() that is the way there
+  // (and the way home too, until release() gives the way home a spring of its own); after release(), the
+  // way home; with neither before it, the defaults in both directions.
+  over(seconds: number) {
+    const s = checkOver(seconds);
+    if (this.lastFeel === "in") this.inOver = s;
+    else if (this.lastFeel === "out") this.outOver = s;
+    else this.bothOver = s;
+    return this;
+  }
+
+  private resolveFeel(hold: boolean) {
+    if (this.inCurve) this.transition = makeCurve(this.inCurve.name, this.inOver ?? this.inCurve.seconds);
+    else this.transition = this.inPreset ? timed(this.inPreset, this.inOver) : timed(hold ? "snappy" : "settle", this.bothOver);
+    const out = this.outPreset ?? (hold ? "settle" : null);
+    this.back = out ? timed(out, this.outPreset ? this.outOver : this.bothOver) : null;
+    if (hold) this.springSet = true;
   }
 
   // The way back gets its own spring: in one way, out another. With no spring() for the way in,
   // a followed driver (hold) goes in at once and only the letting go is sprung.
   release(name = "settle") {
     this.back = preset(name);
+    this.outPreset = name;
+    this.lastFeel = "out";
     return this;
   }
 
@@ -140,10 +175,7 @@ export class Reaction extends Driver {
 
     // A bare .on("hold") should feel like a finger, not a spring: quick in with no overshoot, a calm way out.
     // spring() overrides the way in, release() the way out.
-    if (this.drivers.some((d) => d.kind === "hold")) {
-      if (!this.springSet) (this.transition = preset("snappy")), (this.springSet = true);
-      this.back ??= preset("settle");
-    }
+    this.resolveFeel(this.drivers.some((d) => d.kind === "hold"));
 
     for (const [layer, tg] of this.targets) {
       const kids = layer.fan();

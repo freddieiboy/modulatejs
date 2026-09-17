@@ -1,6 +1,7 @@
 // "Presets are frozen" as a test rather than a promise.
 // Each preset drives one property from 0 to 100 through the real pipeline (reaction → spring → track → layer),
 // sampled every frame at exactly 60 fps for 3 s on a fake clock, and is held to the table in src/runtime/presets.ts.
+// over(seconds) is held to the same table: it may change how quick a preset is, never how far it overshoots.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -9,6 +10,7 @@ import { JSDOM } from "jsdom";
 const root = new URL("..", import.meta.url).pathname;
 const runtime = readFileSync(root + "dist/modulate.js", "utf8");
 const FRAME = 1000 / 60, FRAMES = 180;
+const OVERS = [0.15, 0.3, 0.6];
 
 // a window whose time only moves when we say so
 function clockwork() {
@@ -19,35 +21,46 @@ function clockwork() {
   win.requestAnimationFrame = (cb) => queue.push(cb);
   win.cancelAnimationFrame = () => {};
   win.eval(runtime);
-  const tick = () => {
+  // Motion remembers "now" until the next microtask, so each frame has to really end before the next begins;
+  // without this every animation starts at the time of the first frame and the traces run early.
+  const tick = async () => {
     now += FRAME;
     for (const cb of queue.splice(0)) cb(now);
+    await new Promise((r) => setImmediate(r));
   };
   return { win, tick };
 }
 
-// step(0 → 100) traces for every preset, as the way there and as the way home
-function traces() {
+const key = (p, s) => (s ? `${p}_${String(s).replace(".", "")}` : p);
+
+// step(0 → 100) traces: every preset, stock and at each over(), as the way there and as the way home
+async function traces() {
   const { win, tick } = clockwork();
   const names = Object.keys(win.Modulate.presetTable);
-  const code = names.map((p) => `go_${p}: box()\ngo_${p}.on("tap").x(100).spring("${p}")\nhome_${p}: box()\nhome_${p}.on("tap").x(100).spring("snappy").release("${p}")`).join("\n");
+  const cases = names.flatMap((p) => [null, ...OVERS].map((s) => ({ p, s, id: key(p, s) })));
+  const code = cases
+    .map(({ p, s, id }) => {
+      const over = s ? `.over(${s})` : "";
+      return `go_${id}: box()\ngo_${id}.on("tap").x(100).spring("${p}")${over}\nhome_${id}: box()\nhome_${id}.on("tap").x(100).spring("snappy").release("${p}")${over}`;
+    })
+    .join("\n");
   const r = win.Modulate.run(code, win.document.body);
   assert.equal(r.error, undefined);
   const layer = (label) => win.Modulate.stage().layers.find((l) => l.label === label);
-  for (let i = 0; i < 5; i++) tick(); // let the first render settle
+  for (let i = 0; i < 5; i++) await tick(); // let the first render settle
   const out = {};
-  for (const p of names) {
-    layer(`go_${p}`).reactions[0].play(1);
-    const home = layer(`home_${p}`).reactions[0];
+  for (const { id } of cases) {
+    layer(`go_${id}`).reactions[0].play(1);
+    const home = layer(`home_${id}`).reactions[0];
     home.jump(1);
     home.play(0);
-    out[p] = { go: [], home: [] };
+    out[id] = { go: [], home: [] };
   }
   for (let f = 0; f < FRAMES; f++) {
-    tick();
-    for (const p of names) {
-      out[p].go.push(layer(`go_${p}`).v.ox.get());
-      out[p].home.push(100 - layer(`home_${p}`).v.ox.get()); // the way home, read as a step up so one set of rules fits both
+    await tick();
+    for (const { id } of cases) {
+      out[id].go.push(layer(`go_${id}`).v.ox.get());
+      out[id].home.push(100 - layer(`home_${id}`).v.ox.get()); // the way home, read as a step up so one set of rules fits both
     }
   }
   return { table: win.Modulate.presetTable, presets: win.Modulate.presets, out };
@@ -60,8 +73,8 @@ const measure = (trace) => {
   return { overshoot: peak - 100, settle: ((last + 1) * FRAME) / 1000, peak, end: trace.at(-1) };
 };
 
-const { table, presets, out } = traces();
-export const report = {};
+const { table, presets, out } = await traces();
+const report = {};
 
 test("there are five presets, and the engine's numbers come from the table", () => {
   assert.deepEqual(Object.keys(table).sort(), ["bounce", "lazy", "pop", "settle", "snappy"]);
@@ -92,6 +105,73 @@ for (const way of ["go", "home"]) {
   }
 }
 
+// over(): same overshoot as the table, and settle time in proportion to the seconds asked for
+for (const way of ["go", "home"]) {
+  for (const name of Object.keys(table)) {
+    for (const s of OVERS) {
+      test(`${name}.over(${s}), ${way === "go" ? "after spring()" : "after release()"}: same overshoot, settle scales with the seconds`, () => {
+        const p = table[name], stock = measure(out[name][way]), m = measure(out[key(name, s)][way]);
+        ((report[name] ??= {}).over ??= {})[`${way}${s}`] = m;
+        assert.ok(Math.abs(m.overshoot - p.overshoot) <= 2, `overshoot ${m.overshoot.toFixed(2)}%, the preset's is ${p.overshoot}% ± 2`);
+        const expected = s * (stock.settle / p.response);
+        // within 20%, plus one frame each way: both settle times are read off a 60 fps grid
+        const slack = expected * 0.2 + (FRAME / 1000) * (1 + s / p.response);
+        assert.ok(Math.abs(m.settle - expected) <= slack, `settled in ${m.settle.toFixed(3)} s, expected ${expected.toFixed(3)} s ± ${slack.toFixed(3)}`);
+        if (name === "pop" || name === "bounce") assert.ok(m.peak > 100);
+        if (name === "snappy") assert.ok(m.peak <= 100.5);
+      });
+    }
+  }
+}
+
+test("over() lands on the spring before it: the way there, the way home, or both defaults", () => {
+  const { win } = clockwork();
+  const r = win.Modulate.run(
+    [
+      `a: box()\na.on("hold").scale(.85).spring("snappy").over(.2).release("bounce")`,
+      `b: box()\nb.on("hold").scale(.85).over(.2).release("bounce").over(.4)`,
+      `c: box()\nc.on("hold").scale(.85).over(.25)`,
+      `d: box()\nd.on("tap").scale(.85).over(.25)`,
+      `e: box()\ne.on("tap").scale(.85).spring("pop").over(.2)`,
+      `f: box()\nf.on("tap").scale(.85).release("bounce").over(.4)`,
+      `g: box()\ng.on("tap").x(10).curve("linear", .5).over(.2)`,
+      `h: box()\nbetween(() => { h.x(50) }).drive(scroll(400)).spring("settle").over(.6)`,
+      `i: box()\ni.on("tap").scale(.85).over(9)`,
+      `j: card().drag("x").release("bounce").over(.3)`,
+    ].join("\n"),
+    win.document.body
+  );
+  assert.equal(r.error, undefined);
+  const st = win.Modulate.stage(), T = win.Modulate.presetTable, P = win.Modulate.presets;
+  const rx = (label) => st.layers.find((l) => l.label === label).reactions[0];
+  const response = (tr) => (2 * Math.PI) / Math.sqrt(tr.stiffness);
+  const ratio = (tr) => tr.damping / (2 * Math.sqrt(tr.stiffness));
+  const is = (tr, name, seconds) => {
+    assert.ok(Math.abs(response(tr) - seconds) < 1e-9, `response ${response(tr)} ≠ ${seconds}`);
+    assert.ok(Math.abs(ratio(tr) - T[name].damping) < 1e-9, `damping is no longer ${name}'s`);
+  };
+  is(rx("a").transition, "snappy", 0.2);
+  assert.equal(rx("a").back, P.bounce, "release() after over() is untouched");
+  is(rx("b").transition, "snappy", 0.2); // hold's default way in
+  is(rx("b").back, "bounce", 0.4);
+  is(rx("c").transition, "snappy", 0.25); // neither: both of hold's defaults
+  is(rx("c").back, "settle", 0.25);
+  is(rx("d").transition, "settle", 0.25); // neither, on a tap: the one default, used both ways
+  assert.equal(rx("d").back, null);
+  is(rx("e").transition, "pop", 0.2);
+  assert.equal(rx("e").back, null, "one spring, so it is also the way home");
+  assert.equal(rx("f").transition, P.settle, "over() after release() leaves the way there alone");
+  is(rx("f").back, "bounce", 0.4);
+  assert.equal(rx("g").transition.type, "tween");
+  assert.equal(rx("g").transition.duration, 0.2);
+  assert.equal(rx("g").transition.ease, "linear");
+  is(st.reactions.find((x) => x.targets.has(st.layers.find((l) => l.label === "h"))).transition, "settle", 0.6);
+  is(rx("i").transition, "settle", 3); // clamped
+  assert.equal(st.layers.find((l) => l.label === "j").dragCfg.releaseOver, 0.3);
+  assert.equal(P.settle.stiffness, (2 * Math.PI / T.settle.response) ** 2, "the table itself never changes");
+  assert.match(win.Modulate.run(`box().over(.2)`, win.document.body).error, /after spring\(\) or release\(\)/);
+});
+
 test("a bare hold goes in snappy and comes out settled; spring() and release() override each way", () => {
   const { win } = clockwork();
   const r = win.Modulate.run(`a: box()\na.on("hold").scale(.85)\nb: box()\nb.on("hold").scale(.85).spring("pop")\nc: box()\nc.on("hold").scale(.85).release("bounce")\nd: box()\nd.on("tap").scale(.85)`, win.document.body);
@@ -109,6 +189,10 @@ test("a bare hold goes in snappy and comes out settled; spring() and release() o
 });
 
 test("report", () => {
-  const rows = Object.entries(table).map(([name, p]) => `${name.padEnd(7)} response ${p.response.toFixed(2)}  damping ${p.damping.toFixed(2)}  expected ${String(p.overshoot).padStart(4)}%  |  there: ${report[name].go.overshoot.toFixed(2).padStart(5)}% in ${report[name].go.settle.toFixed(3)} s  |  home: ${report[name].home.overshoot.toFixed(2).padStart(5)}% in ${report[name].home.settle.toFixed(3)} s  |  budget ${(p.response * 3.6).toFixed(2)} s`);
-  console.log("\n" + rows.join("\n") + "\n");
+  const f = (m) => `${m.overshoot.toFixed(2).padStart(5)}% ${m.settle.toFixed(3)}s`;
+  console.log("\npreset    table             stock            over(.15)        over(.3)         over(.6)        (overshoot, settle; the way there)");
+  for (const [name, p] of Object.entries(table)) console.log(`${name.padEnd(8)}  ${p.response.toFixed(2)}s d${p.damping.toFixed(2)} ${String(p.overshoot).padStart(4)}%   ${f(report[name].go)}   ${OVERS.map((s) => f(report[name].over[`go${s}`])).join("   ")}`);
+  console.log("\nthe way home (release):");
+  for (const [name] of Object.entries(table)) console.log(`${name.padEnd(8)}  ${" ".repeat(16)}  ${f(report[name].home)}   ${OVERS.map((s) => f(report[name].over[`home${s}`])).join("   ")}`);
+  console.log("");
 });

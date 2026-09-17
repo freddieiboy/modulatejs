@@ -78,7 +78,8 @@ async function build() {
     globals,
     verbs: rt.VERBS,
     // verbs, plus what drivers and between() answer to
-    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "range", "pause", "once", "go"])],
+    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go"])],
+    over: { min: 0.05, max: 3 },
     presets: Object.keys(rt.presets),
     palette: Object.keys(rt.palette),
     devices: Object.keys(rt.devices),

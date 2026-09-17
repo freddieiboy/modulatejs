@@ -9,7 +9,7 @@ import type { Transition } from "./engine";
 // and what that predicts:
 //   overshoot  percent past the target, exp(−π·d / √(1 − d²)), 0 at d = 1
 export const presetTable = Object.freeze({
-  snappy: { response: 0.3, damping: 1.0, overshoot: 0 },
+  snappy: { response: 0.15, damping: 1.0, overshoot: 0 }, // the response of SwiftUI's interactiveSpring: for things under a finger
   settle: { response: 0.45, damping: 0.85, overshoot: 0.6 },
   pop: { response: 0.35, damping: 0.55, overshoot: 13 },
   lazy: { response: 0.9, damping: 0.9, overshoot: 0.2 },
@@ -30,6 +30,17 @@ export const curves: Record<string, any> = Object.freeze({
   in: "easeIn",
   out: "easeOut",
 });
+
+// over(seconds): the same preset, quicker or slower. Response changes; damping, and so the overshoot, doesn't.
+export const OVER_MIN = 0.05, OVER_MAX = 3;
+export function checkOver(seconds: any): number {
+  if (typeof seconds !== "number" || Number.isNaN(seconds)) throw new Error(`over(): how many seconds? over(.2)`);
+  return Math.max(OVER_MIN, Math.min(OVER_MAX, seconds));
+}
+export function timed(name: string, seconds: number | null | undefined): Transition {
+  const p = preset(name); // also checks the name
+  return seconds == null ? p : springFrom(checkOver(seconds), presetTable[name].damping);
+}
 
 export function preset(name?: string): Transition {
   if (!name) return presets.settle;

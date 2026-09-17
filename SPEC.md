@@ -147,6 +147,7 @@ Each takes a number, a Value or a pattern. Before `.on()` they set the layer; af
 | `spring(preset, amount?)` | which spring plays it. Alone after `on("tap")`, it is a kick: scale to `amount` (1.2) and spring back |
 | `curve(name = "ease", seconds = .3)` | a timed ease instead: `linear` `ease` `in` `out` |
 | `release(preset = "settle")` | the spring for the way back, when it should differ from the way in: `spring(p)` is the way there, `release(p)` the way home. `b.on("hold").scale(.85).release("bounce")` presses in quietly and bounces when let go |
+| `over(seconds)` | how long the spring before it takes, from 0.05 to 3: the same preset, quicker or slower. After `spring()` it times the way there (and the way home too, until `release()` gives that its own spring); after `release()`, the way home; with neither, the defaults both ways; after `curve()`, its seconds. `b.on("hold").rotate(-45).spring("snappy").over(.2).release("bounce").over(.4)` |
 | `range(a, b)` | this layer only moves during that slice of t: `range(.35, 1)` |
 | `fade()` | dissolve: a visible layer fades out, a hidden one fades in |
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
@@ -163,11 +164,13 @@ A preset is two numbers: **response**, the seconds one swing takes (how quick), 
 
 | preset | response | damping | overshoot | use it for |
 | --- | --- | --- | --- | --- |
-| `snappy` | 0.30 s | 1.00 | 0% | things under a finger; navigation; anything that must not wobble |
+| `snappy` | 0.15 s | 1.00 | 0% | things under a finger; anything that must not wobble. For a full-screen move, `.spring("snappy").over(.3)` |
 | `settle` | 0.45 s | 0.85 | ≈0.6% | the default: arrives and stays |
 | `pop` | 0.35 s | 0.55 | ≈13% | a like, a badge, a confirmation: one visible overshoot |
 | `lazy` | 0.90 s | 0.90 | ≈0.2% | big, heavy, slow: a background, a full-screen dissolve |
 | `bounce` | 0.50 s | 0.35 | ≈31% | playful: rings two or three times before it rests |
+
+A preset's quickness can be changed with `over(seconds)`; its damping, and so its overshoot, never changes.
 
 Numbers follow a spring past their target (that overshoot is the bounce); colours, opacity and the inner edges of `range()` slices stop at their ends.
 
@@ -177,7 +180,7 @@ Numbers follow a spring past their target (that overshoot is the bounce); colour
 | --- | --- |
 | `drag()` · `drag("x")` · `drag("y", [min, max])` | follow the finger: both ways with nothing in it, or along one axis, optionally within limits. Anything else is an error that says so |
 | `rubberband(k = .55)` | resist past the limits, like iOS; with no limits the whole drag resists |
-| `release(preset = "settle")` | spring home when let go (after `.on()`, the same idea for a change: see Feel) |
+| `release(preset = "settle")` | spring home when let go (after `.on()`, the same idea for a change: see Feel). `.release("bounce").over(.3)` times it |
 | `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy) |
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.

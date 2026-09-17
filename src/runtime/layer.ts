@@ -3,7 +3,7 @@ import { nextRender, onFrame } from "./engine";
 import { stage, track } from "./stage";
 import { resolveColor, isToken, luminance } from "./theme";
 import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
-import { preset } from "./presets";
+import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
 import { resolveDriver, startDrag, DragConfig } from "./drivers";
 
@@ -585,6 +585,13 @@ verb("rubberband", (L, _c, k = 0.55) => {
   cfg.band = k;
   cfg.limits ??= [0, 0];
 });
+// over(seconds): how long the spring before it takes. Same preset, same overshoot, different quickness.
+verb("over", (L, ctx, seconds: number) => {
+  if (ctx) return void ctx.over(seconds);
+  if (!L.dragCfg) throw new Error("over() sets how long a spring takes: put it after spring() or release()");
+  L.dragCfg.releaseOver = checkOver(seconds);
+});
+
 // release: how it comes home when let go. For a drag, the spring back to where it was.
 // After .on(), the spring for the way back, so a press can go in one way and come out another.
 verb("release", (L, ctx, name = "settle") => {
