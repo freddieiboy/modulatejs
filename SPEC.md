@@ -83,7 +83,7 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | another layer: `.on(sheet)` | follow that layer's own `.on()` | its t |
 | a Value | anything from `modulate()` | the value |
 
-Two rules for taps. **A tap plays the change; tapping again plays it back.** A change that is only a spring kick (`.on("tap").spring("pop", 1.3)`) or that ends invisible (`.show().fly(40).fade()`) **rewinds by itself**, so it can play again.
+Two rules for taps. **A tap plays the change; tapping again plays it back.** A change that is only a spring kick (`.on("tap").spring("pop", 1.3)`) or that ends with everything in it invisible **rewinds by itself**, so it can play again: a hidden burst (`.show().fly(40).fade()`) at once, and a visible layer that pops (`.on("tap").scale(1.3).fade()`) a second later, snapping back the way `dismiss()` does. A layer that fades as one part of a bigger `between()` stays a toggle.
 
 ## Pieces
 

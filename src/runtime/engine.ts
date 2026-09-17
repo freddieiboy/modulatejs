@@ -45,6 +45,16 @@ export function onFrame(cb: (time: number, delta: number) => void): () => void {
   return () => cancelFrame(fn);
 }
 
+// A wait measured on the same clock the animations run on (so it pauses with the tab, and tests can drive it).
+export function afterTime(ms: number, cb: () => void): () => void {
+  let left = ms;
+  const stop = onFrame((_t, delta) => {
+    left -= Math.min(delta, 100);
+    if (left <= 0) (stop(), cb());
+  });
+  return stop;
+}
+
 export function nextRender(cb: () => void) {
   frame.render(cb);
 }

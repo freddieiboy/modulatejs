@@ -1,5 +1,6 @@
 import { Value } from "./value";
-import { mapRange, Transition } from "./engine";
+import { mapRange, afterTime, onFrame, Transition } from "./engine";
+import { track } from "./stage";
 import { preset, timed, checkOver, curve as makeCurve } from "./presets";
 import { stage } from "./stage";
 import { resolveColor } from "./theme";
@@ -49,6 +50,7 @@ let active: Reaction | null = null;
 export const capturing = () => active;
 
 const POSITION = new Set(["x", "y", "w", "h"]);
+const REWIND_BEAT = 1000; // ms before something that made itself invisible comes back, as dismiss() does
 const NOMINAL = 0.5; // seconds a played reaction is assumed to take, to turn stagger seconds into a share of t
 
 // Two states and a t between them. layer.on(driver)… makes one for a single
@@ -71,6 +73,8 @@ export class Reaction extends Driver {
   impulseCandidate: { layer: Layer; amount?: number } | null = null;
   impulse = false;
   transient = false;
+  comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
+  private returning: (() => void) | null = null;
   drivers: Driver[] = [];
   goal = 0;
   fires = 0;
@@ -226,10 +230,14 @@ export class Reaction extends Driver {
       }
     }
 
-    this.transient = !this.impulse && this.entries.length > 0 && this.entries.every((e) => {
-      const o = e.tracks.find((k) => k.prop === "opacity");
-      return o && o.map(0) < 0.02 && o.map(1) < 0.02;
-    });
+    // A change whose every layer ends invisible leaves nothing to tap, so it can't be played back: it rewinds
+    // by itself instead. Hidden at rest (a burst of particles): straight away, nobody sees it. Visible at rest
+    // (a bubble that pops): after a beat, the way dismiss() comes back. A layer that fades as one part of a
+    // bigger change is not this: something is still on screen to tap, so that stays a toggle.
+    const opacityAt = (e: Entry, t: number) => e.tracks.find((k) => k.prop === "opacity")?.map(t);
+    const vanishes = !this.impulse && this.entries.length > 0 && this.entries.every((e) => (opacityAt(e, 1) ?? 1) < 0.02);
+    this.transient = vanishes;
+    this.comesBack = vanishes && this.entries.some((e) => (opacityAt(e, 0) ?? 1) >= 0.02);
 
     for (const e of this.entries) e.t.on((t) => this.apply(e, t));
     for (const d of this.drivers) {
@@ -361,8 +369,24 @@ export class Reaction extends Driver {
     }
     if (this.impulse) return this.kick();
     if (this.transient) {
+      this.returning?.();
+      this.returning = null;
       this.jump(0);
-      return this.play(1).then((done) => done && this.jump(0));
+      const played = this.play(1);
+      if (!this.comesBack) return played.then((done) => done && this.jump(0));
+      // Back to rest in one step (no reverse animation), a beat after the tap, as soon as nothing of it can be
+      // seen any more. A slow change is left to finish fading; a bouncy one isn't waited on while it rings unseen.
+      const token = this.run;
+      const unseen = () => this.entries.every((e) => e.layer.v.opacity.get() < 0.02);
+      this.returning = afterTime(REWIND_BEAT, () => {
+        const stop = onFrame(() => {
+          if (token !== this.run) return stop();
+          if (unseen()) (stop(), this.jump(0));
+        });
+        this.returning = stop;
+      });
+      track(() => this.returning?.());
+      return played;
     }
     return this.play(this.goal === 1 ? 0 : 1);
   }
