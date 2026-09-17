@@ -157,6 +157,7 @@ class Arrow extends GutterMarker {
 }
 
 export function screensInEditor(strip: () => Strip | null) {
+  let pressed: { name: string; x: number; y: number } | null = null;
   return [
     lit,
     gutter({
@@ -168,15 +169,22 @@ export function screensInEditor(strip: () => Strip | null) {
       lineMarkerChange: (u) => u.docChanged,
     }),
     EditorView.domEventHandlers({
-      click(e, view) {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !view.state.selection.main.empty) return false;
+      // Which name was pressed is settled when the button goes down: by the time it comes up the editor may have
+      // moved the line (typewriter mode re-centres it), and the same point would be another line.
+      mousedown(e, view) {
+        pressed = null;
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
         const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
         if (pos == null) return false;
         const line = view.state.doc.lineAt(pos);
         const m = /^(\s*)([A-Za-z_$][\w$]*)\s*:\s*\{/.exec(line.text);
-        const s = strip();
-        if (!m || !s || pos - line.from < m[1].length || pos - line.from > m[1].length + m[2].length || !s.has(m[2])) return false;
-        s.toggle(m[2]);
+        if (m && pos - line.from >= m[1].length && pos - line.from <= m[1].length + m[2].length && strip()?.has(m[2])) pressed = { name: m[2], x: e.clientX, y: e.clientY };
+        return false;
+      },
+      mouseup(e, view) {
+        const was = pressed;
+        pressed = null;
+        if (was && view.state.selection.main.empty && Math.hypot(e.clientX - was.x, e.clientY - was.y) < 5) strip()?.toggle(was.name);
         return false;
       },
     }),

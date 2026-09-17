@@ -95,3 +95,14 @@ test("clicking a section's name in the code frames it too", { skip: !chrome }, a
   assert.deepEqual(await seen(), { open: false, floaty: false, bar: false, body: false, note: true });
   assert.equal(await browser.evaluate(`document.querySelector('#screens .screen[data-name="extra"]').getAttribute("aria-pressed")`), "true");
 });
+
+test("and with typewriter mode on, where pressing a line re-centres it under the pointer", { skip: !chrome }, async () => {
+  await browser.evaluate(`document.querySelector('#screens .screen[data-name="extra"]').click(); 0`); // back to the real state
+  await sleep(500);
+  if ((await browser.evaluate(`document.getElementById("typewriter").getAttribute("aria-checked")`)) !== "true") await browser.evaluate(`document.getElementById("typewriter").click(); 0`);
+  await sleep(500);
+  const [x, y] = JSON.parse(await browser.evaluate(`JSON.stringify((() => { const line = [...document.querySelectorAll(".cm-line")].find((l) => l.textContent.startsWith("detail:")); const r = line.getBoundingClientRect(); return [r.x + 12, r.y + r.height / 2]; })())`));
+  await browser.tap(x, y);
+  await sleep(900);
+  assert.deepEqual(await seen(), { open: false, floaty: false, bar: true, body: true, note: false });
+});
