@@ -74,6 +74,8 @@ export class Layer {
   shadow(level?: number | string): this;
   /** after .on(…): show that section on top of what is there and remember it. "cover" from the bottom, "push" from the right, "fade", or "sheet" at half height */
   go(section: LayerGroup, how?: "cover" | "push" | "fade" | "sheet"): this;
+  /** after .on(…): the change starts this many seconds after its trigger; its way back is not delayed */
+  after(seconds: number): this;
   /** after .on(…): undo the last go() or into(), with everything that changed on the same tap */
   back(): this;
   /** an outline just outside the layer; a property, so a state can have one: strip.on(choice).ring("plum") */

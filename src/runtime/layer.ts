@@ -743,6 +743,10 @@ verb("back", (_L, ctx) => {
   needsCtx(ctx, "back").isBack = true;
 });
 
+// after(seconds): the change starts that long after its trigger. The way back is not delayed.
+verb("after", (_L, ctx, seconds: number) => {
+  needsCtx(ctx, "after").after(seconds);
+});
 verb("stagger", (L, ctx, s = 0.05) => {
   if (ctx) ctx.target(L).stagger = s;
   else L.bindStagger = s;

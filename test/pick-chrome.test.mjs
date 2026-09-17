@@ -97,10 +97,11 @@ choice: pick(bubbles, strip)
 
 bubbles.drag().toss().walls()
 bubbles.on("hold").scale(1.1).shadow(3).z(10)
-bubbles.on("tap").into(photo)
-bubbles.others.on(bubbles.tap).fade()
-home.on(bubbles.tap).fade()
-product.on(bubbles.tap).show()
+bubbles.on("tap").scale(1.3).curve("out", .15)
+bubbles.on("tap").into(photo).after(.2)
+bubbles.others.on(bubbles.tap).scale(0).after(.2)
+home.on(bubbles.tap).fade().after(.2)
+product.on(bubbles.tap).show().after(.2)
 
 photo.on(choice).image("<${PICS.join(" ")}>")
 name.on(choice).words("<${NAMES.join(", ")}>")
@@ -110,7 +111,7 @@ strip.on(choice).scale(1.15).ring("plum")`;
 test("the Addie screen: a bubble opens its product, the strip switches it, the photo goes back", { skip: !chrome }, async () => {
   await page(ADDIE);
   const state = () =>
-    read(`(() => { const s = Modulate.stage(), by = (n) => s.layers.find((l) => l.label === n), o = (l) => Math.round(l.v.opacity.get() * 100) / 100; return {
+    read(`(() => { const s = Modulate.stage(), by = (n) => s.layers.find((l) => l.label === n), o = (l) => (l.v.scale.get() < 0.02 ? 0 : Math.round(l.v.opacity.get() * 100) / 100); return {
       bubbles: ["room","path","park","family","bag","cream","nursery"].map((n) => o(by(n))),
       home: o(by("title")), photo: o(by("photo")), strip: o(by("strip")),
       picture: ${JSON.stringify(PICS)}.indexOf(by("photo").pictureSrc), name: by("name").el.textContent, price: by("price").el.textContent,
@@ -126,6 +127,8 @@ test("the Addie screen: a bubble opens its product, the strip switches it, the p
   assert.deepEqual([s.home, s.photo, s.strip], [0, 1, 1], "home out, product in");
   assert.deepEqual([s.picture, s.name, s.price], [2, NAMES[2], PRICES[2]], "that bubble's picture and words");
   assert.equal(s.parkW, 342, "park grew into the photo's frame");
+  const park = await read(`["x", "y", "w", "h", "scale", "dx", "dy"].map((k) => Math.round(${L("park")}.v[k].get() * 100) / 100)`);
+  assert.deepEqual(park, [24, 120, 342, 342, 1, 0, 0], "exactly the photo's frame: the pop and its drift-and-drag offsets are taken over");
   assert.deepEqual(s.rings, [0, 0, 2, 0, 0, 0, 0]);
 
   await tap(`${L("strip")}.children[5]`);
@@ -140,6 +143,7 @@ test("the Addie screen: a bubble opens its product, the strip switches it, the p
   s = await state();
   assert.deepEqual(s.bubbles, [1, 1, 1, 1, 1, 1, 1], "the six others fade in again");
   assert.deepEqual([s.home, s.photo, s.strip, s.parkW], [1, 0, 0, 150], "home is back, the product is gone, park is its own size");
+  assert.equal(await read(`Math.round(${L("park")}.v.scale.get() * 100) / 100`), 1, "and un-popped");
 
   await tap(L("room"));
   await sleep(1200);

@@ -63,7 +63,9 @@ export function close(move: Move | null = top(), velocity?: number) {
   const s = state();
   const rs = live(move);
   s.stack = s.stack.filter((m) => m !== move);
-  for (const r of rs) r.play(0, velocity);
+  // a sequence goes back in reverse order: what started last goes first, and "pop, then open" is "close, then un-pop"
+  const last = Math.max(0, ...rs.map((r: any) => r.delay ?? 0));
+  for (const r of rs as any[]) r.play(0, velocity, last - (r.delay ?? 0));
   gestures(s);
 }
 export const closeFor = (rx: Reaction) => close(state().stack.find((m) => m.rx === rx) ?? null);

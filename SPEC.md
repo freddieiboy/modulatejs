@@ -240,7 +240,8 @@ Roles: `accent` `surface` `text` `dim` `fill` `line`.
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
 | `rise(d?)` | move up by d; a hidden layer instead arrives from d below, fading in. `rise("half")` stops with its top edge halfway up the screen, `rise("full")` goes all the way (the default on a `sheet`) |
 | `fly(d = 40, angle?)` | move d along its direction: outward for `around()` copies, else up |
-| `into(layer)` | grow into that layer's frame while it fades in over the top. Tapping it goes back, as the tap that opened it, so whatever else followed that tap goes back too. Several layers can open into one: only the open one answers |
+| `into(layer)` | grow into that layer's frame while it fades in over the top. While it is open it owns the mover's place, size and scale: a pop on the same tap, a rise, or wherever a drag or toss left it are taken over, so it lands exactly in the frame, and given back on the way out. Tapping it goes back, as the tap that opened it, so whatever else followed that tap goes back too. Several layers can open into one: only the open one answers |
+| `after(seconds)` | the change starts that long after its trigger: `bubbles.on("tap").into(photo).after(.25)` lets a pop on the same tap play first. Its way back (tapping again, `back()`, a rewind) is not delayed, and a sequence goes back in reverse order: "pop, then open" comes back as "close, then un-pop". If the trigger is over before the delay is (a hold let go early), the change never starts. With `stagger()` the group starts after the delay, then staggers |
 | `stagger(s = .05)` | children of a group go one after another, s seconds apart (a share of t for continuous drivers) |
 | `peak()` | child i of n is at its other state when t = i ÷ (n − 1): pager dots, tab highlights |
 | `modulate(value, [a, b], [c, d], clamp = true)` | a Value that follows another through a mapping; any number of stops, numbers or colours |

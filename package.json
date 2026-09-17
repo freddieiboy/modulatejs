@@ -1,6 +1,6 @@
 {
   "name": "modulatejs",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "ModulateJS is a lightweight prototyping library: get an idea out of your head as fast as you can type it, and keep control of every detail. Speed, fidelity and control. Fifteen lines, a link, and it's on your phone. Inspired by Strudel, built on Motion.",
   "keywords": [
     "prototype",

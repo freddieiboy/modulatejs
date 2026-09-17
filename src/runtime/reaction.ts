@@ -44,6 +44,9 @@ interface Track {
   // slide). Several openers of one screen share a slot, and the most open one speaks for the slot.
   slot?: string;
   gate?: boolean;
+  // into() owns the mover's frame: whatever else is said about x, y, size and scale, this has the last word while
+  // it is on, wherever in the file it was written
+  owns?: boolean;
 }
 
 // Everything that reactions want of one property of one layer, settled into the one value the layer gets.
@@ -79,8 +82,8 @@ class Channel {
       const m = k.map(k.t);
       v = numeric && typeof m === "number" ? v + (m - this.base) : m;
     }
-    for (const k of ts) {
-      if (!k.rx.discrete) continue;
+    const states = ts.filter((k) => k.rx.discrete);
+    for (const k of [...states.filter((k) => !k.owns), ...states.filter((k) => k.owns)]) {
       const plain = k.weight != null;
       const w = plain ? k.weight!(k.t) : Math.max(0, Math.min(1, k.t / 0.05));
       if (w === 0) continue;
@@ -162,6 +165,7 @@ export class Reaction extends Driver {
   comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
   private returning: (() => void) | null = null;
   drivers: Driver[] = [];
+  delay = 0; // after(seconds): the way there starts this long after the trigger; the way back doesn't wait
   goTo: { set: any; how: string } | null = null; // go(section, how): this change shows a screen
   isBack = false; // back(): this one only closes whatever is on top
   private opens = false; // go() or into(): it goes somewhere, and is remembered so it can come back
@@ -222,6 +226,12 @@ export class Reaction extends Driver {
     this.inCurve = { name, seconds: duration };
     this.inPreset = null;
     this.lastFeel = "in";
+    return this;
+  }
+
+  after(seconds: number) {
+    if (typeof seconds !== "number" || !(seconds >= 0)) throw new Error("after(seconds): how long after the trigger? after(.25)");
+    this.delay = Math.min(10, seconds);
     return this;
   }
 
@@ -427,6 +437,11 @@ export class Reaction extends Driver {
       add("w", f.w);
       add("h", f.h);
       add("radius", tg.into.v.radius.get());
+      // …and nothing else has a say in where it lands: a pop on the same tap, a rise, how far it was dragged or tossed
+      add("scale", 1);
+      add("ox", layer.v.ox.get());
+      add("oy", layer.v.oy.get());
+      for (const k of tracks) if (["x", "y", "w", "h", "scale", "ox", "oy"].includes(k.prop)) k.owns = true;
       add("z", 40, undefined, a, a + (b - a) * 0.02); // on top while it is open, and where it was in the pile at rest
       // once the destination has covered it, it goes: what is left behind would show at the edges (it may still be drifting)
       if (tg.props.opacity == null && !tg.fade) add("opacity", 0, undefined, a + (b - a) * 0.8, b);
@@ -437,6 +452,7 @@ export class Reaction extends Driver {
     if (tg.image != null) swaps.push({ kind: "image", rest: layer.pictureSrc ?? "", list: listOf(tg.image, "image"), now: "" });
     for (const sw of swaps) sw.now = sw.rest;
     const e: Entry = { layer, index, count, t: new Value(0), tracks, swaps, peak: !!tg.peak, stagger: tg.stagger ?? 0 };
+    if (tg.into) (e as any).takes = { dx: 0, dy: 0, was: 0 };
     (e as any).patterns = tg.patterns;
     return e;
   }
@@ -449,6 +465,14 @@ export class Reaction extends Driver {
 
   private apply(e: Entry, t: number) {
     for (const k of e.tracks) (k.t = t), e.layer.channels[k.prop].update();
+    // into(): wherever a drag or a toss left the mover, that offset is taken out on the way in and given back on the way out
+    const takes = (e as any).takes;
+    if (takes) {
+      if (takes.was <= 0 && t > 0) (takes.dx = e.layer.v.dx.get()), (takes.dy = e.layer.v.dy.get());
+      const w = Math.max(0, Math.min(1, t));
+      if (t > 0 || takes.was > 0) (e.layer.v.dx.set(takes.dx * (1 - w) || 0), e.layer.v.dy.set(takes.dy * (1 - w) || 0));
+      takes.was = t;
+    }
     if (!this.choice) for (const sw of e.swaps) show(e.layer, sw, t >= 0.5 ? sw.list[0] : sw.rest);
   }
 
@@ -488,7 +512,23 @@ export class Reaction extends Driver {
   }
 
   // a continuous driver moved, or a drag is scrubbing
+  private heading = 0; // where a followed driver last sent this
+  private waiting: (() => void) | null = null;
+  private wanted = 0;
   follow(t: number, instant = false) {
+    // after(): leaving rest waits; if the trigger is over before then (a hold let go), it never starts
+    if (this.delay && !instant) {
+      if (t <= 0) (this.waiting?.(), (this.waiting = null));
+      else if (this.waiting || this.heading <= 0) {
+        this.wanted = t;
+        this.waiting ??= afterTime(this.delay * 1000, () => ((this.waiting = null), this.followNow(this.wanted)));
+        return;
+      }
+    }
+    this.followNow(t, instant);
+  }
+  private followNow(t: number, instant = false) {
+    this.heading = t;
     if (this.slot && this.slot.count > 1 && this.slot.stagger) {
       const f = Math.min(this.slot.stagger, 0.8 / (this.slot.count - 1));
       t = Math.max(0, Math.min(1.5, (t - this.slot.index * f) / (1 - (this.slot.count - 1) * f)));
@@ -591,10 +631,10 @@ export class Reaction extends Driver {
         let val = pats[prop].at(n);
         if (val === null) continue;
         if (prop === "color") val = resolveColor(String(val));
-        e.layer.v[prop].to(val as any, this.transition, { delay: e.index * e.stagger });
+        e.layer.v[prop].to(val as any, this.transition, { delay: this.delay + e.index * e.stagger });
       }
     }
-    if (this.impulse) return this.kick();
+    if (this.impulse) return this.delay ? void track(afterTime(this.delay * 1000, () => this.kick())) : this.kick();
     if (this.transient) {
       this.returning?.();
       this.returning = null;
@@ -605,7 +645,7 @@ export class Reaction extends Driver {
       // seen any more. A slow change is left to finish fading; a bouncy one isn't waited on while it rings unseen.
       const token = this.run;
       const unseen = () => this.entries.every((e) => e.layer.v.opacity.get() < 0.02);
-      this.returning = afterTime(REWIND_BEAT, () => {
+      this.returning = afterTime(REWIND_BEAT + this.delay * 1000, () => {
         const stop = onFrame(() => {
           if (token !== this.run) return stop();
           if (unseen()) (stop(), this.jump(0));
@@ -639,12 +679,13 @@ export class Reaction extends Driver {
   }
 
   // animate to an end; entries with a stagger leave late
-  play(to: number, velocity?: number): Promise<boolean> {
+  play(to: number, velocity?: number, hold = 0): Promise<boolean> {
     const id = ++this.run;
     this.goal = to;
     this.playing = true;
     const feel = this.feel(to);
-    const wait = this.slot ? this.slot.stagger * (to === 1 ? this.slot.index : this.slot.count - 1 - this.slot.index) : 0;
+    // after(): the way there waits; the way back doesn't (hold is for a sequence going back in reverse order)
+    const wait = (to > 0 ? this.delay : 0) + hold + (this.slot ? this.slot.stagger * (to === 1 ? this.slot.index : this.slot.count - 1 - this.slot.index) : 0);
     const jobs = [this.t.to(to, feel, { velocity, delay: wait })];
     for (const e of this.entries) {
       if (e.peak) continue;
