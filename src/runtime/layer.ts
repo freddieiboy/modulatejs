@@ -1,7 +1,8 @@
 import { Value, isValue } from "./value";
 import { nextRender, onFrame } from "./engine";
 import { stage, track } from "./stage";
-import { resolveColor, isToken, luminance } from "./theme";
+import { resolveColor, isToken, luminance, withAlpha } from "./theme";
+import { DriftConfig, Drifting, DRIFT_SHAPES } from "./drift";
 import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
 import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
@@ -63,6 +64,8 @@ export class Layer {
   _hold: any;
   _drag: any;
   _snapped: any;
+  driftCfg: DriftConfig | null = null;
+  drifting: Drifting | null = null; // (not called drift: that is the verb)
   baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
   private originWatch: (() => void)[] = [];
@@ -73,7 +76,7 @@ export class Layer {
     const st = stage();
     this.el = st.el.ownerDocument.createElement("div");
     this.el.className = "m-layer";
-    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
+    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
     for (const k in d) {
       const val = new Value(d[k]);
       val.mv.on("change", () => this.invalidate());
@@ -97,9 +100,16 @@ export class Layer {
     this.dirty = false;
     const g = (k: string) => this.v[k].get();
     const s = this.el.style;
-    const x = g("x") + g("ox") + g("dx") + g("wx");
-    const y = g("y") + g("oy") + g("dy") + g("wy");
-    s.transform = `translate3d(${x}px,${y}px,0) rotate(${g("rotate")}deg) scale(${g("scale")})`;
+    // drift (fx, fy, fr) goes on last, on top of wherever everything else has put it
+    const x = g("x") + g("ox") + g("dx") + g("wx") + g("fx");
+    const y = g("y") + g("oy") + g("dy") + g("wy") + g("fy");
+    s.transform = `translate3d(${x}px,${y}px,0) rotate(${g("rotate") + g("fr")}deg) scale(${g("scale")})`;
+    // blur softens the layer itself; glass frosts what is behind it. A spring may carry them below zero: they stop at sharp.
+    const soft = Math.max(0, g("blur")), frost = Math.max(0, g("glass"));
+    s.filter = soft > 0.01 ? `blur(${Math.round(soft * 100) / 100}px)` : "";
+    const behind = frost > 0.01 ? `blur(${Math.round(frost * 100) / 100}px)` : "";
+    s.backdropFilter = behind;
+    (s as any).webkitBackdropFilter = behind;
     if (this.pivot.kind === "layer") {
       // pivot on another layer's centre, in this layer's own box: recomputed whenever either of them moves
       const c = screenCentre(this.pivot.layer), me = screenCorner(this);
@@ -114,7 +124,8 @@ export class Layer {
     s.opacity = String(o);
     s.pointerEvents = o < 0.02 || this.inert ? "none" : "auto";
     s.zIndex = String(g("z"));
-    if (this.colorMode === "bg") s.backgroundColor = g("color");
+    // glass with no colour of its own chosen is a translucent surface, so the frost reads; a colour you gave stays as given
+    if (this.colorMode === "bg") s.backgroundColor = frost > 0.01 && this.colorAuto ? withAlpha("surface", 1 - 0.4 * Math.min(1, frost / 10)) : g("color");
     else if (this.colorMode === "text") s.color = g("color");
   }
 
@@ -346,7 +357,7 @@ function waveAt(shape: string, pos: number, i: number): number {
 
 type VerbFn = (this: any, L: Layer, ctx: Reaction | null, ...args: any[]) => any;
 export const VERBS: string[] = [];
-const REPLAYED = new Set(["size", "color", "radius", "shadow", "opacity", "scale", "rotate", "bold", "clip", "wrap", "width", "height"]);
+const REPLAYED = new Set(["size", "color", "radius", "shadow", "opacity", "scale", "rotate", "bold", "clip", "wrap", "width", "height", "blur", "glass", "drift"]);
 
 function verb(name: string, fn: VerbFn) {
   VERBS.push(name);
@@ -522,6 +533,17 @@ lookVerb("color", (L, ctx, c: string) => {
   L.put("color", c, ctx);
 });
 lookVerb("radius", (L, ctx, r: any) => L.put("radius", r, ctx));
+// blur: the layer itself goes soft. glass: it frosts whatever is behind it. Both are properties, so they animate.
+verb("blur", (L, ctx, px: any = 8) => L.put("blur", px, ctx));
+verb("glass", (L, ctx, px: any = 20) => L.put("glass", px, ctx));
+
+// drift(amount, hz, shape): floats lazily on its own. A group hands it to its children, each on its own path.
+verb("drift", (L, ctx, amount = 12, hz = 0.1, shape: any = "float") => {
+  if (ctx) throw new Error("drift() is something a layer does by itself: put it before .on(…), not after");
+  if (typeof amount !== "number" || typeof hz !== "number" || !(hz > 0)) throw new Error("drift(amount, hz): how far it strays in points, and how slowly (.1 is a soap bubble, .3 is a bee)");
+  if (!DRIFT_SHAPES.includes(shape)) throw new Error(`drift(…, "${shape}"): the shapes are ${DRIFT_SHAPES.map((s) => `"${s}"`).join(", ")}`);
+  for (const l of L.fan() ?? [L]) l.driftCfg = { amount: Math.max(0, amount), hz, shape };
+});
 lookVerb("shadow", (L, _c, level = 2) => {
   L.el.style.boxShadow = SHADOWS[Math.max(0, Math.min(3, level))];
 });

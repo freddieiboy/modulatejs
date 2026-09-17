@@ -7,7 +7,7 @@ To hand someone a working prototype: read the spec, write the code, encode it in
 ## Read this first
 
 - [spec.md](https://modulatejs.com/spec.md): the whole vocabulary on one page, with defaults, the two-state model, drivers, patterns and the link scheme
-- [The prototypes](https://modulatejs.com/examples/index.json): a JSON list of files under /examples/, each under fifteen lines, e.g. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js), [bottom sheet](https://modulatejs.com/examples/03-sheet.js), [like button](https://modulatejs.com/examples/07-like-button.js), [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js), [chat head](https://modulatejs.com/examples/11-chat-head.js)
+- [The prototypes](https://modulatejs.com/examples/index.json): a JSON list of files under /examples/, each under fifteen lines, e.g. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js), [bottom sheet](https://modulatejs.com/examples/03-sheet.js), [like button](https://modulatejs.com/examples/07-like-button.js), [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js), [chat head](https://modulatejs.com/examples/11-chat-head.js), [bubbles](https://modulatejs.com/examples/12-bubbles.js)
 
 ## Making a link
 

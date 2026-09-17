@@ -70,6 +70,16 @@ test("check rejects an origin word it doesn't know, with did-you-mean", () => {
   assert.match(p(`box().origin("botom")`)[0], /Did you mean origin\("bottom"\)/);
 });
 
+test("check warns about soft things that cost frames: big blur, big glass, a crowd of drifters", () => {
+  const w = (code) => lint(code, vocab).warnings.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(w(`a: box().blur(12).glass(24).drift(14)`), []);
+  assert.match(w(`a: box()\na.on("tap").blur(60)`)[0], /^2: blur\(60\) is a lot: past 40/);
+  assert.match(w(`box().glass(80)`)[0], /^1: glass\(80\) is a lot: past 60/);
+  const crowd = Array.from({ length: 31 }, (_, i) => `c${i}: circle(10).drift(4)`).join("\n");
+  assert.match(w(crowd)[0], /^31: 31 layers drift/);
+  assert.equal(lint(crowd, vocab).ok, true, "a warning, not an error");
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");

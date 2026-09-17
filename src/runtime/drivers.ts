@@ -3,6 +3,7 @@ import { onFrame } from "./engine";
 import { preset, timed } from "./presets";
 import { stage, listen, track } from "./stage";
 import type { Layer } from "./layer";
+import { handToDrag } from "./drift";
 
 // Everything that moves a prototype is a Driver: a t between 0 and 1.
 // Played drivers (tap) fire, and the reaction plays itself with a spring.
@@ -193,6 +194,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     L.v.dx.stop();
     L.v.dy.stop();
     landing++; // picked up again before it arrived: that landing never happened
+    if (!scrubbing) handToDrag(L); // a drifting layer is picked up exactly where it is
     origin = { ...p, dx: L.v.dx.get(), dy: L.v.dy.get(), t: rx ? rx.t.get() : 0 };
     el.style.cursor = "grabbing";
     try {

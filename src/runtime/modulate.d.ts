@@ -71,6 +71,12 @@ export class Layer {
   color(c: Color): this;
   radius(r: Num): this;
   shadow(level?: 0 | 1 | 2 | 3): this;
+  /** the layer itself goes soft, in points; a property, so .on(…).blur(12) animates it */
+  blur(px?: Num): this;
+  /** it frosts what is behind it (backdrop blur); with no colour of its own it becomes a translucent surface */
+  glass(px?: Num): this;
+  /** floats lazily around its resting point: how far in points, how slow in hz (.1 a soap bubble, .3 a bee). It pauses under a finger */
+  drift(amount?: number, hz?: number, shape?: "float" | "sway" | "bob" | "hover"): this;
   hide(): this;
   show(): this;
   bold(): this;

@@ -133,7 +133,10 @@ Placement is computed when the line runs, so place a layer after the layer it re
 | `color(c)` | fill colour, or text colour on type: a palette name, a role, or any CSS colour |
 | `radius(r)` | corner radius in points |
 | `opacity(o)` | 0 is invisible, 1 is solid |
+| `blur(px = 8)` | the layer itself goes soft; `blur(0)` is sharp. It is a property, so after `.on()` it animates: `feed.on(filters).blur(12).scale(.96)` sends the feed soft behind a sheet |
 | `shadow(level = 2)` | a soft shadow, from 0 (none) to 3 (floating) |
+| `glass(px = 20)` | frosts whatever is behind the layer, not the layer or its children: `tabbar().glass()`, `sheet().glass(24)`. With no colour of its own it becomes a translucent surface so the frost reads; a colour you give it stays exactly as given, so give it one with some transparency |
+| `drift(amount = 12, hz = .1)` | floats lazily around its resting point on a path that never obviously repeats, seeded from its name so no two drift together: `bubble: image("bubble-3.png", 96).at(290, 470).drift(14)`. `amount` is the furthest it strays, in points; `hz` is how slow (.1 a soap bubble, .3 a bee). A third word picks the shape: `"float"` (the default), `"sway"` x only, `"bob"` y only, `"hover"` float with a slow 2° turn. It goes on top of everything else, pauses under a finger and eases back over one cycle, and `at()`, `snap()` and `between()` only ever see the resting point. On a group, each child drifts by itself. `drift(0)` stops it |
 | `hide()` | invisible, and untouchable; after `.on()`, gone at the end |
 | `show()` | visible again; after `.on()`, appears quickly at the start |
 | `bold()` | heavier type |
@@ -159,7 +162,7 @@ Roles: `accent` `surface` `text` `dim` `fill` `line`.
 
 `opacity(n)`, `radius(n)` and `color(c)` from Look are properties too.
 
-Each takes a number, a Value or a pattern. Before `.on()` they set the layer; after `.on()` or inside `between()` they describe the other state. Everything animates on transforms, never layout.
+`blur()` and `glass()` are properties as well, so `.on(…).blur(12)` animates. Each takes a number, a Value or a pattern. Before `.on()` they set the layer; after `.on()` or inside `between()` they describe the other state. Everything animates on transforms, never layout.
 
 ## Feel
 
@@ -263,7 +266,7 @@ or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. 
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js)
 
 ```js
 // swipe to dismiss
@@ -277,14 +280,13 @@ pass.rotate(modulate(drag(pass).x, [-200, 200], [-9, 9]))
 ```
 
 ```js
-// bottom sheet: two buttons on top, a product, up to the middle, easy to throw away
+// bottom sheet: frosted glass, two buttons on top, up to the middle, easy to throw away
 map: image("map").fill()
-shade: box("ink").fill().hide()
 buttons: row(pill("Cancel", "fill"), pill("Add to bag", "coral")).spread()
-item: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand")
+item: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand").glass()
 
-item.on("tap").rise("half").drag("y").dismiss().spring("snappy")
-shade.on(item).opacity(.45)
+item.on("tap").rise("half").drag("y").dismiss().spring("snappy").over(.3)
+map.on(item).blur(8).scale(.96)
 ```
 
 ```js

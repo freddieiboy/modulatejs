@@ -1,0 +1,10 @@
+// bubbles: seven of them drifting, each on its own path; tap the big one to pop it
+sky: box("sky").fill()
+a: circle(130, "white").opacity(.4).at(30, 110).drift(16)
+b: circle(90, "white").opacity(.3).at(250, 80).drift(12, .13)
+c: circle(64, "white").opacity(.45).at(190, 250).drift(10, .16)
+d: circle(110, "white").opacity(.3).at(40, 380).drift(14, .08)
+e: circle(48, "white").opacity(.5).at(300, 330).drift(8, .22, "hover")
+f: circle(80, "white").opacity(.35).at(230, 520).drift(12, .11)
+g: circle(56, "white").opacity(.45).at(90, 640).drift(9, .19)
+a.on("tap").scale(1.5).fade().spring("pop").over(.25)

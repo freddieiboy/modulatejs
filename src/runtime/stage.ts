@@ -1,5 +1,6 @@
 import { tokens } from "./theme";
 import { DEFAULT_DEVICE, Device } from "./device";
+import { startDrift } from "./drift";
 
 // The screen. As wide as the device says (390 points unless device() says otherwise), as tall
 // as its container allows (the device's own height in the editor's frame), scaled to fit. Origin top-left.
@@ -38,6 +39,7 @@ export class Stage {
   reactions: any[] = [];
   cleanup: (() => void)[] = [];
   committed = false;
+  private drifting = false;
   private commitTimer: any = null;
 
   constructor(public mount: HTMLElement) {
@@ -102,6 +104,7 @@ export class Stage {
     this.commitTimer = null;
     for (const r of this.reactions) r.build();
     for (const l of this.layers) l.start?.();
+    if (!this.drifting) (this.drifting = true), startDrift(this.layers);
   }
 
   showError(message: string | null) {

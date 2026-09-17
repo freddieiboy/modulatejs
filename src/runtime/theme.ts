@@ -42,6 +42,14 @@ export const isColorWord = (c: string) => c in palette || isToken(c) || /^(#[0-9
 
 export const isToken = (c: string) => ["accent", "surface", "text", "dim", "fill", "line", "bg"].includes(c);
 
+// a hex colour at some opacity
+export function withAlpha(color: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(resolveColor(color));
+  if (!m) return color;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${Math.round(alpha * 1000) / 1000})`;
+}
+
 export function luminance(color: string): number {
   const hex = resolveColor(color);
   const m = /^#([0-9a-f]{6})$/i.exec(hex);

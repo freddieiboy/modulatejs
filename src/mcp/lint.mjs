@@ -48,7 +48,7 @@ const rootOfChain = (n) => {
 
 // vocab is /vocab.json: { globals: [...], methods: [...] }
 export function lint(code, vocab) {
-  const problems = [], warnings = [];
+  const problems = [], warnings = [], drifts = [];
   const globals = new Set(vocab.globals), methods = new Set(vocab.methods);
   const lines = code.split("\n").filter((l) => l.trim() && !l.trim().startsWith("//")).length;
   const result = () => ({ ok: problems.length === 0, problems, warnings, lines });
@@ -107,6 +107,12 @@ export function lint(code, vocab) {
           problems.push({ line, message: `origin("${n.arguments[0].value}") is not a place on a layer` + (hint ? `. Did you mean origin("${hint}")?` : ". The words are " + words.map((w) => `"${w}"`).join(", ")) });
         }
       }
+      // soft things cost frames on old phones
+      if (name === "blur" || name === "glass") {
+        const px = numberIn(n.arguments[0]), most = name === "blur" ? 40 : 60;
+        if (px != null && px > most) warnings.push({ line, message: `${name}(${px}) is a lot: past ${most} it starts to drop frames on older phones` });
+      }
+      if (name === "drift") drifts.push(line);
       if (name === "over") {
         const s = numberIn(n.arguments[0]);
         if (s != null && (s < over.min || s > over.max)) warnings.push({ line, message: `over(${s}) is outside ${over.min}–${over.max} seconds; it will run as over(${Math.max(over.min, Math.min(over.max, s))})` });
@@ -116,6 +122,7 @@ export function lint(code, vocab) {
       problems.push({ line, message: `.${name}() is not a verb` + (hint ? `. Did you mean .${hint}()?` : "") });
     }
   });
+  if (drifts.length > 30) warnings.push({ line: drifts[30], message: `${drifts.length} layers drift: past 30 or so, older phones start to drop frames` });
   problems.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
   warnings.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
   return result();
