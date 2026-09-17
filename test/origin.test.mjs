@@ -18,6 +18,7 @@ async function page(code) {
   await browser.evaluate(readFileSync(root + "dist/modulate.js", "utf8") + "; 0");
   const r = JSON.parse(await browser.evaluate(`JSON.stringify(Modulate.run(${JSON.stringify(code)}, document.body))`));
   assert.equal(r.error, undefined, code);
+  await browser.evaluate(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`); // drawn, however busy the machine is
   await sleep(120);
   return {
     // where a point of the layer's own box is on the screen right now (a marker inside it, measured by the browser)

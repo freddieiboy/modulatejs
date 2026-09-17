@@ -17,6 +17,7 @@ async function page(code) {
   await browser.evaluate(readFileSync(root + "dist/modulate.js", "utf8") + "; 0");
   const r = JSON.parse(await browser.evaluate(`JSON.stringify(Modulate.run(${JSON.stringify(code)}, document.body))`));
   assert.equal(r.error, undefined, code);
+  await browser.evaluate(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`); // drawn, however busy the machine is
   await sleep(120);
   const css = (label, prop) => browser.evaluate(`(() => { const s = getComputedStyle(document.querySelector('[data-name="${label}"]')); return s["${prop}"] || s.getPropertyValue("${prop}"); })()`);
   return { css, eval: (js) => browser.evaluate(js) };

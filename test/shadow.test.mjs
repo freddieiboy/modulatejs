@@ -17,6 +17,7 @@ async function page(code, wantError = false) {
   const r = JSON.parse(await browser.evaluate(`JSON.stringify(Modulate.run(${JSON.stringify(code)}, document.body))`));
   if (wantError) return r;
   assert.equal(r.error, undefined, code);
+  await browser.evaluate(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`); // drawn, however busy the machine is
   await sleep(150);
   const css = (label, prop) => browser.evaluate(`getComputedStyle(document.querySelector('[data-name="${label}"]'))["${prop}"]`);
   const centre = (label) => browser.evaluate(`(() => { const r = document.querySelector('[data-name="${label}"]').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
