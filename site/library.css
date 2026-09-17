@@ -6,14 +6,16 @@ body.lib { overflow: hidden; }
 .lib .right { position: sticky; top: 0; align-self: start; height: calc(100vh - 56px); display: flex; flex-direction: column; justify-content: center; gap: 14px; }
 .lib .hero { padding-top: 80px; }
 .lib h1 { font: 500 clamp(34px, 4.6vw, 56px)/1.05 var(--sans); letter-spacing: -.035em; margin: 0 0 24px; color: #fff; }
-.lib .hero p { font: 17.5px/1.6 var(--sans); color: #c4c4cb; max-width: 620px; margin: 0 0 28px; }
+.lib .hero p { font: 17.5px/1.6 var(--sans); color: #c4c4cb; max-width: 620px; margin: 0 0 16px; }
+.lib .hero p b { color: #fff; font-weight: 500; }
+.lib .hero .install { margin-top: 30px; }
 .lib .hero p.small { font-size: 14px; color: #a9a9b2; margin: 14px 0 0; }
 .lib .hero p a, .lib .prose a, .lib .lede a { color: var(--fn); }
 .lib code { font-family: var(--mono); }
 .lib p code { color: var(--str); font-size: .88em; overflow-wrap: anywhere; }
-.install { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 620px; }
+.install { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 700px; }
 .install div { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px 9px 16px; background: #0f0f10; }
-.install span { font-size: 12.5px; width: 150px; flex: none; }
+.install span { font-size: 12.5px; width: 130px; flex: none; }
 .install code { flex: 1; min-width: 0; font-size: 13.5px; color: #e4e4e6; white-space: nowrap; overflow: auto; scrollbar-width: none; }
 .install button { font-size: 12px; color: #b4b4bd; border: 1px solid #3a3a40; border-radius: 6px; padding: 3px 9px; }
 .install button:hover { color: #fff; }
