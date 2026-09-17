@@ -114,6 +114,13 @@ export class Layer {
   rubberband(k?: number): this;
   release(preset?: Preset): this;
   dismiss(): this;
+  /** after drag(): let go and it keeps the flick's velocity, slowing by friction (0 coasts forever, 1 stops almost at once). Where it stops is where it rests. Not with release() */
+  toss(friction?: number): this;
+  /** the screen's edges (or another layer's box) are walls it comes back off, with this much of its speed */
+  walls(bounciness?: number): this;
+  walls(room: Layer): this;
+  /** on a group or a container: its members push each other apart, heavier ones giving less ground */
+  bump(bounciness?: number): this;
   /** where a dragged layer goes when let go: a point (its centre), several points, "edges" | "corners" | "x" | "y", or layers to land on. In a point, "x" or "y" in its own slot leaves that axis where the finger left it: snap(300, "y") */
   snap(x: number | "x", y: number | "y"): this;
   snap(...places: ([number | "x", number | "y"] | Layer)[]): this;

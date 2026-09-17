@@ -87,6 +87,13 @@ test("check: group() with nobody in it is an error; a group's verbs and and() ar
   assert.match(p(`a: box()\ng: group(a)\ng.wobble()`)[0], /^3: \.wobble\(\) is not a verb/);
 });
 
+test("check: toss, walls and bump are known; toss() with release() on one chain is flagged with the line", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(p(`a: circle(60)\nb: circle(90)\ng: group(a, b)\ng.drift(12).drag().toss(.3).walls()\ng.bump()\na.on("tap").scale(1.2).release("bounce")`), []);
+  assert.match(p(`a: box()\na.drag().release("settle").toss()`)[0], /^2: release\(\) and toss\(\)/);
+  assert.match(p(`a: box()\na.drag().toss().release("settle")`)[0], /^2: release\(\) and toss\(\)/);
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");

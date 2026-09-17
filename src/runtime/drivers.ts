@@ -3,7 +3,8 @@ import { onFrame } from "./engine";
 import { preset, timed } from "./presets";
 import { stage, listen, track } from "./stage";
 import type { Layer } from "./layer";
-import { handToDrag } from "./drift";
+import { handToDrag, letGoOfDrift } from "./drift";
+import { grab, letGo } from "./physics";
 import { mini } from "./mini";
 
 // Everything that moves a prototype is a Driver: a t between 0 and 1.
@@ -111,6 +112,7 @@ export interface DragConfig {
   band?: number;
   release?: string;
   releaseOver?: number; // over() after release(): how long coming home takes
+  toss?: number; // toss(friction): let go and it keeps going
   snap?: SnapConfig; // where it goes when let go
   dismiss?: boolean;
   scrub?: any; // a Reaction the drag moves instead of the layer
@@ -185,7 +187,10 @@ export function startDrag(L: Layer, cfg: DragConfig) {
   const axisOfScrub: "x" | "y" = cfg.axis === "x" ? "x" : "y";
   const travel = rx ? rx.travel(L, axisOfScrub) : 0;
   const scrubbing = rx && Math.abs(travel) > 1;
-  let origin: { x: number; y: number; dx: number; dy: number; t: number } | null = null;
+  let origin: { x: number; y: number; dx: number; dy: number; t: number; id?: number } | null = null;
+  let moved = 0;
+  // two fingers, two layers: each drag follows only the finger that started it
+  const mine = (e: PointerEvent) => !!origin && (origin.id === undefined || e.pointerId === undefined || e.pointerId === origin.id);
   let gone = false;
 
   const limit = (raw: number) => {
@@ -202,8 +207,9 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     L.v.dx.stop();
     L.v.dy.stop();
     landing++; // picked up again before it arrived: that landing never happened
-    if (!scrubbing) handToDrag(L); // a drifting layer is picked up exactly where it is
-    origin = { ...p, dx: L.v.dx.get(), dy: L.v.dy.get(), t: rx ? rx.t.get() : 0 };
+    if (!scrubbing) (handToDrag(L), grab(L)); // a drifting or flying layer is picked up exactly where it is
+    moved = 0;
+    origin = { ...p, dx: L.v.dx.get(), dy: L.v.dy.get(), t: rx ? rx.t.get() : 0, id: e.pointerId };
     el.style.cursor = "grabbing";
     try {
       el.setPointerCapture(e.pointerId);
@@ -211,7 +217,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
   });
 
   listen(win, "pointermove", (e: PointerEvent) => {
-    if (!origin) return;
+    if (!origin || !mine(e)) return;
     const p = pt(e);
     const mx = p.x - origin.x, my = p.y - origin.y;
     if (scrubbing) {
@@ -222,12 +228,13 @@ export function startDrag(L: Layer, cfg: DragConfig) {
       rx.follow(t, true);
       return;
     }
+    moved = Math.max(moved, Math.hypot(mx, my));
     if (cfg.axis !== "y") L.v.dx.set(limit(origin.dx + mx));
     if (cfg.axis !== "x") L.v.dy.set(limit(origin.dy + my));
   });
 
-  const end = () => {
-    if (!origin) return;
+  const end = (e?: PointerEvent) => {
+    if (!origin || (e && !mine(e))) return;
     origin = null;
     el.style.cursor = "grab";
     if (scrubbing) {
@@ -276,7 +283,12 @@ export function startDrag(L: Layer, cfg: DragConfig) {
         return;
       }
     }
+    // toss(): it keeps the flick and goes on; whatever would have happened on letting go happens where it stops
+    const vx = cfg.axis === "y" ? 0 : L.v.dx.velocity(), vy = cfg.axis === "x" ? 0 : L.v.dy.velocity();
+    if (letGo(L, vx, vy, moved, cfg.snap ? () => settle(cfg.snap!, spring) : null)) return;
+    if (cfg.toss != null) letGoOfDrift(L); // no flight (a tap, or set down gently): its drift can come back
     if (cfg.snap) return void settle(cfg.snap, spring);
+    if (cfg.toss != null) return; // and it stays where it was put
     if (cfg.release || cfg.band || cfg.dismiss) {
       const home = (v: number) => (cfg.limits ? Math.max(cfg.limits[0], Math.min(cfg.limits[1], v)) : 0);
       L.v.dx.to(cfg.release || !cfg.limits ? home(0) : home(L.v.dx.get()), spring);

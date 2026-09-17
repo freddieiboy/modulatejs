@@ -1,6 +1,7 @@
 import { tokens } from "./theme";
 import { DEFAULT_DEVICE, Device } from "./device";
 import { startDrift } from "./drift";
+import { startPhysics } from "./physics";
 
 // The screen. As wide as the device says (390 points unless device() says otherwise), as tall
 // as its container allows (the device's own height in the editor's frame), scaled to fit. Origin top-left.
@@ -104,7 +105,7 @@ export class Stage {
     this.commitTimer = null;
     for (const r of this.reactions) r.build();
     for (const l of this.layers) l.start?.();
-    if (!this.drifting) (this.drifting = true), startDrift(this.layers);
+    if (!this.drifting) (this.drifting = true), startDrift(this.layers), startPhysics(this.layers);
   }
 
   showError(message: string | null) {

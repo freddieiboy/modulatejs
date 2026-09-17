@@ -53,8 +53,9 @@ export function startDrift(layers: Layer[]) {
   });
 
   const lift = () => {
-    for (const { state } of items)
-      if (state.held) {
+    for (const { l, state } of items)
+      if (state.held && !l.dragCfg?.toss) {
+        // (a tossed layer stays paused until its flight has slowed: physics hands it back)
         state.held = false;
         state.handed = false;
         state.releasedAt = state.now;
@@ -87,6 +88,15 @@ export function startDrift(layers: Layer[]) {
       }
     })
   );
+}
+
+// Whatever had taken the layer over (a flight, a bump) is done with it: drift eases back in over one cycle.
+export function letGoOfDrift(l: Layer) {
+  const state = l.drifting;
+  if (!state || !state.held) return;
+  state.held = false;
+  state.handed = false;
+  state.releasedAt = state.now;
 }
 
 // A drag picks the layer up exactly where it is: the drift it had at that moment becomes part of the drag,

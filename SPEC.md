@@ -110,6 +110,16 @@ Three verbs name a point, and they don't all mean the same corner of a layer: `a
 
 `row`, `stack`, `grid`, `bubbles` and `around` make **containers**: many layers in one box that is placed and moved as one. Look verbs on a container reach its children (and read a `"<…>"` pattern per child); with `stagger()` or `peak()` so do feel verbs. `group()` is the other kind of many: a plain set, no box, every verb on every member.
 
+```js
+// three bubbles that float, can be thrown, stay on the screen and push each other
+a: circle(120, "sky").at(40, 120)
+b: circle(90, "plum").at(230, 260)
+c: circle(140, "mint").at(90, 480)
+things: group(a, b, c)
+things.drift(12).drag().toss().walls()
+things.bump()
+```
+
 ## Placement
 
 | verb | does |
@@ -210,6 +220,9 @@ Numbers follow a spring past their target (that overshoot is the bounce); colour
 | `rubberband(k = .55)` | resist past the limits, like iOS; with no limits the whole drag resists |
 | `release(preset = "settle")` | spring home when let go (after `.on()`, the same idea for a change: see Feel). `.release("bounce").over(.3)` times it |
 | `snap(…)` | where it goes when let go; `release()` is the spring, `snap()` is the place. `snap(x, y)` one point · `snap([x, y], [x, y], …)` the nearest of several, where `"x"` or `"y"` in its own slot leaves that axis where the finger left it (`snap(300, "y")`: a rail at x = 300) and doesn't count toward nearest · `snap("edges")` the nearest screen edge, keeping the other axis · `snap("corners")` · `snap("x")` / `snap("y")` that axis goes home, the other stays · `snap(slotA, slotB)` the centre of the nearest layer, or back where it started. Points are where the layer's **centre** goes (`at()` names a corner). Nearest is measured from where a flick was heading, not where the finger lifted, and where it lands is where it lives. `head.drag().snap("edges").release("settle")` |
+| `toss(friction = .4)` | after `drag()`: let go and it keeps the flick's velocity, slowing down. `0` coasts forever, `1` stops almost at once; at `.4` a 600 pt/s flick carries on a little over 200 points and rests in about a second and a half. Where it stops is where it rests: `drift()` resumes there, and a `snap()` is measured from where the flight ended, not where the finger lifted. A tap is still a tap. `release()` goes home and `toss()` goes on, so a chain can have one or the other |
+| `walls(bounciness = .6)` | the screen's edges are walls: a layer that reaches one while tossed, bumped or drifting comes back with that share of its speed, mirrored. `walls(1)` never loses speed, `walls(0)` sticks; `walls(1)` with `toss(0)` is the screensaver. A layer placed off-screen on purpose is left alone until it has come inside. `walls(layer)` uses that layer's box as the room. It belongs to the layer, not the drag |
+| `bump(bounciness = .5)` | on a `group()` or a container: its members push each other. Circles collide as circles, everything else as its box; two moving members trade momentum by size, so a small bubble bounces off a big one that barely moves; a held member is a wall; drifting members nudge apart and settle. Only members of the same group bump, and `bump()` on a layer by itself is an error that says so |
 | `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy). It wins over `snap()` |
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.

@@ -73,6 +73,8 @@ export class Layer {
   _drag: any;
   _snapped: any;
   driftCfg: DriftConfig | null = null;
+  wallsCfg: { bounce: number; room: Layer | null } | null = null; // walls(): the edges it comes back off
+  bumpCfg: { bounce: number; world: any } | null = null; // bump(): which group it jostles with
   drifting: Drifting | null = null; // (not called drift: that is the verb)
   baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
@@ -674,11 +676,38 @@ verb("over", (L, ctx, seconds: number) => {
   L.dragCfg.releaseOver = checkOver(seconds);
 });
 
+// toss(friction): after drag(), let go and it keeps the flick's velocity, slowing down; where it stops is where it rests.
+verb("toss", (L, ctx, friction = 0.4) => {
+  if (ctx) throw new Error("toss() is for a free drag: after .on(…) the drag scrubs the change instead");
+  if (!L.dragCfg) throw new Error("toss() goes after drag(): layer.drag().toss()");
+  if (L.dragCfg.release) throw new Error("release() and toss() can't both decide what happens when you let go: release() goes home, toss() goes on. Pick one");
+  if (typeof friction !== "number" || friction < 0 || friction > 1) throw new Error("toss(friction): 0 coasts forever, 1 stops almost at once; .4 is the default");
+  L.dragCfg.toss = friction;
+});
+
+// walls(bounciness): the screen's edges (or another layer's box) are walls it comes back off.
+verb("walls", (L, _ctx, a: any = 0.6) => {
+  const room = a && typeof a === "object" && "el" in rootOf(a) ? rootOf(a) : null;
+  const bounce = room ? 0.6 : a;
+  if (typeof bounce !== "number" || bounce < 0 || bounce > 1) throw new Error("walls(bounciness): 0 sticks, 1 never loses speed; or walls(layer) to use that layer's box as the room");
+  for (const l of L.fan() ?? [L]) l.wallsCfg = { bounce, room };
+});
+
+// bump(bounciness): members of a group push each other apart. A container's children are such a group;
+// on a group() it is set up there, where the membership is known.
+verb("bump", (L, _ctx, bounce = 0.5) => {
+  const kids = L.fan();
+  if (!kids) throw new Error("bump() is for the members of a group, which push each other: group(a, b, c).bump(). A layer by itself has nothing to bump into");
+  if (typeof bounce !== "number" || bounce < 0 || bounce > 1) throw new Error("bump(bounciness): 0 to 1");
+  for (const k of kids) k.bumpCfg = { bounce, world: L };
+});
+
 // release: how it comes home when let go. For a drag, the spring back to where it was.
 // After .on(), the spring for the way back, so a press can go in one way and come out another.
 verb("release", (L, ctx, name = "settle") => {
-  if (ctx) ctx.release(name);
-  else (L.dragCfg ??= { axis: "both" }).release = name;
+  if (ctx) return void ctx.release(name);
+  if (L.dragCfg?.toss != null) throw new Error("release() and toss() can't both decide what happens when you let go: release() goes home, toss() goes on. Pick one");
+  (L.dragCfg ??= { axis: "both" }).release = name;
 });
 // snap(): where a dragged layer goes when let go. release() is the spring; snap() is the place.
 //   snap(x, y) · snap([x, y], [x, y], …) · snap("edges" | "corners" | "x" | "y") · snap(layerA, layerB, …)

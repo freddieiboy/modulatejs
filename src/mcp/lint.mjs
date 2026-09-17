@@ -92,6 +92,18 @@ export function lint(code, vocab) {
       const root = rootOfChain(c.object);
       if (!root || !(globals.has(root) || layers.has(root))) return; // someone else's object: not ours to judge
       const name = c.property.name;
+      if (name === "toss" || name === "release") {
+        // on a free drag, release() goes home and toss() goes on: a chain gets one or the other
+        const other = name === "toss" ? "release" : "toss";
+        let onSeen = false, clash = false;
+        for (let o = c.object; o; o = o.type === "CallExpression" ? o.callee : o.type === "MemberExpression" ? o.object : null) {
+          if (o.type !== "CallExpression" || o.callee.type !== "MemberExpression") continue;
+          if (o.callee.property.name === "on") onSeen = true;
+          if (o.callee.property.name === other) clash = true;
+        }
+        if (clash && !onSeen && name === "toss") problems.push({ line, message: "release() and toss() can't both decide what happens when you let go: release() goes home, toss() goes on. Pick one" });
+        if (clash && !onSeen && name === "release") problems.push({ line, message: "release() and toss() can't both decide what happens when you let go: release() goes home, toss() goes on. Pick one" });
+      }
       if (name === "snap") {
         // after .on(), a drag scrubs the change, and that already rests at one end or the other
         for (let o = c.object; o; o = o.type === "CallExpression" ? o.callee : o.type === "MemberExpression" ? o.object : null)

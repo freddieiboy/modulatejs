@@ -86,6 +86,13 @@ function driverFor(set: LayerSet, source: any, i: number): any {
 function run(set: LayerSet, targets: any[], name: string, args: any[], self: any) {
   if (name === "on") return new SetHandle(set, targets.map((t, i) => t.on(driverFor(set, args[0] ?? "tap", i))));
   if (name === "around") throw new Error("around(): a group can't be the thing that is copied; copy one layer around a group: circle(7).around(floaters, 10)");
+  if (name === "bump") {
+    // the members of this group jostle with each other, and with nobody else
+    const bounce = args[0] ?? 0.5;
+    if (typeof bounce !== "number" || bounce < 0 || bounce > 1) throw new Error("bump(bounciness): 0 to 1");
+    for (const m of set.members) m.bumpCfg = { bounce, world: set };
+    return self;
+  }
   if (name === "stagger") {
     const s = args[0] ?? 0.05;
     targets.forEach((t, i) => {
