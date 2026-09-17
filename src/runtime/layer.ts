@@ -5,7 +5,7 @@ import { resolveColor, isToken, luminance } from "./theme";
 import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
 import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
-import { resolveDriver, startDrag, DragConfig } from "./drivers";
+import { resolveDriver, startDrag, DragConfig, SnapConfig } from "./drivers";
 
 const SHADOWS = [
   "none",
@@ -61,6 +61,7 @@ export class Layer {
   _tap: any;
   _hold: any;
   _drag: any;
+  _snapped: any;
   private dirty = false;
   private started = false;
 
@@ -598,6 +599,31 @@ verb("release", (L, ctx, name = "settle") => {
   if (ctx) ctx.release(name);
   else (L.dragCfg ??= { axis: "both" }).release = name;
 });
+// snap(): where a dragged layer goes when let go. release() is the spring; snap() is the place.
+//   snap(x, y) · snap([x, y], [x, y], …) · snap("edges" | "corners" | "x" | "y") · snap(layerA, layerB, …)
+const SNAP_WORDS = ["edges", "corners", "x", "y"];
+verb("snap", (L, ctx, ...args: any[]) => {
+  if (ctx) throw new Error("snap() is for a free drag. After .on(…) a drag scrubs the change, which already comes to rest at one end or the other");
+  const snap: SnapConfig = { mode: "points", points: [], layers: [], start: false };
+  if (typeof args[0] === "string") {
+    if (!SNAP_WORDS.includes(args[0])) throw new Error(`snap("${args[0]}"): the words are "edges", "corners", "x" and "y"; otherwise give it points or layers`);
+    snap.mode = args[0] as any;
+  } else if (typeof args[0] === "number") {
+    if (typeof args[1] !== "number") throw new Error("snap(x, y): a point is two numbers, where the layer's centre should go");
+    snap.points.push([args[0], args[1]]);
+  } else {
+    for (const a of args) {
+      if (Array.isArray(a) && a.length === 2 && a.every((n) => typeof n === "number")) snap.points.push([a[0], a[1]]);
+      else if (a && typeof a === "object" && "el" in rootOf(a)) snap.layers.push(rootOf(a));
+      else throw new Error("snap(): give it points like [195, 120], or layers to land on");
+    }
+    // dropping on targets, you can always put it back where it was; a list of points is exactly that list
+    snap.start = snap.layers.length > 0;
+  }
+  if (snap.mode === "points" && !snap.points.length && !snap.layers.length) throw new Error(`snap(): where to? snap("edges"), snap(195, 120), snap([x, y], [x, y]) or snap(slotA, slotB)`);
+  (L.dragCfg ??= { axis: "both" }).snap = snap;
+});
+
 verb("dismiss", (L) => {
   (L.dragCfg ??= { axis: "x" }).dismiss = true;
 });
@@ -606,7 +632,7 @@ verb("scrolls", (L, _c, driver?: any) => {
 });
 
 // .tap, .hold: a layer's own drivers, for other layers to listen to
-for (const name of ["tap", "hold"]) {
+for (const name of ["tap", "hold", "snapped"]) {
   Object.defineProperty(Layer.prototype, name, {
     get(this: any) {
       return resolveDriver(name, rootOf(this));

@@ -12,7 +12,7 @@ Two names. **modulatejs** is the library: a toy vocabulary for mobile-app feel (
 - `image()` references a URL and never inlines bytes. Every content provider needs a local fallback.
 - The site never talks to a model, never holds a key, never stores anything. State is the URL fragment: `#1` + lz-string.
 - The rhythm: the human writes or changes a prototype by hand; Claude makes it run.
-- Run `npm test` before every commit. It runs the ten prototypes, every example in the spec and the library, and the link codec.
+- Run `npm test` before every commit. It runs the prototypes, every example in the spec and the library, and the link codec.
 
 ## Layout
 

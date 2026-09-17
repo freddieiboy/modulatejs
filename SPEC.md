@@ -75,6 +75,7 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | `"tap"` · `layer.tap` · `tap(layer)` · `tap()` | a tap on the layer (or anywhere) | **played**: springs 0 → 1; tap again springs back |
 | `"hold"` · `layer.hold` · `hold(layer)` | a finger is down on it, or not (touch start to touch end). It should feel like a finger, not a spring, so by default it goes in `snappy` and comes out `settle`; `spring(p)` changes the way in, `release(p)` the way out | 1 while held |
 | `drag(layer)` · `"drag"` | how far the layer has been dragged | distance ÷ 160; `.range(px)` changes it; `.x` `.y` are raw Values |
+| `layer.snapped` | a `snap()` landed. A layer that was one of the places hears it only when it was the one landed on: `slot.on(coin.snapped).spring("pop")` | **played**, like a tap |
 | `scroll(length = 400)` · `"scroll"` | the screen scrolls natively over `length` points | scrollTop ÷ length |
 | `page(n = 3)` | swipe sideways through n pages, snapping | 0 → 1 across all pages |
 | `time(seconds = 1)` | a looping clock; `.once()`, `.pause(hold(layer))` | elapsed ÷ seconds |
@@ -197,10 +198,11 @@ Numbers follow a spring past their target (that overshoot is the bounce); colour
 
 | verb | does |
 | --- | --- |
-| `drag()` · `drag("x")` · `drag("y", [min, max])` | follow the finger: both ways with nothing in it, or along one axis, optionally within limits. Anything else is an error that says so |
+| `drag()` · `drag("x")` · `drag("y", [min, max])` | follow the finger: both ways with nothing in it, or along one axis, optionally within limits (offsets from where it was placed). Anything else is an error that says so. Without `release()` a dragged layer stays where it was dropped; `release()` springs it home; `snap()` springs it to a place |
 | `rubberband(k = .55)` | resist past the limits, like iOS; with no limits the whole drag resists |
 | `release(preset = "settle")` | spring home when let go (after `.on()`, the same idea for a change: see Feel). `.release("bounce").over(.3)` times it |
-| `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy) |
+| `snap(…)` | where it goes when let go; `release()` is the spring, `snap()` is the place. `snap(x, y)` one point · `snap([x, y], [x, y], …)` the nearest of several · `snap("edges")` the nearest screen edge, keeping the other axis · `snap("corners")` · `snap("x")` / `snap("y")` that axis goes home, the other stays · `snap(slotA, slotB)` the centre of the nearest layer, or back where it started. Points are where the layer's **centre** goes (`at()` names a corner). Nearest is measured from where a flick was heading, not where the finger lifted, and where it lands is where it lives. `head.drag().snap("edges").release("settle")` |
+| `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy). It wins over `snap()` |
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.
 
@@ -254,11 +256,11 @@ const link = "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
 
 or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. A thirty-line prototype is 300–600 characters. Opened on a phone the link shows only the prototype, full screen.
 
-## The ten prototypes
+## The prototypes
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js)
 
 ```js
 // swipe to dismiss

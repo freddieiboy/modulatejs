@@ -108,7 +108,7 @@ function source(context: CompletionContext): CompletionResult | null {
         if (m === "on" && !reacting) return callable(m, 30, "method");
         return callable(m, reacting ? (feel ? 20 : 0) : section === "Placement" ? 12 : section === "Look" ? 8 : feel ? 0 : 4, "method");
       });
-    for (const p of ["tap", "hold"]) options.push({ label: p, detail: " driver", type: "property", boost: -5, info: info(p), apply: p });
+    for (const p of ["tap", "hold", "snapped"]) options.push({ label: p, detail: " driver", type: "property", boost: -5, info: info(p), apply: p });
     return { from, options, validFor: /^[\w$]*$/ };
   }
 

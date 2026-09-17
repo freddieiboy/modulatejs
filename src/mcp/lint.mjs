@@ -91,6 +91,14 @@ export function lint(code, vocab) {
       const root = rootOfChain(c.object);
       if (!root || !(globals.has(root) || layers.has(root))) return; // someone else's object: not ours to judge
       const name = c.property.name;
+      if (name === "snap") {
+        // after .on(), a drag scrubs the change, and that already rests at one end or the other
+        for (let o = c.object; o; o = o.type === "CallExpression" ? o.callee : o.type === "MemberExpression" ? o.object : null)
+          if (o.type === "CallExpression" && o.callee.type === "MemberExpression" && o.callee.property.name === "on") {
+            problems.push({ line, message: "snap() can't follow .on(…): there the drag scrubs the change, which already comes to rest at one end or the other. Put snap() on a free drag: layer.drag().snap(…)" });
+            break;
+          }
+      }
       if (name === "over") {
         const s = numberIn(n.arguments[0]);
         if (s != null && (s < over.min || s > over.max)) warnings.push({ line, message: `over(${s}) is outside ${over.min}–${over.max} seconds; it will run as over(${Math.max(over.min, Math.min(over.max, s))})` });

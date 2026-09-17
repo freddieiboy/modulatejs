@@ -5,7 +5,7 @@ Riff, Play, Share. This is coral, the editor for [ModulateJS](https://modulatejs
 ## What you can do from here
 
 1. Read [the spec](https://modulatejs.com/spec.md): the whole vocabulary on one page.
-2. Look at [the ten prototypes](https://modulatejs.com/examples/index.json), e.g. [/examples/01-swipe-to-dismiss.js](https://modulatejs.com/examples/01-swipe-to-dismiss.js).
+2. Look at [the prototypes](https://modulatejs.com/examples/index.json), e.g. [/examples/01-swipe-to-dismiss.js](https://modulatejs.com/examples/01-swipe-to-dismiss.js).
 3. Write a prototype: ten to fifteen lines.
 4. Turn it into a link and give the link to a person. They open it, scan the QR, and feel it on their phone.
 

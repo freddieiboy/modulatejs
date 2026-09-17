@@ -57,6 +57,12 @@ test("check accepts over(), and warns with the line when the seconds are out of 
   assert.match(lint(`box().on("tap").x(1).ovre(.2)`, vocab).problems[0].message, /Did you mean \.over\(\)/);
 });
 
+test("check flags snap() after on(), with the line", () => {
+  const r = lint(`p: box()\np.drag().snap("edges")\np.on("tap").x(10).drag("x").snap("edges")`, vocab);
+  assert.deepEqual(r.problems.map((x) => x.line), [3]);
+  assert.match(r.problems[0].message, /snap\(\) can't follow \.on/);
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");
@@ -69,7 +75,7 @@ test("the MCP core speaks the protocol", async () => {
   for (const t of tools) assert.equal(t.inputSchema.type, "object");
   assert.equal((await rpc("nope")).error.code, -32601);
   assert.equal((await rpc("tools/call", { name: "nope" })).error.code, -32602);
-  assert.equal((await rpc("resources/list")).result.resources.length, 11);
+  assert.equal((await rpc("resources/list")).result.resources.length, protos.length + 1);
   assert.match((await rpc("resources/read", { uri: "modulatejs://examples/07-like-button" })).result.contents[0].text, /heart: circle/);
 });
 

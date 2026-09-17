@@ -79,6 +79,7 @@ export const sections = [
     intro: "Vanilla Motion has no drag, so this one is ours: pointer events, velocity, and the iOS rubber-band curve.",
     items: [
       { verbs: "drag · rubberband · release · dismiss", text: "drag(axis, [min, max]) follows the finger. rubberband() resists past the limits, or everywhere if there are none. release(preset) springs home. dismiss() lets a flick throw it away; it comes back, because this is a toy.", code: `card().drag("x").rubberband(.8).release("settle").dismiss()` },
+      { verbs: "snap · snapped", text: "Where a dragged layer goes when let go. release() is the spring, snap() is the place: a point, the nearest of several, \"edges\", \"corners\", one axis home, or the nearest of some layers. Nearest is measured from where a flick was heading, so you can throw it across the screen. layer.snapped tells the rest of the prototype it landed.", code: `slotA: box(84, "fill").at(50, 180)\nslotB: box(84, "fill").at(256, 180)\ncoin: circle(56, "coral").at("center", 560)\n\ncoin.drag().snap(slotA, slotB).release("pop")\nslotA.on(coin.snapped).color("mint")\nslotB.on(coin.snapped).color("mint")` },
       { verbs: "drag(layer)", text: "The driver side of a drag: t is distance over 160 (range(px) changes that), and .x .y are the raw offsets for modulate().", code: `puck: circle(80, "plum").drag().release("bounce")\nhalo: circle(80, "plum").opacity(.2).z(-1)\nhalo.on(drag(puck)).scale(3).opacity(0)` },
     ],
   },

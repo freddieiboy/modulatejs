@@ -210,7 +210,12 @@ export class Reaction extends Driver {
 
     for (const e of this.entries) e.t.on((t) => this.apply(e, t));
     for (const d of this.drivers) {
-      if (d.played) d.onFire(() => this.fire());
+      if (d.played)
+        d.onFire((detail) => {
+          // layer.snapped: a drop target that was one of the places only hears about it when it is the one landed on
+          if (d.kind === "snapped" && this.owner && detail?.among?.includes(this.owner) && detail.target !== this.owner) return;
+          this.fire();
+        });
       else {
         d.t.on((t) => this.follow(t));
         this.follow(d.t.get(), true);

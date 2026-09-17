@@ -15,8 +15,8 @@ function browser() {
 
 const protos = readdirSync(root + "prototypes").filter((f) => f.endsWith(".js")).sort();
 
-test("there are ten prototypes, each under fifteen lines of code", () => {
-  assert.equal(protos.length, 10);
+test("the prototypes are all there, each under fifteen lines of code", () => {
+  assert.ok(protos.length >= 11);
   for (const f of protos) {
     const lines = readFileSync(root + "prototypes/" + f, "utf8").split("\n").filter((l) => l.trim() && !l.trim().startsWith("//"));
     assert.ok(lines.length <= 15, `${f} has ${lines.length} lines`);

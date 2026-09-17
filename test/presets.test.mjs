@@ -4,32 +4,10 @@
 // over(seconds) is held to the same table: it may change how quick a preset is, never how far it overshoots.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { JSDOM } from "jsdom";
+import { clockwork, FRAME } from "./clockwork.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
-const runtime = readFileSync(root + "dist/modulate.js", "utf8");
-const FRAME = 1000 / 60, FRAMES = 180;
+const FRAMES = 180;
 const OVERS = [0.15, 0.3, 0.6];
-
-// a window whose time only moves when we say so
-function clockwork() {
-  const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", { runScripts: "outside-only" });
-  const win = dom.window;
-  let now = 1000, queue = [];
-  Object.defineProperty(win, "performance", { value: { now: () => now }, configurable: true });
-  win.requestAnimationFrame = (cb) => queue.push(cb);
-  win.cancelAnimationFrame = () => {};
-  win.eval(runtime);
-  // Motion remembers "now" until the next microtask, so each frame has to really end before the next begins;
-  // without this every animation starts at the time of the first frame and the traces run early.
-  const tick = async () => {
-    now += FRAME;
-    for (const cb of queue.splice(0)) cb(now);
-    await new Promise((r) => setImmediate(r));
-  };
-  return { win, tick };
-}
 
 const key = (p, s) => (s ? `${p}_${String(s).replace(".", "")}` : p);
 

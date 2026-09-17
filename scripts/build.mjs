@@ -124,7 +124,7 @@ async function build() {
     md += `\n## ${sec.title}\n\n${sec.intro}\n`;
     for (const it of sec.items) md += `\n### ${it.verbs}\n\n${it.text}\n\n\`\`\`js\n${it.code}\n\`\`\`\n`;
   }
-  md += "\n## The ten prototypes\n\n" + protos.map((f) => `- [${f}](https://modulatejs.com/examples/${f})`).join("\n") + "\n";
+  md += "\n## The prototypes\n\n" + protos.map((f) => `- [${f}](https://modulatejs.com/examples/${f})`).join("\n") + "\n";
   md += "\n## Licences\n\nmodulate.js (the runtime) is MIT. The editor page and CLI are AGPL-3.0. The spec and prototypes are CC BY 4.0. Built on Motion (MIT).\n";
   writeFileSync(join(site, "library.md"), md);
 

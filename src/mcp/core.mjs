@@ -28,7 +28,7 @@ export function tools(host) {
     },
     {
       name: "examples",
-      description: "The ten reference prototypes (swipe to dismiss, pull to refresh, bottom sheet, push and pop, tab bar, pager, like button, story progress, card expand, shop to chat). With no name, lists them; with a name, returns that prototype's code. They are the style to match.",
+      description: "The reference prototypes (swipe to dismiss, pull to refresh, bottom sheet, push and pop, tab bar, pager, like button, story progress, card expand, shop to chat, chat head). With no name, lists them; with a name, returns that prototype's code. They are the style to match.",
       inputSchema: { type: "object", properties: { name: { type: "string", description: "A name from the list, e.g. 03-sheet. Omit to list them all." } } },
       run: async ({ name } = {}) => {
         const all = await host.examples();

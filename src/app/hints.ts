@@ -30,6 +30,7 @@ export function slots(): Record<string, Record<string, () => Choice[]>> {
     at: { 0: list("left", "center", "right"), 1: list("top", "center", "bottom") },
     rise: { 0: list("half", "full") },
     drag: { 0: list("x", "y") },
+    snap: { 0: list("edges", "corners", "x", "y") },
     lfo: { 1: list("wave", "saw", "square") },
     x: { 0: waves }, y: { 0: waves }, scale: { 0: waves }, rotate: { 0: waves }, opacity: { 0: waves },
   };

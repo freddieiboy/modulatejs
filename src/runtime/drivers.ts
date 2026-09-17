@@ -9,13 +9,13 @@ import type { Layer } from "./layer";
 // Continuous drivers (drag, scroll, page, time, lfo, hold) are followed.
 export class Driver {
   t = new Value(0);
-  private listeners: (() => void)[] = [];
+  private listeners: ((detail?: any) => void)[] = [];
   constructor(public kind: string, public played: boolean) {}
-  onFire(cb: () => void) {
+  onFire(cb: (detail?: any) => void) {
     this.listeners.push(cb);
   }
-  emit() {
-    for (const l of this.listeners) l();
+  emit(detail?: any) {
+    for (const l of this.listeners) l(detail);
   }
 }
 
@@ -39,6 +39,7 @@ export function resolveDriver(source: any, self: Layer | null): Driver {
       case "tap": return tap(self);
       case "hold": return hold(self);
       case "drag": return drag(self);
+      case "snapped": return snapped(self!);
       case "scroll": return scroll();
     }
     throw new Error(`on("${source}"): use "tap", "hold", "drag" or "scroll", or pass a driver`);
@@ -101,8 +102,38 @@ export interface DragConfig {
   band?: number;
   release?: string;
   releaseOver?: number; // over() after release(): how long coming home takes
+  snap?: SnapConfig; // where it goes when let go
   dismiss?: boolean;
   scrub?: any; // a Reaction the drag moves instead of the layer
+}
+
+// snap(): the places a dragged layer can come to rest. Points are where its centre goes, in screen points.
+export interface SnapConfig {
+  mode: "points" | "edges" | "corners" | "x" | "y";
+  points: [number, number][];
+  layers: Layer[]; // drop targets: their centres, wherever they are at the moment of letting go
+  start: boolean; // is where it was placed one of the places?
+}
+
+// iOS: a flick is taken to where it would have coasted to (decelerationRate .998 per ms ≈ velocity × half a second)
+const COAST = 0.5;
+const EDGE = 12;
+
+// a layer's centre on the screen as it looks right now, offsets and all (its own drag offset left out if asked)
+function centreOf(l: Layer, withoutDrag = false) {
+  let x = l.v.w.get() / 2, y = l.v.h.get() / 2;
+  for (let p: Layer | null = l; p; p = p.parent) {
+    const skip = withoutDrag && p === l;
+    x += p.v.x.get() + p.v.ox.get() + p.v.wx.get() + (skip ? 0 : p.v.dx.get());
+    y += p.v.y.get() + p.v.oy.get() + p.v.wy.get() + (skip ? 0 : p.v.dy.get());
+  }
+  return { x, y };
+}
+
+// a layer's own landing: fired once it arrives, with where it landed
+export function snapped(layer: Layer): Driver {
+  const L = root(layer);
+  return (L._snapped ??= new Driver("snapped", true));
 }
 
 export class DragDriver extends Driver {
@@ -161,6 +192,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     const p = pt(e);
     L.v.dx.stop();
     L.v.dy.stop();
+    landing++; // picked up again before it arrived: that landing never happened
     origin = { ...p, dx: L.v.dx.get(), dy: L.v.dy.get(), t: rx ? rx.t.get() : 0 };
     el.style.cursor = "grabbing";
     try {
@@ -234,6 +266,7 @@ export function startDrag(L: Layer, cfg: DragConfig) {
         return;
       }
     }
+    if (cfg.snap) return void settle(cfg.snap, spring);
     if (cfg.release || cfg.band || cfg.dismiss) {
       const home = (v: number) => (cfg.limits ? Math.max(cfg.limits[0], Math.min(cfg.limits[1], v)) : 0);
       L.v.dx.to(cfg.release || !cfg.limits ? home(0) : home(L.v.dx.get()), spring);
@@ -242,6 +275,54 @@ export function startDrag(L: Layer, cfg: DragConfig) {
   };
   listen(win, "pointerup", end);
   listen(win, "pointercancel", end);
+
+  // snap(): spring to the place nearest to where the layer was heading
+  let landing = 0;
+  function settle(snap: SnapConfig, spring: any) {
+    const st = stage();
+    const vx = cfg.axis === "y" ? 0 : L.v.dx.velocity(), vy = cfg.axis === "x" ? 0 : L.v.dy.velocity();
+    const at = { x: L.v.dx.get(), y: L.v.dy.get() };
+    const heading = { x: at.x + vx * COAST, y: at.y + vy * COAST };
+    const base = centreOf(L, true); // its centre with no drag offset: offsets below are measured from here
+    const w = L.v.w.get(), h = L.v.h.get();
+    const places: { x: number; y: number; layer?: Layer }[] = [];
+    if (snap.mode === "x") places.push({ x: 0, y: at.y });
+    else if (snap.mode === "y") places.push({ x: at.x, y: 0 });
+    else if (snap.mode === "edges" || snap.mode === "corners") {
+      const left = EDGE + w / 2 - base.x, right = st.W - EDGE - w / 2 - base.x;
+      const top = st.safeTop + 8 + h / 2 - base.y, bottom = st.H - st.safeBottom - 8 - h / 2 - base.y;
+      const keepX = Math.max(left, Math.min(right, at.x)), keepY = Math.max(top, Math.min(bottom, at.y));
+      if (snap.mode === "edges") places.push({ x: left, y: keepY }, { x: right, y: keepY }, { x: keepX, y: top }, { x: keepX, y: bottom });
+      else places.push({ x: left, y: top }, { x: right, y: top }, { x: left, y: bottom }, { x: right, y: bottom });
+    } else {
+      for (const [x, y] of snap.points) places.push({ x: x - base.x, y: y - base.y });
+      for (const t of snap.layers) {
+        if (t === L) continue; // itself means where it started, below
+        const c = centreOf(t);
+        places.push({ x: c.x - base.x, y: c.y - base.y, layer: t });
+      }
+      if (snap.start) places.push({ x: 0, y: 0, layer: L });
+    }
+    let best = places[0], near = Infinity;
+    for (const p of places) {
+      const d = Math.hypot(p.x - heading.x, p.y - heading.y);
+      if (d < near) (best = p), (near = d);
+    }
+    if (!best) return;
+    L.v.dx.to(best.x, spring, { velocity: vx });
+    L.v.dy.to(best.y, spring, { velocity: vy });
+    // tell whoever listens to layer.snapped, once, when it gets there
+    const id = ++landing;
+    const arrived = () => {
+      if (id !== landing || Math.hypot(L.v.dx.get() - best.x, L.v.dy.get() - best.y) > 1.5) return;
+      landing++;
+      offX();
+      offY();
+      snapped(L).emit({ target: best.layer ?? null, among: snap.layers });
+    };
+    const offX = L.v.dx.on(arrived), offY = L.v.dy.on(arrived);
+    arrived();
+  }
 }
 
 // ——— scroll: the whole screen scrolls; t is how far through `length` you are

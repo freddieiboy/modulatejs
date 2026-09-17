@@ -48,7 +48,7 @@ https://coral.fm/mcp
 | tool | local | remote | does |
 | --- | --- | --- | --- |
 | `spec` | ✓ | ✓ | the whole language, one page |
-| `examples` | ✓ | ✓ | the ten reference prototypes |
+| `examples` | ✓ | ✓ | the reference prototypes |
 | `check` | ✓ | ✓ | parses the code and checks every piece and verb against the vocabulary: line numbers, did-you-mean |
 | `link` | ✓ | ✓ | code in, coral.fm link out |
 | `show` | ✓ | | writes the file being watched, so the person's browser and phone update live |
@@ -61,13 +61,13 @@ https://coral.fm/mcp
 ```sh
 npm install
 npm run build    # dist/modulate.js, dist/site/, dist/cli.mjs
-npm test         # the ten prototypes, the spec's examples, the link codec
+npm test         # the prototypes, every example in the spec and library, presets, snap, MCP
 npm run dev      # rebuild on change; serve with: node bin/modulate.mjs proto.js
 npx wrangler deploy   # both sites, to Cloudflare: one worker, coral.fm and modulatejs.com
 ```
 
 - `SPEC.md`: the vocabulary. Served verbatim at modulatejs.com/spec.md. Source of truth.
-- `prototypes/`: ten hand-sized prototypes. They are the test suite and the examples models read.
+- `prototypes/`: hand-sized prototypes, each under fifteen lines. They are the test suite and the examples models read.
 - `src/runtime/`: the library. Only `engine.ts` touches Motion.
 - `src/app/`: the editor page (coral.fm) and the library page (modulatejs.com). `site/`: their static files.
 - `src/cli/`: `npx modulatejs`, and the headless Chrome behind `screenshot`. `src/mcp/`: the MCP core and the lint, shared by the CLI and the worker.

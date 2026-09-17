@@ -49,6 +49,8 @@ export class Layer {
   readonly el: HTMLElement;
   readonly tap: Driver;
   readonly hold: Driver;
+  /** fires when a snap() lands; a layer that was one of the places only hears it when it was the one landed on */
+  readonly snapped: Driver;
   name(name: string): this;
   // placement
   size(w: number, h?: number): this;
@@ -101,6 +103,10 @@ export class Layer {
   rubberband(k?: number): this;
   release(preset?: Preset): this;
   dismiss(): this;
+  /** where a dragged layer goes when let go: a point (its centre), several points, "edges" | "corners" | "x" | "y", or layers to land on */
+  snap(x: number, y: number): this;
+  snap(...places: ([number, number] | Layer)[]): this;
+  snap(where: "edges" | "corners" | "x" | "y"): this;
   scrolls(): this;
 }
 

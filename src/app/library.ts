@@ -69,7 +69,7 @@ const io = new IntersectionObserver(
 const watch = () => document.querySelectorAll<HTMLIFrameElement>(".mini iframe").forEach((f) => io.observe(f));
 watch();
 
-// the ten prototypes, as players
+// the prototypes, as players
 (async () => {
   const sec = document.getElementById("prototypes")!;
   try {
