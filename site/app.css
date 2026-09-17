@@ -122,6 +122,21 @@ body.player .mode { display: none; }
 .tip-info { padding: 10px 13px; }
 .tip-info .tip-text { margin-top: 0; }
 
+/* the pictures this browser is keeping: see them, put one in, throw one away */
+.mode.tray-button { right: 158px; }
+.tray { position: absolute; top: 50px; right: 22px; z-index: 8; width: 320px; max-height: min(420px, calc(100% - 70px)); overflow: auto; padding: 8px; background: #161618; border: 1px solid #34343a; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.6); }
+.tray-note { font: 12.5px/1.45 var(--sans); color: #a9a9b2; padding: 6px 8px 10px; }
+.tray-row { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: 9px; }
+.tray-row:hover { background: #1f1f23; }
+.tray-row img { width: 40px; height: 40px; object-fit: contain; border-radius: 7px; flex: none; background: repeating-conic-gradient(#2a2a2f 0% 25%, #1e1e22 0% 50%) 0 0 / 12px 12px; }
+.tray-row .tray-name { flex: 1; min-width: 0; text-align: left; font-size: 12.5px; color: var(--str); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-row .tray-name small { display: block; color: var(--dim); font-size: 11px; margin-top: 1px; }
+.tray-row .tray-name:hover { color: #fff; }
+.tray-row .tray-used { font-size: 10.5px; color: #3ddc84; letter-spacing: .04em; }
+.tray-row .tray-bin { font-size: 12px; color: #a9a9b2; border: 1px solid #34343a; border-radius: 7px; padding: 3px 9px; }
+.tray-row .tray-bin:hover { color: #fff; border-color: var(--coral); background: #e2694f26; }
+body.player .tray, body.player .tray-button { display: none; }
+
 /* a picture being dropped on the editor */
 .pane.dropping::before { content: "drop a picture"; position: absolute; inset: 10px; z-index: 6; display: grid; place-items: center; border: 1.5px dashed var(--str); border-radius: 16px; background: #0b0b0be6; color: var(--str); font-size: 14px; pointer-events: none; }
 

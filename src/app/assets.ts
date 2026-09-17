@@ -33,6 +33,19 @@ export async function allPictures(): Promise<Record<string, Blob>> {
   return Object.fromEntries(memory);
 }
 
+export async function removePicture(name: string) {
+  memory.delete(name);
+  const d = await open();
+  if (!d) return;
+  try {
+    const tx = d.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(name);
+    await new Promise<void>((ok) => ((tx.oncomplete = () => ok()), (tx.onerror = tx.onabort = () => ok())));
+  } catch {}
+}
+
+export const heldPictures = () => [...memory.entries()].map(([name, blob]) => ({ name, blob })).sort((a, b) => a.name.localeCompare(b.name));
+
 export const tidy = (fileName: string) => {
   const base = fileName.split(/[/\\]/).pop()!.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^[.-]+/, "");
   return /\.[a-z0-9]+$/.test(base) ? base : base + ".png";

@@ -13,7 +13,7 @@ import { tint } from "./tint";
 import { renderSpec } from "./spec";
 import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
-import { allPictures, keepPicture } from "./assets";
+import { allPictures, keepPicture, removePicture, heldPictures } from "./assets";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -430,6 +430,7 @@ addEventListener("click", (e) => {
 addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     $("qr").hidden = true;
+    if (!tray.hidden) (tray.hidden = true), drawTray();
     toggleSpec(false);
   }
 });
@@ -585,8 +586,63 @@ async function takePictures(files: File[]) {
   const at = line.text.trim() ? line.to : line.from;
   view.dispatch({ changes: { from: at, insert }, selection: { anchor: at + insert.length }, userEvent: "input.drop" });
   view.focus();
+  drawTray();
   setTimeout(() => say(where), 400); // after the run's own status line
 }
+
+// ——— the tray: the pictures this browser is keeping. Click a name to put it in; delete throws it away for good.
+const trayButton = $("tray-button"), tray = $("tray");
+const kb = (n: number) => (n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1024 / 1024).toFixed(1) + " MB");
+let thumbs: string[] = [];
+function drawTray() {
+  const held = local.on ? [] : heldPictures();
+  trayButton.hidden = player || !held.length;
+  trayButton.innerHTML = `<i class="led"></i>pictures · ${held.length}`;
+  if (!held.length) tray.hidden = true;
+  trayButton.setAttribute("aria-expanded", String(!tray.hidden));
+  if (tray.hidden) return;
+  for (const u of thumbs.splice(0)) URL.revokeObjectURL(u);
+  tray.innerHTML = `<div class="tray-note">Kept in this browser only, ${kb(held.reduce((n, p) => n + p.blob.size, 0))} in all. Links and phones don't get them.</div>`;
+  for (const p of held) {
+    const used = [`"`, `'`, "`"].some((q) => code.includes(q + p.name + q)); // is it named in the prototype right now?
+    const url = URL.createObjectURL(p.blob);
+    thumbs.push(url);
+    const row = document.createElement("div");
+    row.className = "tray-row";
+    row.innerHTML = `<img alt="" src="${url}"><button class="tray-name" title="put it in the prototype"></button>${used ? '<span class="tray-used">in use</span>' : ""}<button class="tray-bin" title="delete it from this browser">delete</button>`;
+    const name = row.querySelector<HTMLButtonElement>(".tray-name")!;
+    name.innerHTML = `${p.name.replace(/[&<>]/g, "")}<small>${kb(p.blob.size)}</small>`;
+    name.onclick = () => {
+      if (!view) return;
+      const line = view.state.doc.lineAt(view.state.selection.main.head);
+      const insert = (line.text.trim() ? "\n" : "") + `${nameFor(p.name, view.state.doc.toString())}: image("${p.name}", 240)\n`;
+      const at = line.text.trim() ? line.to : line.from;
+      view.dispatch({ changes: { from: at, insert }, selection: { anchor: at + insert.length }, userEvent: "input.drop" });
+      view.focus();
+    };
+    const bin = row.querySelector<HTMLButtonElement>(".tray-bin")!;
+    bin.onclick = async () => {
+      // in use: ask once more, on the button itself, since the prototype will show an empty frame afterwards
+      if (used && bin.textContent === "delete") return void (bin.textContent = "in use: sure?");
+      await removePicture(p.name);
+      frame.contentWindow!.postMessage({ type: "pictures", remove: [p.name], rerun: true }, "*");
+      drawTray();
+      setTimeout(() => say(`deleted ${p.name} from this browser`), 400); // after the re-run's own status line
+    };
+    tray.appendChild(row);
+  }
+}
+trayButton.onclick = (e) => {
+  e.stopPropagation();
+  tray.hidden = !tray.hidden;
+  drawTray();
+};
+addEventListener("click", (e) => {
+  // the path as it was when the click happened: a row that deleted itself is no longer inside the tray by now
+  const path = e.composedPath();
+  if (!tray.hidden && !path.includes(tray) && !path.includes(trayButton)) (tray.hidden = true), drawTray();
+});
+pictures.then(drawTray);
 
 // ——— go
 (async () => {

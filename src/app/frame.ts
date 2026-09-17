@@ -28,6 +28,11 @@ addEventListener("message", (e) => {
       if (old) URL.revokeObjectURL(old);
       held.set(name, URL.createObjectURL(blob));
     }
+    for (const name of e.data.remove ?? []) {
+      const old = held.get(name);
+      if (old) URL.revokeObjectURL(old);
+      held.delete(name);
+    }
     if (e.data.rerun && last) run(last);
   }
 });

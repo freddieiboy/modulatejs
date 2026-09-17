@@ -1,6 +1,6 @@
 {
   "name": "modulatejs",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "ModulateJS is a lightweight prototyping library: a small vocabulary for mobile-app feel. Fifteen lines, a link, and it's on your phone. Built on Motion.",
   "keywords": [
     "prototype",
