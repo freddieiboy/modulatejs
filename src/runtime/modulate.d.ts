@@ -123,6 +123,9 @@ export function page(count?: number): PageDriver;
 export function between(describe: () => void): Reaction;
 export function between(driver: DriverSource, describe: () => void): Reaction;
 export function modulate<T = number>(source: Value<number> | Driver, from: number[], to: T[], clamp?: boolean): Value<T>;
+/** Which screen the prototype is for: "iphone" (390 × 844, the default), "iphone pro max", "iphone se", "pixel", "ipad", or device(w, h). Goes first. */
+export function device(name?: "iphone" | "iphone pro max" | "iphone se" | "pixel" | "ipad" | (string & {})): void;
+export function device(width: number, height: number): void;
 export function theme(...names: string[]): void;
 /** Your words instead of the built-in bank. Strings split on commas; arrays are taken as they are. */
 export function content(yours: { titles?: string | string[]; prices?: string | string[]; names?: string | string[]; lines?: string | string[] }): void;
@@ -132,6 +135,7 @@ export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
+  device?: { name: string; w: number; h: number; radius: number };
 }
 /** Run a prototype written in the modulate language (labels and all) inside `target` (default: document.body). */
 export function run(code: string, target?: HTMLElement): RunResult;

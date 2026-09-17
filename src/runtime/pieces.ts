@@ -1,5 +1,5 @@
 import { Layer, Group, rootOf } from "./layer";
-import { stage, SAFE_BOTTOM } from "./stage";
+import { stage } from "./stage";
 import { resolveColor, luminance, isColorWord } from "./theme";
 import { providers, next, placeholder, duo, looksLikeUrl, initials } from "./content";
 import { PageDriver } from "./drivers";
@@ -129,7 +129,7 @@ function loadInto(l: Layer, url: string | null) {
 export function image(...args: any[]): Layer {
   const { nums, strs } = sort(args);
   const seed = strs[0] ?? next("titles");
-  const w = nums[0] ?? 342, h = nums[1] ?? (nums[0] ? nums[0] : 220);
+  const w = nums[0] ?? Math.min(stage().W - 48, 420), h = nums[1] ?? (nums[0] ? nums[0] : 220);
   const l = new Layer("image", { w, h, radius: Math.min(20, w / 4) });
   l.colorMode = "none";
   l.el.classList.add("m-img");
@@ -168,7 +168,7 @@ export function card(...args: any[]): Layer {
     if (words[0]) kids.push((text(words[0]) as any).bold());
     if (words[1]) kids.push((text(words[1], 15) as any).color("dim"));
   }
-  const w = nums[0] ?? 342, h = nums[1] ?? 220;
+  const w = nums[0] ?? Math.min(stage().W - 48, 420), h = nums[1] ?? 220;
   const l = new Layer("card", { w, h, radius: 28 });
   paint(l, colour ?? "surface");
   l.el.style.boxShadow = "0 2px 4px rgba(0,0,0,.05), 0 12px 32px rgba(0,0,0,.10)";
@@ -207,7 +207,7 @@ export function grid(...args: any[]): Layer {
 export function bubbles(...args: any[]): Layer {
   const { nums, strs } = sort(args);
   const lines = strs.length ? strs : Array.from({ length: nums[0] ?? 5 }, () => next("lines"));
-  const W = 342;
+  const W = Math.min(stage().W - 48, 420);
   const items = lines.map((line, i) => {
     const mine = i % 2 === 1;
     const t = new TextLayer("text", line, 16);
@@ -270,7 +270,7 @@ export function tabbar(...args: any[]): Layer {
   const st = stage();
   const names = (strs.length > 1 ? strs : (strs[0] ?? "Home Search Inbox Me").split(/\s+/)).filter(Boolean);
   const n = names.length;
-  const h = 56 + SAFE_BOTTOM;
+  const h = 56 + st.safeBottom;
   const bar = new Layer("tabbar", { w: st.W, h, z: 20 });
   paint(bar, "surface");
   bar.el.style.boxShadow = `0 -1px 0 ${resolveColor("line")}`;

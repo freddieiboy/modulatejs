@@ -21,6 +21,11 @@ const option = (name, fallback) => {
 const positional = args.filter((a, i) => !a.startsWith("-") && args[i - 1] !== "--port");
 
 const STARTER = `// a like button that pops. Change a number and watch.
+init: {
+  device("iphone")          // 390 × 844 · "iphone pro max" "iphone se" "pixel" "ipad" · device(w, h)
+  theme("light", "coral")   // or "dark" · accents: coral plum mint sky sun rose · grounds: sand ink
+}
+
 heart: circle(72).center().color("coral")
 icon: emoji("♥").center(heart)
 burst: circle(6).around(heart, 8).hide()

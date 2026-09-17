@@ -1,8 +1,11 @@
-name: build, test, deploy
+name: build, test, deploy, publish
 
 # Every push to main: build the runtime and the sites, run the suite (the ten
 # prototypes, every example in the spec and the library, the link codec), then
-# deploy coral.fm and modulatejs.com. Pull requests get the build and the tests only.
+#   - deploy coral.fm and modulatejs.com to Cloudflare
+#   - publish to npm, if the version in package.json isn't on the registry yet
+# So releasing is: bump the version, push. Pull requests get the build and the tests only.
+# npm auth is trusted publishing (OIDC): no token. It is tied to this file's name, deploy.yml.
 
 on:
   push:
@@ -58,3 +61,35 @@ jobs:
       - name: No token yet
         if: env.CLOUDFLARE_API_TOKEN == ''
         run: echo "::warning::CLOUDFLARE_API_TOKEN is not set, so this run built and tested but did not deploy."
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Is this version already on npm?
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already published. Bump the version to release."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$NAME@$VERSION is new."
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          npm install -g npm@latest   # trusted publishing needs npm 11.5.1 or newer
+          npm ci
+          npm publish --access public

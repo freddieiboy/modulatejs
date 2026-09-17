@@ -4,7 +4,7 @@ import { EditorView, keymap, lineNumbers, placeholder, highlightActiveLineGutter
 import { EditorState, StateEffect, StateField } from "@codemirror/state";
 import { defaultKeymap, history as undoHistory, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
-import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, codeFolding, foldKeymap, foldEffect } from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { tags as t } from "@lezer/highlight";
 import qrcode from "qrcode-generator";
@@ -49,10 +49,23 @@ const hello = () => frame.contentWindow?.postMessage({ type: "hello" }, "*");
 frame.addEventListener("load", hello);
 hello();
 
-function showResult(r: { ok: boolean; error?: string; line?: number; ms: number }) {
+// the frame takes the shape of whatever device() the code asked for
+let dev = { name: "iphone", w: 390, h: 844, radius: 52 };
+function shapeDevice(d?: typeof dev) {
+  if (!d || (d.w === dev.w && d.h === dev.h && d.radius === dev.radius)) return;
+  dev = d;
+  const el = $("device");
+  el.style.setProperty("--dw", d.w + "px");
+  el.style.setProperty("--dh", d.h + "px");
+  el.style.setProperty("--dr", d.radius + "px");
+  fitDevice(); // the iframe resizes, the frame notices and runs again at the new size
+}
+
+function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev }) {
+  if (!player) shapeDevice(r.device);
   const left = $("status-left"), right = $("status-right");
   left.className = r.ok ? "" : "bad";
-  left.textContent = r.ok ? (code.trim() ? "390 × 844" : "") : r.error ?? "error";
+  left.textContent = r.ok ? (code.trim() ? `${dev.name} · ${dev.w} × ${dev.h}` : "") : r.error ?? "error";
   right.textContent = r.ok && code.trim() ? `updated · ${r.ms} ms` : "";
   markLine(r.ok ? null : r.line ?? null);
 }
@@ -60,9 +73,10 @@ function showResult(r: { ok: boolean; error?: string; line?: number; ms: number 
 function fitDevice() {
   if (player) return;
   const fit = $("fit"), device = $("device");
-  const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / 856, (fit.clientWidth - 24) / 402));
+  const W = dev.w + 12, H = dev.h + 12;
+  const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / H, (fit.clientWidth - 24) / W));
   device.style.transform = `scale(${k})`;
-  device.style.margin = `${(-856 * (1 - k)) / 2}px ${(-402 * (1 - k)) / 2}px`;
+  device.style.margin = `${(-H * (1 - k)) / 2}px ${(-W * (1 - k)) / 2}px`;
 }
 new ResizeObserver(fitDevice).observe($("fit"));
 
@@ -168,6 +182,8 @@ if (!player) {
         highlightActiveLineGutter(),
         undoHistory(),
         drawSelection(),
+        codeFolding({ placeholderText: "…" }),
+        foldGutter({ openText: "⌄", closedText: "›" }),
         indentOnInput(),
         bracketMatching(),
         closeBrackets(),
@@ -175,7 +191,7 @@ if (!player) {
         syntaxHighlighting(look),
         badLine,
         placeholder("// type here, or paste a link"),
-        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),
         EditorView.lineWrapping,
         EditorView.domEventHandlers({
           paste(e, v) {
@@ -221,8 +237,41 @@ function setDoc(next: string) {
   chrome();
 }
 
+// ——— init: PICO-8 has _init(); a prototype has init: { … }. Absent, these defaults apply anyway.
+const INIT = `init: {
+  device("iphone")          // 390 × 844 · "iphone pro max" "iphone se" "pixel" "ipad" · device(w, h)
+  theme("light", "coral")   // or "dark" · accents: coral plum mint sky sun rose · grounds: sand ink
+}
+`;
+const hasInit = (src: string) => /^[ \t]*init[ \t]*:[ \t]*\{/m.test(src);
+
+// the { … } of the init section, if there is one
+function initRange(src: string): { from: number; to: number } | null {
+  const m = /^[ \t]*init[ \t]*:[ \t]*\{/m.exec(src);
+  if (!m) return null;
+  const open = m.index + m[0].length;
+  let depth = 1, k = open;
+  for (; k < src.length && depth; k++) depth += src[k] === "{" ? 1 : src[k] === "}" ? -1 : 0;
+  return depth ? null : { from: open, to: k - 1 };
+}
+
+// a link or a file arrives with its init folded away; you open it when you want to change the device
+function foldInit() {
+  const r = view && initRange(view.state.doc.toString());
+  if (r && r.to > r.from) view!.dispatch({ effects: foldEffect.of(r) });
+}
+
+const ghost = $("ghost");
+ghost.innerHTML = `› <b>init</b>: { device("iphone") · theme("light", "coral") }`;
+ghost.onclick = () => {
+  if (!view) return;
+  view.dispatch({ changes: { from: 0, insert: INIT + "\n" }, selection: { anchor: INIT.indexOf('"iphone"') + 1, head: INIT.indexOf('"iphone"') + 7 } });
+  view.focus();
+};
+
 function chrome() {
   const has = !!code.trim();
+  ghost.hidden = !has || player || hasInit(code);
   $("try").hidden = has || player;
   $("pane").classList.toggle("has-code", has);
   $("hint").hidden = !has;
@@ -271,6 +320,7 @@ function fromLocation() {
   setDoc(held.code);
   chrome();
   send();
+  foldInit();
 }
 addEventListener("popstate", fromLocation);
 addEventListener("hashchange", fromLocation);
@@ -375,8 +425,10 @@ const local = {
       es.onmessage = (m) => {
         const next = JSON.parse(m.data).code as string;
         if (next === code) return;
+        const first = !this.lastFromDisk && !code;
         this.lastFromDisk = next;
         setDoc(next);
+        if (first) foldInit();
         send();
         history_.replace();
       };

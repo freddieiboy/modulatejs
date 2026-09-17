@@ -18,11 +18,42 @@ burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 
 - It is JavaScript. Pieces are functions that return a layer; verbs chain and return the layer.
 - `heart: circle(72)` names the layer and makes `heart` a variable. A name can't be a verb (`sheet: sheet()` is an error; use `filters: sheet()`).
-- The screen is **390 points wide and 844 tall** in the editor (as tall as the phone allows on a phone; `screen.w`, `screen.h`). Origin top-left. Safe areas: 59 top, 34 bottom.
+- The screen is **390 points wide and 844 tall** unless `device()` says otherwise (on a real phone, as tall as the phone allows; `screen.w`, `screen.h`). Origin top-left. Safe areas: 59 top, 34 bottom.
+- `init: { … }` is a **section**: a label on a block. Sections group lines and fold in the editor, and change nothing about how the code runs.
 - Every piece looks finished with no arguments and **starts centred on the screen**.
 - In a piece's arguments, **numbers are sizes, strings are content or colour, layers become children**, in any order: `circle(72, "plum")`, `card(photo, title)`, `pill("Follow", "coral")`.
 - Anywhere a number goes, a **Value** (from `modulate`) or a **pattern** string can go.
 - `js { … }` is a plain block for when the vocabulary runs out. Everything is ordinary JS anyway.
+
+## init, draw, update
+
+PICO-8 has `_init()`, `_update()` and `_draw()`. A prototype has the same three thoughts, as sections. All three are optional: a flat file with no sections is just as good, and every default below applies without an `init`.
+
+```js
+init: {
+  device("iphone")          // which screen
+  theme("light", "coral")   // which look
+}
+
+draw: {                     // what is on the screen: pieces and where they sit
+  heart: circle(72).center()
+  icon: emoji("♥").center(heart)
+}
+
+update: {                   // what changes: on(), between(), drag()
+  heart.on("tap").spring("pop", 1.3)
+}
+```
+
+There is no frame loop to write. `draw` is declared once and the runtime keeps it on screen; `update` declares how drivers move it, and the runtime does the moving. The names are a convention, not keywords: any `name: { … }` is a section.
+
+What belongs in `init`, with its defaults:
+
+| verb | default | does |
+| --- | --- | --- |
+| `device(name)` · `device(w, h)` | `"iphone"` 390 × 844 | the screen: `"iphone"` · `"iphone pro max"` 430 × 932 · `"iphone se"` 375 × 667 · `"pixel"` 412 × 915 · `"ipad"` 820 × 1180. Sets the width, the safe areas and the editor's frame. It must come before any piece |
+| `theme(…)` | `"light", "coral"` | the look (see Look) |
+| `content({ … })` | the built-in bank | your words for the pieces that fill themselves (see Demo content) |
 
 ## The model: two states and a driver
 
@@ -81,7 +112,7 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `size(w, h = w)` | resize (on `text`, the type size). Keeps a centred layer centred |
 | `at(x, y)` | top-left corner. Either can be `"left"` `"center"` `"right"` / `"top"` `"center"` `"bottom"` (margins 24, safe areas respected) |
 | `center(layer?)` | centre on the screen, or on a layer; centring on a layer also rides on it (moves, scales, fades along) |
-| `below(layer, gap = 12)` `above` `right` `left` | sit next to a layer, centres aligned |
+| `below(layer, gap = 12)` `above` `right` `left` | sit next to a layer, centres aligned; `below` and `above` keep a layer that fits inside the screen's side margins |
 | `fill(inset = 0)` | fill the screen or the parent |
 | `move(dx, dy)` | nudge |
 | `around(layer, n = 8)` | n copies on a ring just outside the layer; `fly()` sends them outward |

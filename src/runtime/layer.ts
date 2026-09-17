@@ -1,6 +1,6 @@
 import { Value, isValue } from "./value";
 import { nextRender, onFrame } from "./engine";
-import { stage, SAFE_TOP, SAFE_BOTTOM, track } from "./stage";
+import { stage, track } from "./stage";
 import { resolveColor, isToken, luminance } from "./theme";
 import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
 import { preset } from "./presets";
@@ -163,7 +163,7 @@ export class Layer {
   bounds(ctx: Reaction | null) {
     const st = stage();
     if (this.parent) return { x: 0, y: 0, w: this.parent.get("w", ctx), h: this.parent.get("h", ctx), top: this.parent.pad || 16, bottom: this.parent.pad || 16, side: this.parent.pad || 16 };
-    return { x: 0, y: 0, w: st.W, h: st.H, top: SAFE_TOP + 8, bottom: SAFE_BOTTOM + 16, side: 24 };
+    return { x: 0, y: 0, w: st.W, h: st.H, top: st.safeTop + 8, bottom: st.safeBottom + 16, side: 24 };
   }
 
   place(op: (l: Layer) => void, ctx: Reaction | null) {
@@ -205,7 +205,7 @@ export class Layer {
       return;
     }
     const pad = this.pad, inner = this.v.w.get() - pad * 2;
-    let y = this.kind === "sheet" ? 36 : this.kind === "box" && this.v.h.get() >= stage().H ? SAFE_TOP + 8 : pad;
+    let y = this.kind === "sheet" ? 36 : this.kind === "box" && this.v.h.get() >= stage().H ? stage().safeTop + 8 : pad;
     for (const c of this.children) {
       if (c.placed) {
         c.replace();
@@ -405,7 +405,13 @@ function beside(name: string, pos: (f: any, w: number, h: number, gap: number) =
     const t = rootOf(target);
     L.place((l) => {
       const c = capturing() ?? ctx;
-      const [x, y] = pos(t.abs(c), l.get("w", c), l.get("h", c), gap);
+      let [x, y] = pos(t.abs(c), l.get("w", c), l.get("h", c), gap);
+      // centres line up, but a layer that fits on the screen is never pushed off its side
+      if (!l.parent && (name === "below" || name === "above")) {
+        const st = stage(), w = l.get("w", c);
+        if (w <= st.W - 48) x = Math.max(24, Math.min(st.W - 24 - w, x));
+        else if (w <= st.W) x = (st.W - w) / 2;
+      }
       l.putAbs(x, y, c);
     }, ctx);
   });

@@ -3,6 +3,14 @@
 
 export const sections = [
   {
+    id: "init",
+    title: "init, draw, update",
+    intro: "PICO-8 has _init(), _update() and _draw(). A prototype has the same three thoughts, as sections: a label on a block. Sections group and fold; they change nothing about how the code runs, and all of them are optional. There is no frame loop to write: draw is declared once, update says how drivers move it.",
+    items: [
+      { verbs: "init · device · theme", text: "init holds the settings, each with a default you can leave alone: device(\"iphone\") is 390 × 844, and there are \"iphone pro max\", \"iphone se\", \"pixel\", \"ipad\" and device(w, h). It sets the width, the safe areas and the editor's frame, and it has to come before any piece.", code: `init: {\n  device("iphone se")\n  theme("dark", "sun")\n}\n\ndraw: {\n  face: circle(120)\n  eyes: emoji("👀", 56).center(face)\n}\n\nupdate: {\n  face.on("tap").spring("bounce", 1.3)\n}` },
+    ],
+  },
+  {
     id: "pieces",
     title: "Pieces",
     intro: "Thirteen things an app is made of, plus emoji. Each looks finished with no arguments and starts centred. Numbers are sizes, strings are content or colour, layers become children.",

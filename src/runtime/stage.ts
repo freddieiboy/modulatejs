@@ -1,13 +1,11 @@
 import { tokens } from "./theme";
+import { DEFAULT_DEVICE, Device } from "./device";
 
-// The screen. 390 points wide, as tall as its container allows (844 in the
-// editor's device frame), scaled to fit. Origin top-left.
-export const SCREEN_W = 390;
-export const SAFE_TOP = 59;
-export const SAFE_BOTTOM = 34;
+// The screen. As wide as the device says (390 points unless device() says otherwise), as tall
+// as its container allows (the device's own height in the editor's frame), scaled to fit. Origin top-left.
 
 const CSS = `
-.m-stage{position:relative;width:${SCREEN_W}px;transform-origin:0 0;overflow:hidden;
+.m-stage{position:relative;transform-origin:0 0;overflow:hidden;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
   overscroll-behavior:contain;scrollbar-width:none}
@@ -28,8 +26,9 @@ export class Stage {
   el: HTMLElement; // the scroller
   view: HTMLElement; // layers live here
   spacer: HTMLElement;
-  W = SCREEN_W;
-  H = 844;
+  device: Device = DEFAULT_DEVICE;
+  W = DEFAULT_DEVICE.w;
+  H = DEFAULT_DEVICE.h;
   scale = 1;
   dark = false;
   ground: string | null = null;
@@ -60,11 +59,25 @@ export class Stage {
     this.applyTheme();
   }
 
+  get safeTop() {
+    return this.device.safeTop;
+  }
+  get safeBottom() {
+    return this.device.safeBottom;
+  }
+
+  setDevice(d: Device) {
+    this.device = d;
+    this.W = d.w;
+    this.fit();
+  }
+
   fit() {
     const r = this.mount.getBoundingClientRect();
-    const w = r.width || SCREEN_W;
-    const h = r.height || 844;
-    this.scale = w / SCREEN_W;
+    const w = r.width || this.W;
+    const h = r.height || this.device.h;
+    this.scale = w / this.W;
+    this.el.style.width = this.W + "px";
     this.H = Math.round(h / this.scale);
     this.el.style.height = this.H + "px";
     this.view.style.height = this.H + "px";

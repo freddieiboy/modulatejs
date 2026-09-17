@@ -130,3 +130,32 @@ test("card takes its words from its arguments, then content(), then the bank", (
   // and the bank comes back on the next run
   assert.deepEqual(texts(`text()`), ["Canvas tote"]);
 });
+
+test("sections group lines and change nothing", () => {
+  const win = browser();
+  const src = `init: {\n  theme("dark")\n}\ndraw: {\n  heart: circle(72)\n}\nupdate: {\n  heart.on("tap").spring("pop")\n}`;
+  const js = win.Modulate.preprocess(src);
+  assert.equal(js.split("\n").length, src.split("\n").length, "line count is preserved");
+  assert.match(js, /var heart = \$name\("heart", circle\(72\)\);/);
+  const r = win.Modulate.run(src, win.document.body);
+  assert.equal(r.error, undefined);
+  assert.ok(win.document.querySelector('[data-name="heart"]'));
+  assert.match(win.Modulate.run(`init: {\n  theme("dark")`, win.document.body).error, /never closed/);
+});
+
+test("device() sets the screen, and has to come first", () => {
+  const win = browser();
+  let r = win.Modulate.run(`box()`, win.document.body);
+  assert.equal(r.device.w + "x" + r.device.h, "390x844");
+  r = win.Modulate.run(`init: { device("pixel") }\nbar: tabbar()`, win.document.body);
+  assert.equal(r.device.name, "pixel");
+  assert.equal(win.Modulate.stage().W, 412);
+  assert.equal(win.document.querySelector(".m-stage").style.width, "412px");
+  r = win.Modulate.run(`device(360, 780)`, win.document.body);
+  assert.equal(r.device.w + "x" + r.device.h, "360x780");
+  assert.equal(win.Modulate.run(`device("Pro Max")`, win.document.body).device.w, 430);
+  assert.match(win.Modulate.run(`box()\ndevice("pixel")`, win.document.body).error, /goes first/);
+  assert.match(win.Modulate.run(`device("fridge")`, win.document.body).error, /the devices are "iphone"/);
+  // and the next run is back on the default
+  assert.equal(win.Modulate.run(`box()`, win.document.body).device.name, "iphone");
+});

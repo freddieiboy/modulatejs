@@ -2,8 +2,9 @@ import { mountStage, stage, hasStage } from "./stage";
 import { resetContent } from "./content";
 import { rootOf } from "./layer";
 
-// A prototype is JavaScript with two liberties:
+// A prototype is JavaScript with three liberties:
 //   heart: circle(72)     a label names the layer and makes `heart` a variable
+//   init: { … }           a label on a block is a section: it groups and folds, and changes nothing else
 //   js { … }              a plain block, for when the vocabulary runs out
 // preprocess() turns both into ordinary JavaScript without moving a line.
 
@@ -105,6 +106,15 @@ export function preprocess(src: string, reserved: Set<string> = new Set()): stri
     if (i >= src.length) break;
     const rest = src.slice(i, i + 120);
     const label = /^([A-Za-z_$][\w$]*)[ \t]*:(?!:)[ \t]*/.exec(rest);
+    if (label && label[1] !== "default" && src[i + label[0].length] === "{") {
+      // a section: init: { … }  draw: { … }  update: { … }. Its lines are ordinary lines.
+      const open = i + label[0].length;
+      const close = statementEnd(src, open) - 1;
+      if (src[close] !== "}") throw atLine(src, i, `"${label[1]}: {" is never closed`);
+      out += " ".repeat(label[0].length) + "{" + preprocess(src.slice(open + 1, close), reserved) + "}";
+      i = close + 1;
+      continue;
+    }
     if (label && label[1] !== "default") {
       const name = label[1];
       if (reserved.has(name)) throw atLine(src, i, `"${name}:" — ${name} is already a verb, so a layer can't take that name. Try ${name}1 or my${name[0].toUpperCase()}${name.slice(1)}.`);
@@ -144,6 +154,7 @@ export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
+  device?: { name: string; w: number; h: number; radius: number };
 }
 
 let api: Record<string, any> = {};
@@ -188,13 +199,15 @@ export function run(code: string, target?: HTMLElement): RunResult {
   try {
     fn(...Object.values(api), $name, { get w() { return st.W; }, get h() { return st.H; } });
     st.commit();
-    return { ok: true };
+    return { ok: true, device: shape(st) };
   } catch (e) {
     const r = describe(e);
     try {
       st.commit();
     } catch {}
     st.showError(r.error!);
-    return r;
+    return { ...r, device: shape(st) };
   }
 }
+
+const shape = (st: any) => ({ name: st.device.name, w: st.device.w, h: st.device.h, radius: st.device.radius });

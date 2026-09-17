@@ -11,6 +11,7 @@ import { provider, bank, content } from "./content";
 import { mini } from "./mini";
 import { run, check, preprocess, setApi } from "./run";
 import { mountStage, stage } from "./stage";
+import { device, devices } from "./device";
 
 declare const __VERSION__: string;
 export const version: string = __VERSION__;
@@ -19,7 +20,7 @@ export const version: string = __VERSION__;
 export const vocabulary = {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
-  between, modulate, theme, content, provider,
+  between, modulate, device, theme, content, provider,
 };
 setApi(vocabulary);
 
@@ -33,7 +34,7 @@ export const mount = (el: HTMLElement) => mountStage(el);
 export {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
-  between, modulate, theme, content, provider,
+  between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage,
   Value, Layer, Group, Reaction, Driver, presets, palette, bank, VERBS,
 };
