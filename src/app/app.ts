@@ -1,7 +1,7 @@
 // coral.fm — the editor page for modulatejs. AGPL-3.0.
 // One static page: a raw editor, a device, the spec in a side panel. All state is in the URL.
 import { EditorView, keymap, lineNumbers, placeholder, highlightActiveLineGutter, drawSelection, Decoration, DecorationSet } from "@codemirror/view";
-import { EditorState, StateEffect, StateField } from "@codemirror/state";
+import { EditorState, StateEffect, StateField, Transaction } from "@codemirror/state";
 import { defaultKeymap, history as undoHistory, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { javascript } from "@codemirror/lang-javascript";
 import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, codeFolding, foldKeymap, foldEffect } from "@codemirror/language";
@@ -167,6 +167,33 @@ const markLine = (n: number | null) => view?.dispatch({ effects: setBad.of(n) })
 let view: EditorView | null = null;
 let quiet = false; // true while we change the doc ourselves
 
+// ——— typewriter mode: every change of cursor or text brings the cursor's line back to the middle
+let typewriter = true;
+try {
+  typewriter = localStorage.getItem("coral.typewriter") !== "off";
+} catch {}
+const centre = (pos: number) => EditorView.scrollIntoView(pos, { y: "center" });
+const keepCentred = EditorState.transactionExtender.of((tr: Transaction) => (typewriter && (tr.docChanged || tr.selection) ? { effects: centre(tr.newSelection.main.head) } : null));
+
+function applyTypewriter() {
+  const pane = $("pane"), btn = $("typewriter");
+  pane.classList.toggle("typewriter", typewriter);
+  btn.setAttribute("aria-pressed", String(typewriter));
+  measureTypewriter();
+  if (view) {
+    view.requestMeasure();
+    requestAnimationFrame(() => view!.dispatch({ effects: typewriter ? centre(view!.state.selection.main.head) : EditorView.scrollIntoView(view!.state.selection.main.head, { y: "nearest" }) }));
+  }
+}
+// the padding is half the editor's height, and the highlight sits at the editor's own middle
+function measureTypewriter() {
+  const pane = $("pane"), ed = $("editor");
+  if (!typewriter || !ed.clientHeight) return;
+  pane.style.setProperty("--half", Math.round(ed.clientHeight / 2) + "px");
+  pane.style.setProperty("--centre", Math.round(ed.offsetTop + ed.clientHeight / 2) + "px");
+  view?.requestMeasure();
+}
+
 // paste a link and you get what it holds
 function fromLink(text: string): string | null {
   const m = /#1[A-Za-z0-9+\-$]+/.exec(text.trim());
@@ -192,6 +219,7 @@ if (!player) {
         javascript(),
         syntaxHighlighting(look),
         badLine,
+        keepCentred,
         placeholder("// type here, or paste a link"),
         keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),
         EditorView.lineWrapping,
@@ -206,10 +234,26 @@ if (!player) {
         }),
         EditorView.updateListener.of((u) => {
           if (u.docChanged && !quiet) edited(u.state.doc.toString());
+          // a new line isn't measured until after the change that made it, so centre once more when it is
+          if (typewriter && u.docChanged) requestAnimationFrame(() => view?.dispatch({ effects: centre(view.state.selection.main.head) }));
         }),
       ],
     }),
   });
+  $("typewriter").onclick = () => {
+    typewriter = !typewriter;
+    try {
+      localStorage.setItem("coral.typewriter", typewriter ? "on" : "off");
+    } catch {}
+    applyTypewriter();
+    view!.focus();
+  };
+  new ResizeObserver(() => {
+    measureTypewriter();
+    if (typewriter && view) requestAnimationFrame(() => view!.dispatch({ effects: centre(view!.state.selection.main.head) }));
+  }).observe($("editor"));
+  applyTypewriter();
+
   const box = $("try");
   for (const line of TRY) {
     const b = document.createElement("button");
