@@ -9,12 +9,24 @@ import { Reaction, capturing } from "./reaction";
 import { resolveDriver, startDrag, DragConfig, SnapConfig } from "./drivers";
 import { Origin, CENTRE, parseOrigin } from "./origin";
 
+// shadow levels 0 to 3, each a close shadow and a far one: [y, blur, alpha, y, blur, alpha]. Numbers, so a
+// level in between is a shadow in between and the property animates like any other.
 const SHADOWS = [
-  "none",
-  "0 1px 2px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.06)",
-  "0 2px 4px rgba(0,0,0,.05), 0 12px 32px rgba(0,0,0,.10)",
-  "0 4px 8px rgba(0,0,0,.06), 0 24px 60px rgba(0,0,0,.18)",
+  [0, 0, 0, 0, 0, 0],
+  [1, 2, 0.06, 4, 12, 0.06],
+  [2, 4, 0.05, 12, 32, 0.1],
+  [4, 8, 0.06, 24, 60, 0.18],
 ];
+// A picture's shadow is a drop-shadow filter, which follows its alpha (a box-shadow would draw the square a
+// transparent PNG sits in). On a picture with no transparency the two look the same.
+export function shadowAt(level: number, up = false, drop = false): string {
+  const l = Math.max(0, Math.min(3, level));
+  if (l < 0.01) return drop ? "" : "none";
+  const i = Math.min(2, Math.floor(l)), f = l - i;
+  const n = SHADOWS[i].map((a, k) => Math.round((a + (SHADOWS[i + 1][k] - a) * f) * 1000) / 1000);
+  const one = (y: number, b: number, a: number) => (drop ? `drop-shadow(0 ${up ? -y : y}px ${b}px rgba(0,0,0,${a}))` : `0 ${up ? -y : y}px ${b}px rgba(0,0,0,${a})`);
+  return [one(n[0], n[1], n[2]), one(n[3], n[4], n[5])].join(drop ? " " : ", ");
+}
 
 // verb name → the Value it writes
 const PROP_OF: Record<string, string> = { x: "ox", y: "oy", width: "w", height: "h" };
@@ -79,6 +91,8 @@ export class Layer {
   baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
   private originWatch: (() => void)[] = [];
+  shadowUp = false; // a sheet's shadow falls upward
+  private shadowDrawn = 0;
   private dirty = false;
   private started = false;
 
@@ -86,7 +100,7 @@ export class Layer {
     const st = stage();
     this.el = st.el.ownerDocument.createElement("div");
     this.el.className = "m-layer";
-    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
+    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, shadow: 0, scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
     for (const k in d) {
       const val = new Value(d[k]);
       val.mv.on("change", () => this.invalidate());
@@ -116,7 +130,10 @@ export class Layer {
     s.transform = `translate3d(${x}px,${y}px,0) rotate(${g("rotate") + g("fr")}deg) scale(${g("scale")})`;
     // blur softens the layer itself; glass frosts what is behind it. A spring may carry them below zero: they stop at sharp.
     const soft = Math.max(0, g("blur")), frost = Math.max(0, g("glass"));
-    s.filter = soft > 0.01 ? `blur(${Math.round(soft * 100) / 100}px)` : "";
+    const drop = this.kind === "image"; // a picture's shadow follows its alpha, so it goes in the filter list with the blur
+    const level = g("shadow");
+    s.filter = [soft > 0.01 ? `blur(${Math.round(soft * 100) / 100}px)` : "", drop ? shadowAt(level, this.shadowUp, true) : ""].filter(Boolean).join(" ");
+    if (!drop && level !== this.shadowDrawn) s.boxShadow = shadowAt((this.shadowDrawn = level), this.shadowUp);
     const behind = frost > 0.01 ? `blur(${Math.round(frost * 100) / 100}px)` : "";
     s.backdropFilter = behind;
     (s as any).webkitBackdropFilter = behind;
@@ -380,6 +397,12 @@ function verb(name: string, fn: VerbFn) {
   };
 }
 
+// Some things a layer either is or isn't: there is no half bold to pass through on the way. After .on(…) they
+// would quietly apply at rest, so they say where they belong instead.
+function restOnly(name: string, ctx: Reaction | null) {
+  if (ctx) throw new Error(`${name}() can't change with a driver: put it before .on(…), not after`);
+}
+
 // look verbs reach through a group to its children
 function lookVerb(name: string, fn: (L: Layer, ctx: Reaction | null, ...args: any[]) => void) {
   verb(name, (L, ctx, ...args) => {
@@ -511,14 +534,16 @@ verb("move", (L, ctx, dx = 0, dy = 0) => {
 });
 
 // row(a, b).spread(): the first at one edge, the last at the other, the rest evenly between
-verb("spread", (L) => {
+verb("spread", (L, ctx) => {
+  restOnly("spread", ctx);
   if (L.kind !== "row") throw new Error("spread() is for a row: row(a, b).spread()");
   (L as any).spreads = true;
   (L as any).arrange();
   L.replace();
 });
 
-verb("gap", (L, _c, n: number) => {
+verb("gap", (L, ctx, n: number) => {
+  restOnly("gap", ctx);
   L.gapSize = n;
   (L as any).arrange?.();
   L.layout();
@@ -560,18 +585,20 @@ verb("drift", (L, ctx, amount = 12, hz = 0.1, shape: any = "float") => {
   if (!DRIFT_SHAPES.includes(shape)) throw new Error(`drift(…, "${shape}"): the shapes are ${DRIFT_SHAPES.map((s) => `"${s}"`).join(", ")}`);
   for (const l of L.fan() ?? [L]) l.driftCfg = { amount: Math.max(0, amount), hz, shape };
 });
-lookVerb("shadow", (L, _c, level = 2) => {
-  L.el.style.boxShadow = SHADOWS[Math.max(0, Math.min(3, level))];
-});
+// shadow is a property like blur: after .on(…) it belongs to the other state, and the way there is animated
+lookVerb("shadow", (L, ctx, level: any = 2) => L.put("shadow", typeof level === "number" ? Math.max(0, Math.min(3, level)) : level, ctx));
 verb("z", (L, ctx, n: number) => L.put("z", n, ctx));
-verb("clip", (L) => {
+verb("clip", (L, ctx) => {
+  restOnly("clip", ctx);
   L.el.style.overflow = "hidden";
 });
-verb("bold", (L) => {
+verb("bold", (L, ctx) => {
+  restOnly("bold", ctx);
   L.el.style.fontWeight = "700";
   (L as any).measure?.();
 });
-verb("wrap", (L, _c, width = 310) => {
+verb("wrap", (L, ctx, width = 310) => {
+  restOnly("wrap", ctx);
   L.el.classList.add("m-wrap");
   L.el.style.width = width + "px";
   (L as any).measure?.();

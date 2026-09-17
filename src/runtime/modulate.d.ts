@@ -71,7 +71,7 @@ export class Layer {
   // look
   color(c: Color): this;
   radius(r: Num): this;
-  shadow(level?: 0 | 1 | 2 | 3): this;
+  shadow(level?: number | string): this;
   /** the layer itself goes soft, in points; a property, so .on(…).blur(12) animates it */
   blur(px?: Num): this;
   /** it frosts what is behind it (backdrop blur); with no colour of its own it becomes a translucent surface */

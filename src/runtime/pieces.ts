@@ -220,7 +220,7 @@ export function card(...args: any[]): Layer {
   const w = nums[0] ?? Math.min(stage().W - 48, 420), h = nums[1] ?? 220;
   const l = new Layer("card", { w, h, radius: 28 });
   paint(l, colour ?? "surface");
-  l.el.style.boxShadow = "0 2px 4px rgba(0,0,0,.05), 0 12px 32px rgba(0,0,0,.10)";
+  l.v.shadow.jump(2);
   l.el.style.overflow = "hidden";
   l.pad = 16;
   l.stacks = true;
@@ -297,7 +297,8 @@ export function sheet(...args: any[]): Layer {
   const h = nums[0] ?? 560, peek = nums[1] ?? 96;
   const l = new Layer("sheet", { w: st.W, h: h + 80, radius: 32, z: 10 });
   paint(l, strs.find(isColorWord) ?? "surface");
-  l.el.style.boxShadow = "0 -2px 6px rgba(0,0,0,.04), 0 -16px 48px rgba(0,0,0,.14)";
+  l.shadowUp = true;
+  l.v.shadow.jump(2.5);
   const grab = new Layer("grabber", { w: 40, h: 5, radius: 3 });
   paint(grab, "line");
   l.adopt(grab);

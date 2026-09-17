@@ -146,7 +146,7 @@ Placement is computed when the line runs, so place a layer after the layer it re
 | `radius(r)` | corner radius in points |
 | `opacity(o)` | 0 is invisible, 1 is solid |
 | `blur(px = 8)` | the layer itself goes soft; `blur(0)` is sharp. It is a property, so after `.on()` it animates: `feed.on(filters).blur(12).scale(.96)` sends the feed soft behind a sheet |
-| `shadow(level = 2)` | a soft shadow, from 0 (none) to 3 (floating) |
+| `shadow(level = 2)` | a soft shadow, from 0 (none) to 3 (floating). A property like any other: after `.on(…)` it belongs to the other state and animates there. On a picture it follows the picture's own shape, so a transparent PNG casts the shadow of what is in it, not of its square |
 | `glass(px = 20)` | frosts whatever is behind the layer, not the layer or its children: `tabbar().glass()`, `sheet().glass(24)`. With no colour of its own it becomes a translucent surface so the frost reads; a colour you give it stays exactly as given, so give it one with some transparency |
 | `drift(amount = 12, hz = .1)` | floats lazily around its resting point on a path that never obviously repeats, seeded from its name so no two drift together: `bubble: image("bubble-3.png", 96).at(290, 470).drift(14)`. `amount` is the furthest it strays, in points; `hz` is how slow (.1 a soap bubble, .3 a bee). A third word picks the shape: `"float"` (the default), `"sway"` x only, `"bob"` y only, `"hover"` float with a slow 2° turn. It goes on top of everything else, pauses under a finger and eases back over one cycle, and `at()`, `snap()` and `between()` only ever see the resting point. On a group, each child drifts by itself. `drift(0)` stops it |
 | `hide()` | invisible, and untouchable; after `.on()`, gone at the end |
@@ -154,6 +154,8 @@ Placement is computed when the line runs, so place a layer after the layer it re
 | `bold()` | heavier type |
 | `wrap(width = 310)` | let text wrap at that width |
 | `clip()` | cut children off at this layer's edge |
+
+`bold()`, `wrap()`, `clip()`, `gap()`, `spread()` and `drift()` are things a layer is or isn't, with nothing in between to animate through. They go before `.on(…)`; after it they stop with a message saying so. Everything else in this table can follow `.on(…)` and belongs to the other state.
 
 Colours are the palette, a role, or any CSS colour.
 Palette: `coral` `plum` `mint` `sky` `sun` `rose` `sand` `ink` `grey` `white` `black`.
