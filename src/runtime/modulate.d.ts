@@ -79,6 +79,10 @@ export class Layer {
   // properties
   x(v: Num, amplitude?: number): this;
   y(v: Num, amplitude?: number): this;
+  /** the point it scales and rotates around: a word ("top left", "bottom", "finger"), two fractions of the layer (0–1; points from its top-left if either is over 1), or another layer to pivot around. Before .on() it is the layer's own; after, it belongs to that change */
+  origin(where: "center" | "top" | "bottom" | "left" | "right" | "top left" | "top right" | "bottom left" | "bottom right" | "finger" | (string & {})): this;
+  origin(fx: number, fy: number): this;
+  origin(around: Layer): this;
   scale(v: Num, amplitude?: number): this;
   rotate(v: Num, amplitude?: number): this;
   opacity(v: Num, amplitude?: number): this;

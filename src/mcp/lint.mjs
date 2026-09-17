@@ -99,6 +99,14 @@ export function lint(code, vocab) {
             break;
           }
       }
+      if (name === "origin" && n.arguments[0]?.type === "Literal" && typeof n.arguments[0].value === "string") {
+        const said = n.arguments[0].value.trim().toLowerCase().split(/\s+/).sort().join(" ");
+        const words = vocab.originWords ?? [];
+        if (!words.some((w) => w.split(" ").sort().join(" ") === said) && said !== "centre") {
+          const hint = nearest(n.arguments[0].value, words);
+          problems.push({ line, message: `origin("${n.arguments[0].value}") is not a place on a layer` + (hint ? `. Did you mean origin("${hint}")?` : ". The words are " + words.map((w) => `"${w}"`).join(", ")) });
+        }
+      }
       if (name === "over") {
         const s = numberIn(n.arguments[0]);
         if (s != null && (s < over.min || s > over.max)) warnings.push({ line, message: `over(${s}) is outside ${over.min}–${over.max} seconds; it will run as over(${Math.max(over.min, Math.min(over.max, s))})` });

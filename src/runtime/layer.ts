@@ -6,6 +6,7 @@ import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
 import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
 import { resolveDriver, startDrag, DragConfig, SnapConfig } from "./drivers";
+import { Origin, CENTRE, parseOrigin } from "./origin";
 
 const SHADOWS = [
   "none",
@@ -62,6 +63,9 @@ export class Layer {
   _hold: any;
   _drag: any;
   _snapped: any;
+  baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
+  pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
+  private originWatch: (() => void)[] = [];
   private dirty = false;
   private started = false;
 
@@ -96,6 +100,11 @@ export class Layer {
     const x = g("x") + g("ox") + g("dx") + g("wx");
     const y = g("y") + g("oy") + g("dy") + g("wy");
     s.transform = `translate3d(${x}px,${y}px,0) rotate(${g("rotate")}deg) scale(${g("scale")})`;
+    if (this.pivot.kind === "layer") {
+      // pivot on another layer's centre, in this layer's own box: recomputed whenever either of them moves
+      const c = screenCentre(this.pivot.layer), me = screenCorner(this);
+      s.transformOrigin = `${c.x - me.x}px ${c.y - me.y}px`;
+    }
     if (this.kind !== "text" && this.kind !== "emoji") {
       s.width = Math.max(0, g("w")) + "px";
       s.height = Math.max(0, g("h")) + "px";
@@ -107,6 +116,18 @@ export class Layer {
     s.zIndex = String(g("z"));
     if (this.colorMode === "bg") s.backgroundColor = g("color");
     else if (this.colorMode === "text") s.color = g("color");
+  }
+
+  // Put an origin in force. Nothing moves if the layer is at rest, which is when this is meant to happen.
+  useOrigin(o: Origin, finger?: { fx: number; fy: number }) {
+    if (o.kind === "finger") o = finger ? { kind: "frac", ...finger } : CENTRE;
+    if (o === this.pivot) return;
+    this.pivot = o;
+    for (const off of this.originWatch.splice(0)) off();
+    if (o.kind === "frac") this.el.style.transformOrigin = `${o.fx * 100}% ${o.fy * 100}%`;
+    else if (o.kind === "points") this.el.style.transformOrigin = `${o.x}px ${o.y}px`;
+    else if (o.kind === "layer") for (let p: Layer | null = o.layer; p; p = p.parent) for (const k of ["x", "y", "ox", "oy", "dx", "dy", "wx", "wy", "w", "h"]) this.originWatch.push(p.v[k].on(() => this.invalidate()));
+    this.invalidate();
   }
 
   retheme() {
@@ -297,6 +318,20 @@ export class Layer {
   }
 }
 
+// where a layer sits on the screen, offsets and all (the turning and growing of its ancestors left out)
+function screenCorner(l: Layer) {
+  let x = 0, y = 0;
+  for (let p: Layer | null = l; p; p = p.parent) {
+    x += p.v.x.get() + p.v.ox.get() + p.v.dx.get() + p.v.wx.get();
+    y += p.v.y.get() + p.v.oy.get() + p.v.dy.get() + p.v.wy.get();
+  }
+  return { x, y };
+}
+const screenCentre = (l: Layer) => {
+  const c = screenCorner(l);
+  return { x: c.x + l.v.w.get() / 2, y: c.y + l.v.h.get() / 2 };
+};
+
 function waveAt(shape: string, pos: number, i: number): number {
   const f = pos - Math.floor(pos);
   if (shape === "saw") return f * 2 - 1;
@@ -469,6 +504,16 @@ for (const name of ["x", "y", "scale", "rotate", "opacity", "width", "height"]) 
     L.put(PROP_OF[name] ?? name, value, ctx, amp);
   });
 }
+// origin(): what stays still while it scales and rotates. Before .on() it is the layer's own;
+// after .on() it belongs to that change.
+verb("origin", (L, ctx, ...args: any[]) => {
+  const o = parseOrigin(args, (x) => (x && typeof x === "object" && "el" in rootOf(x) && "reactions" in rootOf(x) ? rootOf(x) : null));
+  if (o.kind === "layer" && o.layer === L) throw new Error("origin(layer): a layer can't pivot around itself; that is origin(\"center\")");
+  if (ctx) return void (ctx.target(L).origin = o);
+  L.baseOrigin = o;
+  L.useOrigin(o);
+});
+
 lookVerb("color", (L, ctx, c: string) => {
   if (!ctx) {
     L.colorSrc = c;

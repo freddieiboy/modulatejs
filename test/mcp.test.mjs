@@ -63,6 +63,13 @@ test("check flags snap() after on(), with the line", () => {
   assert.match(r.problems[0].message, /snap\(\) can't follow \.on/);
 });
 
+test("check rejects an origin word it doesn't know, with did-you-mean", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(p(`a: box()\na.on("tap").scale(2).origin("top left").origin("left top").origin("finger").origin(0, 1)`), []);
+  assert.match(p(`a: box()\na.on("tap").scale(2).origin("topleft")`)[0], /^2: origin\("topleft"\) is not a place on a layer\. Did you mean origin\("top left"\)\?/);
+  assert.match(p(`box().origin("botom")`)[0], /Did you mean origin\("bottom"\)/);
+});
+
 test("the MCP core speaks the protocol", async () => {
   const init = await rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } });
   assert.equal(init.result.protocolVersion, "2025-03-26");

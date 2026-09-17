@@ -9,7 +9,7 @@ import { syntaxTree } from "@codemirror/language";
 import { getVocab, slots, calleeName, inline } from "./hints";
 
 // verbs whose first argument is one of a fixed set of words: insert the quotes and open the list
-const QUOTED = new Set(["spring", "release", "curve", "device", "color", "theme"]);
+const QUOTED = new Set(["spring", "release", "curve", "device", "color", "theme", "origin"]);
 const FEEL = new Set(["Feel", "Dragging"]);
 
 function info(name: string) {

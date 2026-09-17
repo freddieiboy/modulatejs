@@ -5,10 +5,13 @@ import { stage } from "./stage";
 import { resolveColor } from "./theme";
 import type { Layer } from "./layer";
 import type { Pattern } from "./mini";
+import { Origin, CENTRE } from "./origin";
+import { listen } from "./stage";
 import { Driver, resolveDriver } from "./drivers";
 
 // What a layer becomes at t = 1.
 export interface Target {
+  origin?: Origin; // what stays still while this change scales or rotates the layer
   props: Record<string, any>;
   patterns: Record<string, Pattern>;
   show?: boolean;
@@ -177,6 +180,26 @@ export class Reaction extends Driver {
     // spring() overrides the way in, release() the way out.
     this.resolveFeel(this.drivers.some((d) => d.kind === "hold"));
 
+    // origins: a change that names one takes it whenever it starts; where the layer has none of its own,
+    // it also holds from the beginning, so the rest state and the motion agree (a menu folded into its corner)
+    this.hasOrigins = [...this.targets.values()].some((tg) => tg.origin);
+    for (const [layer, tg] of this.targets) {
+      if (!tg.origin) continue;
+      if (!layer.baseOrigin) layer.useOrigin(tg.origin);
+      if (tg.origin.kind === "finger") {
+        // wherever the finger goes down on it (or on whatever starts this change) is the pivot for this change
+        const pressed = new Set<Layer>([layer, ...(this.owner ? [this.owner] : [])]);
+        for (const p of pressed)
+          listen(p.el, "pointerdown", (e: PointerEvent) => {
+            const r = layer.el.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            const clamp = (v: number) => Math.max(0, Math.min(1, v));
+            this.finger.set(layer, { fx: clamp((e.clientX - r.left) / r.width), fy: clamp((e.clientY - r.top) / r.height) });
+            this.claimOrigins();
+          });
+      }
+    }
+
     for (const [layer, tg] of this.targets) {
       const kids = layer.fan();
       const fans = kids && kids.length && (tg.stagger != null || tg.peak || (tg.fly != null && layer.kind === "ring"));
@@ -288,8 +311,16 @@ export class Reaction extends Driver {
     return t;
   }
 
+  private hasOrigins = false;
+  private finger = new Map<Layer, { fx: number; fy: number }>();
+  private claimOrigins() {
+    if (!this.hasOrigins) return;
+    for (const [layer, tg] of this.targets) if (tg.origin) layer.useOrigin(tg.origin, this.finger.get(layer));
+  }
+
   // a continuous driver moved, or a drag is scrubbing
   follow(t: number, instant = false) {
+    if (this.hasOrigins && this.t.get() === 0 && t !== 0) this.claimOrigins(); // leaving rest: this change's pivot applies
     const homeward = !!this.back && t < this.t.get();
     if ((this.springSet || homeward) && !instant) {
       this.t.to(t, this.feel(t));
@@ -318,6 +349,7 @@ export class Reaction extends Driver {
   // a played driver fired
   fire() {
     const n = this.fires++;
+    if (this.goal === 0 || this.impulse || this.transient) this.claimOrigins();
     for (const e of this.entries) {
       const pats: Record<string, Pattern> = (e as any).patterns ?? {};
       for (const prop in pats) {

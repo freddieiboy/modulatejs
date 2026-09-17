@@ -104,6 +104,8 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `sheet(...words and children)` | bottom sheet, 560 tall, resting with 96 showing. What you give it stacks in the order written; strings are its words (a title, a dim line, then body). `rise()` lifts it fully, `rise("half")` to the middle of the screen |
 | `tabbar("Home Search Inbox Me")` | bottom tabs with a sliding indicator; `tabs.page` is its driver |
 
+Three verbs name a point, and they don't all mean the same corner of a layer: `at(x, y)` is where its **top-left** goes; `center()` and the points in `snap()` are where its **centre** goes; `origin()` is a point inside it.
+
 `row`, `stack`, `grid`, `bubbles` and `around` make **groups**. Look verbs on a group reach its children; with `stagger()` or `peak()` so do feel verbs.
 
 ## Placement
@@ -151,6 +153,7 @@ Roles: `accent` `surface` `text` `dim` `fill` `line`.
 | `x(n)` `y(n)` | offset, in points, from where it was placed |
 | `scale(n)` | 1 is its own size |
 | `rotate(deg)` | degrees, clockwise |
+| `origin(…)` | the point it scales and rotates around; it never moves a layer at rest, it decides what stays still. A word: `"center"` (the default), `"top"` `"bottom"` `"left"` `"right"`, or two for a corner, `"top left"`. Two fractions of the layer, `origin(.5, 1)` (if either number is over 1, both are points from its top-left). Another layer, to pivot around its centre wherever it goes: `moon.on(time(4)).rotate(360).origin(sun)`. Or `"finger"`: where the finger went down, for the change it started. Before `.on()` it is the layer's own; after `.on()` it belongs to that change: `menu.on(more.tap).show().scale(1).origin("top left")` unfolds a menu from its corner, `cover.on("hold").scale(1.06).origin("finger")` grows a card from under the thumb |
 | `width(n)` `height(n)` | resize without re-centring (a bar that grows from its left edge) |
 | `every(seconds = 2)` | how long one cycle of this layer's patterns lasts |
 
