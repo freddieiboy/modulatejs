@@ -50,7 +50,7 @@ frame.addEventListener("load", hello);
 hello();
 
 // the frame takes the shape of whatever device() the code asked for
-let dev = { name: "iphone", w: 390, h: 844, radius: 52, bezel: [6, 6, 6], body: 58, button: false, bar: true };
+let dev = { name: "iphone", w: 390, h: 844, radius: 52, bezel: [6, 6, 6], body: 58, button: false, bar: true, dark: false };
 function shapeDevice(d?: typeof dev) {
   if (!d || !d.bezel || JSON.stringify(d) === JSON.stringify(dev)) return;
   dev = d;
@@ -59,6 +59,7 @@ function shapeDevice(d?: typeof dev) {
   for (const [k, v] of Object.entries(px)) el.style.setProperty(k, v + "px");
   el.classList.toggle("chin", d.button);
   el.classList.toggle("no-bar", !d.bar);
+  el.classList.toggle("dark-screen", d.dark); // the home indicator is dark on a light screen, light on a dark one
   fitDevice(); // the iframe resizes, the frame notices and runs again at the new size
 }
 

@@ -137,7 +137,7 @@ export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
-  device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean };
+  device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean; dark: boolean };
 }
 /** Run a prototype written in the modulate language (labels and all) inside `target` (default: document.body). */
 export function run(code: string, target?: HTMLElement): RunResult;
