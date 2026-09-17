@@ -160,6 +160,7 @@ function loadInto(l: Layer, url: string | null, done?: (img: HTMLImageElement | 
   img.alt = "";
   img.draggable = false;
   img.decoding = "async";
+  img.loading = "lazy"; // far down a scroller, it waits until it is nearly on screen
   img.onload = () => (img.classList.add("m-ok"), done?.(img));
   img.onerror = () => (img.remove(), done?.(null)); // the placeholder underneath is already the design
   img.src = url;

@@ -117,6 +117,7 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | `time(seconds = 1)` | a looping clock; `.once()`, `.pause(hold(layer))` | elapsed ÷ seconds |
 | `lfo(hz = 1, shape = "wave")` | an oscillator: `"wave"` `"saw"` `"square"` | 0 → 1 → 0 |
 | another layer: `.on(sheet)` | follow that layer's own `.on()` | its t |
+| a scroller's `feed.scroll` · `feed.pull` · `feed.page` | how far it is scrolled, pulled past its top, which page (see Scrolling) | 0 → 1; `scroll` reads past the ends while it rubber-bands |
 | a Value | anything from `modulate()` | the value |
 
 **Several changes on one property.** Continuous drivers (`lfo`, `time`, `scroll`, `page`, a drag) add up: each brings its distance from rest. A state (`hold`, `tap`, another layer, a Value) takes the property over from all of that for as long as it is on, and at its own speed; when it lets go, what it interrupted comes back with the state's way home, from wherever it has got to meanwhile. Of two states, the one written later is on top.
@@ -277,6 +278,42 @@ Numbers follow a spring past their target (that overshoot is the bounce); colour
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.
 
+### Scrolling
+
+The whole screen scrolls already (`scroll()`, `scrolls()`). A `scroller` is a region that scrolls on its own, under things that don't: a feed under a header, a carousel in a card, a strip wider than the screen. It is worked out here and not by the browser, in fixed steps, so the same flick lands in the same place every time and a link replays the same.
+
+| piece | is |
+| --- | --- |
+| `scroller(child, axis = "y")` | a box that scrolls its child with the finger: momentum, a rubber band at both ends, iOS's deceleration. `child` is usually a `stack`, `row` or `grid` (`stack(20, card())` is a feed). `"x"` scrolls sideways; `"page"` brings one child to the middle per swipe (a carousel); `"both"` is for a big picture. Its box is where it sits and how much it shows: `at()`, `size()`, `width()`, `height()`; with no size it goes from its top to the bottom of the screen, as wide as the screen allows. Children are cut off at its edge, and only the ones near the window are drawn, so `stack(200, card())` is fine. A mouse wheel scrolls it too. For `pick()` and `others` it counts as what it scrolls: its child's children |
+
+What it gives everything around it:
+
+- `feed.scroll` is its driver, 0 → 1 across what it can scroll (`feed.scroll.x` and `.y` on a `"both"`). `feed.scroll.range(120)` reads 0 → 1 over the first 120 points instead and stays at 1: `header.on(feed.scroll.range(120)).height(88)`. Pulled past the start it reads below 0, so the header can stretch.
+- `feed.pull` runs 0 → 1 as the finger pulls the top down 80 points past the end; `feed.pulled` fires once if it is let go past that (pull to refresh).
+- `feed.page`, on a `"page"` scroller, is which child is showing: `feed.page.index` is the number, in between while it moves, and `feed.page.set(2)` goes there with a spring. `pick(feed)` is the same choice, so `dots.on(pick(feed))` is a page indicator.
+
+| verb | does |
+| --- | --- |
+| `sticky()` | on a child of the scroller's stack, before `.on()`: it stops at the scroller's top edge and stays while the rest scrolls under, until the next sticky pushes it off (section headers in a list) |
+| `snaps()` | on a `"y"` or `"x"` scroller, before `.on()`: momentum lands on a child's edge (a strip of cards that stops on a card without paging) |
+| `to(layer)` · `to(px)` | on a scroller, after `.on(…)`: scroll so that child (or that many points) is at the top, with a spring; `spring()` and `over()` shape it. `feed.on(top.tap).to(0)` |
+
+Whose finger it is gets settled in the first 10 points, the way iOS does it. Inside a scroller a child's `drag("x")` wins sideways and the scroller wins up and down; a `drag()` with no axis in there is an error that says which to pick. A tap inside is a tap unless the finger moved more than 10 points, and a finger that stops a moving list isn't tapping what it landed on. At its end, a pull goes to whatever is around it that wants one: a `"sheet"` with a scroller in it goes back on a pull from the top of its content, and scrolls from anywhere else.
+
+```js
+// a feed under a header that shrinks and blurs
+header: card(390, 160).at(0, 0).glass()
+feed: scroller(stack(20, card())).at(0, 160)
+header.on(feed.scroll.range(120)).height(88).blur(8)
+```
+
+```js
+// a carousel with dots, and pull to refresh
+shots: scroller(row(5, image(342, 260)), "page").at(24, 120).size(342, 260)
+dots: row(5, circle(6, "fill")).below(shots, 12)
+dots.on(pick(shots)).color("ink").scale(1.4)
+```
+
 ### Choosing
 
 One choice that many layers follow: which product, which tab, which bubble.
@@ -288,7 +325,7 @@ One choice that many layers follow: which product, which tab, which bubble.
 What `.on(choice)` means depends on who follows it:
 
 - **A layer** reads `"<…>"` by the chosen index: `photo.on(choice).image("<tote.png mug.png lamp.png>")`, `name.on(choice).words("<Canvas tote, Stone mug, Paper lamp>")`, `dot.on(choice).color("<coral plum mint>")`. Pictures crossfade, words fade through, numbers and colours tween. Words split on commas (they have spaces in them); pictures on spaces. Plain values follow t = index ÷ (n − 1), like `page`: `track.on(choice).x(-2 * 390)`.
-- **A group** has its chosen member in the other state and the rest at rest, tweened as the choice moves: `strip.on(choice).scale(1.15).ring("plum")` is the selected thumbnail. (A `row` does this when it is one of the choice's groups; any other container follows t as one layer.) `strip.others.on(choice).opacity(.5)` is the ones not chosen.
+- **A group** has its chosen member in the other state and the rest at rest, tweened as the choice moves: `strip.on(choice).scale(1.15).ring("plum")` is the selected thumbnail. (A `row`, `stack` or `grid` does this when it has a child for every choice: the strip being chosen from, or a row of dots beside it. Any other container follows t as one layer.) `strip.others.on(choice).opacity(.5)` is the ones not chosen.
 
 ```js
 photo: image("tote", 342, 300).at(24, 100)
@@ -356,7 +393,7 @@ or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. 
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js) · 14. [screens](https://modulatejs.com/examples/14-screens.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js) · 14. [screens](https://modulatejs.com/examples/14-screens.js) · 15. [feed](https://modulatejs.com/examples/15-feed.js)
 
 ```js
 // swipe to dismiss

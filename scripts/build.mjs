@@ -95,7 +95,7 @@ async function build() {
 
   // /vocab.json: every name the language has, for the lint, the MCP servers, and anyone's tooling
   const rt = await import(join(dist, "modulate.mjs") + "?" + Date.now());
-  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "messages", "sheet", "tabbar", "group"];
+  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "messages", "sheet", "tabbar", "group", "scroller"];
   const globals = Object.keys(rt.vocabulary);
   writeFileSync(join(site, "vocab.json"), JSON.stringify({
     version: pkg.version,

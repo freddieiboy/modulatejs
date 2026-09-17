@@ -15,6 +15,7 @@ import { mountStage, stage } from "./stage";
 import { device, devices } from "./device";
 import { group, LayerSet } from "./set";
 import { pick, Pick } from "./pick";
+import { scroller } from "./scroller";
 
 declare const __VERSION__: string;
 export const version: string = __VERSION__;
@@ -24,7 +25,7 @@ Object.defineProperty(stack, "depth", { get: () => depth(), configurable: true }
 
 // what a prototype can say without importing anything
 export const vocabulary = {
-  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group, pick,
+  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group, pick, scroller,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, theme, content, provider,
 };
@@ -45,6 +46,6 @@ export {
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage, solo,
-  group, LayerSet, pick, Pick,
+  group, LayerSet, pick, Pick, scroller,
   Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };

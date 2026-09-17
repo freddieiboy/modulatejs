@@ -46,7 +46,7 @@ interface TimeBinding {
 export const rootOf = (l: any): Layer => l.__root ?? l;
 
 // group() lives in set.ts, which needs every verb defined first; it introduces itself here once it is loaded
-let sets: { isSet(x: any): boolean; members(s: any): Layer[]; make(rings: Layer[], around: any): any; handle(members: Layer[], source: any): any } | null = null;
+let sets: { asSet(members: Layer[]): any; isSet(x: any): boolean; members(s: any): Layer[]; make(rings: Layer[], around: any): any; handle(members: Layer[], source: any): any } | null = null;
 export const registerSetFactory = (f: NonNullable<typeof sets>) => (sets = f);
 // pictures are the pieces' business (providers, placeholders, your own files); they introduce themselves too
 let showPicture: ((l: Layer, src: string) => void) | null = null;
@@ -100,6 +100,7 @@ export class Layer {
   private shadowDrawn = 0;
   private ringDrawn = 0;
   private gone = false;
+  stickyOn = false; // sticky(): inside a scroller, it stops at the top edge while the rest goes under
   shownOpacity: number | null = null; // what it looked like before its section was hidden as a whole
   pictureSrc: string | null = null; // the seed or URL an image layer is showing
   private dirty = false;
@@ -109,6 +110,7 @@ export class Layer {
     const st = stage();
     this.el = st.el.ownerDocument.createElement("div");
     this.el.className = "m-layer";
+    (this.el as any).mLayer = this; // so a finger's target can be traced back to the layer it landed on
     const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, shadow: 0, ring: 0, ringColor: "rgba(0,0,0,0)", scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
     for (const k in d) {
       const val = new Value(d[k]);
@@ -326,7 +328,9 @@ export class Layer {
   }
 
   // only a group has others; said here so the slip gets a sentence instead of "undefined"
-  get others(): never {
+  get others(): any {
+    const root: any = rootOf(this);
+    if (root.kind === "scroller" && root.content?.fan()) return sets!.asSet(root.content.fan()).others; // what it scrolls is its group
     throw new Error(`${rootOf(this).label || this.kind} isn't a group: others is the rest of a group or a section, as in bubbles.others`);
   }
 
@@ -669,8 +673,9 @@ verb("show", (L, ctx) => {
 
 // feel
 verb("on", function (this: any, L, _ctx, source: any = "tap") {
-  // a row, stack or grid that a pick() chooses from: its chosen child is in the other state, not the whole box
-  if (source?.kind === "pick" && source.has?.(L) && L.fan()) return sets!.handle(L.fan()!, source);
+  // a row, stack or grid with a child for every choice (the strip it chooses from, a row of dots beside it): its
+  // chosen child is in the other state, not the whole box
+  if (source?.kind === "pick" && L.fan() && (source.has?.(L) || L.fan()!.length === source.count)) return sets!.handle(L.fan()!, source);
   const rx = new Reaction();
   rx.owner = L;
   rx.drive(resolveDriver(source, L));
@@ -726,6 +731,24 @@ verb("peak", (L, ctx) => {
 verb("into", (L, ctx, other: Layer) => {
   needsCtx(ctx, "into").target(L).into = rootOf(other);
 });
+// scrolling. scroller() is the piece (scroller.ts); these are the words that go with it.
+verb("sticky", (L, ctx) => {
+  restOnly("sticky", ctx);
+  L.stickyOn = true;
+});
+verb("snaps", (L, ctx) => {
+  restOnly("snaps", ctx);
+  if (L.kind !== "scroller") throw new Error(`snaps() is for a scroller: scroller(row(8, card(200, 120)), "x").snaps()`);
+  if ((L as any).axis === "both") throw new Error(`snaps(): a scroller that goes "both" ways has no edge to land on`);
+  (L as any).snapping = true;
+});
+verb("to", (L, ctx, target: any) => {
+  const rx = needsCtx(ctx, "to");
+  if (L.kind !== "scroller") throw new Error(`to() scrolls a scroller somewhere: feed.on(top.tap).to(0)`);
+  if (typeof target !== "number" && !(target && typeof target === "object" && "el" in rootOf(target))) throw new Error("to(): where? A child of the scroller, or how many points down: feed.to(card9), feed.to(0)");
+  rx.scrollTo = { scroller: L, target };
+});
+
 // screens. A section is a screen: go() shows one on top of what is there and remembers; back() undoes the last
 // go() or into(), and so do the edge swipe and a tap on an into() destination.
 const HOWS = ["cover", "push", "fade", "sheet"];

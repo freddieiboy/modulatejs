@@ -6,6 +6,7 @@ import type { Layer } from "./layer";
 import { handToDrag, letGoOfDrift } from "./drift";
 import { grab, letGo } from "./physics";
 import { mini } from "./mini";
+import { scrollerAt, scrollerAround, LOCK } from "./gesture";
 
 // Everything that moves a prototype is a Driver: a t between 0 and 1.
 // Played drivers (tap) fire, and the reaction plays itself with a spring.
@@ -208,7 +209,11 @@ export function startDrag(L: Layer, cfg: DragConfig) {
   const axisOfScrub: "x" | "y" = cfg.axis === "x" ? "x" : "y";
   const travel = rx ? rx.travel(L, axisOfScrub) : 0;
   const scrubbing = rx && Math.abs(travel) > 1;
-  let origin: { x: number; y: number; dx: number; dy: number; t: number; id?: number } | null = null;
+  let origin: { x: number; y: number; dx: number; dy: number; t: number; id?: number; rival?: any; inside?: boolean } | null = null;
+  // in a scroller, a drag has to say which way it goes, so the two can share a finger
+  const around = scrollerAround(L);
+  if (around && cfg.axis === "both" && around.axis !== "both")
+    throw new Error(`${L.label || L.kind}: drag() inside a scroller that scrolls ${around.axis === "y" ? "up and down" : "sideways"} has to pick the other way: drag("${around.axis === "y" ? "x" : "y"}")`);
   let moved = 0;
   // two fingers, two layers: each drag follows only the finger that started it
   const mine = (e: PointerEvent) => !!origin && (origin.id === undefined || e.pointerId === undefined || e.pointerId === origin.id);
@@ -231,6 +236,10 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     if (!scrubbing) (handToDrag(L), grab(L)); // a drifting or flying layer is picked up exactly where it is
     moved = 0;
     origin = { ...p, dx: L.v.dx.get(), dy: L.v.dy.get(), t: rx ? rx.t.get() : 0, id: e.pointerId };
+    // a scroller may have a claim on this finger too: the one this layer is in, or one inside this layer that the
+    // finger landed on (a list in a sheet). Nobody moves until 10 points say whose it is.
+    origin.rival = around ?? scrollerAt(e.target, el);
+    origin.inside = !!around;
     el.style.cursor = "grabbing";
     try {
       el.setPointerCapture(e.pointerId);
@@ -241,7 +250,24 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     if (!origin || !mine(e)) return;
     if (lifted(e)) return void end(e);
     const p = pt(e);
-    const mx = p.x - origin.x, my = p.y - origin.y;
+    let mx = p.x - origin.x, my = p.y - origin.y;
+    if (origin.rival) {
+      if (Math.hypot(mx, my) < LOCK) return;
+      const way = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+      const mineByAxis = cfg.axis === "both" || cfg.axis === way;
+      // in a scroller, the drag gets a finger going its way; around one, it gets what the scroller can't use
+      const theirs = origin.inside ? !mineByAxis : !mineByAxis || origin.rival.wouldScroll(way, way === "x" ? mx : my);
+      if (theirs) {
+        origin = null;
+        el.style.cursor = "grab";
+        if (!scrubbing) letGoOfDrift(L);
+        return;
+      }
+      origin.rival = null;
+      origin.x = p.x; // it starts from here, so nothing jumps
+      origin.y = p.y;
+      mx = my = 0;
+    }
     if (scrubbing) {
       let t = origin.t + (axisOfScrub === "x" ? mx : my) / travel;
       if (t < 0) t = rubber(t * Math.abs(travel), 0.5) / Math.abs(travel);

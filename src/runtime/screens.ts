@@ -1,6 +1,7 @@
 import { Value } from "./value";
 import { stage, listen } from "./stage";
 import type { Reaction } from "./reaction";
+import { scrollerAt } from "./gesture";
 
 // One memory for going somewhere and coming back. go() and into() both open a move and put it here; back(),
 // the edge swipe, a sheet pulled down and a tap on an into() destination all close the one on top. A move is
@@ -89,7 +90,7 @@ function gestures(s: Screens) {
 function scrubWith(el: HTMLElement, axis: "x" | "y") {
   const st = stage();
   const win = el.ownerDocument.defaultView!;
-  let from: { x: number; y: number; id: number; move: Move; rs: any[]; going: boolean } | null = null;
+  let from: { x: number; y: number; id: number; move: Move; rs: any[]; going: boolean; target: EventTarget | null } | null = null;
   let last = { t: 1, at: 0 }, speed = 0;
   const mine = (e: PointerEvent) => !!from && (e.pointerId === undefined || from.id === undefined || e.pointerId === from.id);
 
@@ -101,7 +102,7 @@ function scrubWith(el: HTMLElement, axis: "x" | "y") {
       if (move.how !== "sheet") return;
       for (let n = e.target as HTMLElement | null; n && n !== el; n = n.parentElement) if (n.style?.cursor === "grab" || n.style?.cursor === "grabbing") return;
     }
-    from = { x: e.clientX, y: e.clientY, id: e.pointerId, move, rs: live(move), going: axis === "x" };
+    from = { x: e.clientX, y: e.clientY, id: e.pointerId, move, rs: live(move), going: axis === "x", target: e.target };
     last = { t: 1, at: performance.now() };
     speed = 0;
     if (axis === "x") e.stopPropagation();
@@ -112,8 +113,9 @@ function scrubWith(el: HTMLElement, axis: "x" | "y") {
     if (e.pointerType === "mouse" && e.buttons === 0) return void end(e);
     const dx = (e.clientX - from.x) / st.scale, dy = (e.clientY - from.y) / st.scale;
     if (!from.going) {
-      if (Math.hypot(dx, dy) < 8) return;
+      if (Math.hypot(dx, dy) < 10) return;
       if (dy < Math.abs(dx)) return void (from = null); // sideways or upward: not a pull down
+      if (scrollerAt(from.target)?.wouldScroll("y", dy)) return void (from = null); // a list in the sheet that still has somewhere to go
       from.going = true;
     }
     const span = axis === "x" ? st.W : st.H / 2;

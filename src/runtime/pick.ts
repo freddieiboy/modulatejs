@@ -7,7 +7,9 @@ import { LayerSet } from "./set";
 // any member of any listed group chooses that member's index, so the groups line up member for member.
 //   a layer .on(choice)     a "<…>" pattern is read by the chosen index; plain values follow t = index ÷ (n − 1)
 //   a group .on(choice)     the chosen member is in the other state and the rest are at rest
-const membersOf = (g: any): Layer[] | null => (g instanceof LayerSet ? g.members : g && typeof g === "object" && "el" in rootOf(g) ? rootOf(g).fan() : null);
+// a scroller is chosen from by what it scrolls: its child's children
+const boxOf = (g: any): any => ((rootOf(g) as any).kind === "scroller" ? (rootOf(g) as any).content : rootOf(g));
+const membersOf = (g: any): Layer[] | null => (g instanceof LayerSet ? g.members : g && typeof g === "object" && "el" in rootOf(g) ? boxOf(g).fan() : null);
 const nameOf = (g: any) => (g instanceof LayerSet ? g.label : rootOf(g).label) || "a group";
 
 export class Pick extends Driver {
@@ -30,6 +32,13 @@ export class Pick extends Driver {
       members.forEach((m, i) => tap(m).onFire((detail) => detail?.back || this.set(i)));
     }
     this.count = this.groups[0].members.length;
+    // a scroller that pages: the page it is on is the choice, and choosing turns to that page
+    for (const source of sources) {
+      const paging = !(source instanceof LayerSet) && (rootOf(source) as any).page;
+      if (!paging?.at) continue;
+      paging.at.on((i: number) => this.at.set(i));
+      this.at.on((i) => paging.at.get() !== i && paging.set(i));
+    }
     this.at.on((i) => this.t.set(this.count > 1 ? i / (this.count - 1) : 0));
   }
 

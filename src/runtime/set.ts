@@ -148,6 +148,7 @@ for (const name of VERBS) {
 
 // around(group, n): a ring around each member, as a group that goes with the first one member for member
 registerSetFactory({
+  asSet: (members: Layer[]) => new LayerSet(members),
   isSet,
   members: (s: LayerSet) => s.members,
   // a container's children taken as a set: what strip.on(choice) hands back when strip is one of the choice's groups

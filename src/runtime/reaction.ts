@@ -56,7 +56,7 @@ interface Track {
 //                             property is the state's, whatever the lfo is doing; on the way back the lfo's share
 //                             returns with the state's own way home, from wherever the lfo has got to meanwhile
 // States declared later take over from states declared earlier.
-const CONTINUOUS = new Set(["lfo", "time", "scroll", "drag", "page"]);
+const CONTINUOUS = new Set(["lfo", "time", "scroll", "drag", "page", "pull"]);
 class Channel {
   tracks: Track[] = [];
   constructor(private layer: Layer, private prop: string, public base: any) {}
@@ -165,6 +165,7 @@ export class Reaction extends Driver {
   comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
   private returning: (() => void) | null = null;
   drivers: Driver[] = [];
+  scrollTo: { scroller: any; target: any } | null = null; // to(): when it fires, that scroller goes there with this spring
   delay = 0; // after(seconds): the way there starts this long after the trigger; the way back doesn't wait
   goTo: { set: any; how: string } | null = null; // go(section, how): this change shows a screen
   isBack = false; // back(): this one only closes whatever is on top
@@ -615,6 +616,11 @@ export class Reaction extends Driver {
   // a played driver fired
   fire() {
     if (this.isBack) return void screens.back();
+    if (this.scrollTo) {
+      const { scroller, target } = this.scrollTo;
+      const go = () => scroller.scrollTo(target, this.springSet ? this.transition : undefined);
+      return void (this.delay ? track(afterTime(this.delay * 1000, go)) : go());
+    }
     if (this.opens) {
       if (this.goal === 1) return void screens.closeFor(this);
       this.claimOrigins();

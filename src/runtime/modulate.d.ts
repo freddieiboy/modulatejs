@@ -74,6 +74,8 @@ export class Layer {
   shadow(level?: number | string): this;
   /** after .on(…): show that section on top of what is there and remember it. "cover" from the bottom, "push" from the right, "fade", or "sheet" at half height */
   go(section: LayerGroup, how?: "cover" | "push" | "fade" | "sheet"): this;
+  /** inside a scroller, before .on(): it stops at the top edge and stays while the rest scrolls under */
+  sticky(): this;
   /** after .on(…): the change starts this many seconds after its trigger; its way back is not delayed */
   after(seconds: number): this;
   /** after .on(…): undo the last go() or into(), with everything that changed on the same tap */
@@ -168,6 +170,23 @@ export type LayerGroup = Omit<Layer, "el" | "name"> & {
   readonly others: { on(source?: Driver | Choice): LayerGroup };
 };
 export function group(...layers: (Layer | LayerGroup)[]): LayerGroup;
+
+/** A region that scrolls on its own: momentum, rubber band, fixed-step so the same flick lands in the same place. */
+export interface Scroller extends Layer {
+  /** 0 → 1 across what it can scroll; past the ends while it rubber-bands. `.range(px)` reads 0 → 1 over the first px points */
+  readonly scroll: Driver & { range(px: number): Driver; readonly x: Driver; readonly y: Driver };
+  /** 0 → 1 as the finger pulls the top down 80 points past the end */
+  readonly pull: Driver;
+  /** fires once when it is let go pulled past that (pull to refresh) */
+  readonly pulled: Driver;
+  /** on a "page" scroller: which child is showing */
+  readonly page: (Driver & { readonly index: Value<number>; set(i: number): void }) | null;
+  /** momentum lands on a child's edge */
+  snaps(): this;
+  /** after .on(…): scroll so that child, or that many points, is at the top */
+  to(target: Layer | number): this;
+}
+export function scroller(child: Layer, axis?: "y" | "x" | "both" | "page"): Scroller;
 
 /** One choice that many layers follow: which index is chosen, 0 to n − 1. Tapping a member of any listed group chooses its index. */
 export interface Choice extends Driver {
