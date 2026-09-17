@@ -267,7 +267,8 @@ if (command === "mcp") {
     });
   });
   const bye = () => (closeBrowser(), process.exit(0));
-  rl.on("close", () => inFlight.finally(bye));
+  // the client hung up: finish what's in flight, and let stdout empty before leaving (a picture is a big line)
+  rl.on("close", () => inFlight.finally(() => process.stdout.write("", bye)));
   process.on("SIGINT", bye);
   process.on("SIGTERM", bye);
 }
