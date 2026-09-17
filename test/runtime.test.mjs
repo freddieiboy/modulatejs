@@ -112,3 +112,21 @@ test("a wrong drag axis says what to write instead", () => {
   assert.match(odd.error, /the axis is "x" or "y"/);
   assert.equal(win.Modulate.run(`card().drag()`, win.document.body).ok, true);
 });
+
+test("card takes its words from its arguments, then content(), then the bank", () => {
+  const texts = (code) => {
+    const win = browser();
+    const r = win.Modulate.run(code, win.document.body);
+    assert.equal(r.error, undefined, code);
+    return [...win.document.querySelectorAll(".m-text")].map((e) => e.textContent);
+  };
+  assert.deepEqual(texts(`card("Canvas tote", "$48")`), ["Canvas tote", "$48"]);
+  assert.deepEqual(texts(`card()`), ["Canvas tote", "$48 · Addie Moreau"]);
+  assert.deepEqual(texts(`content({ titles: "Stone mug, Apron", prices: ["$22"], names: "Noor" })\nrow(2, card())`), ["Stone mug", "$22 · Noor", "Apron", "$22 · Noor"]);
+  assert.deepEqual(texts(`card(200, 120)`), []);
+  assert.deepEqual(texts(`card("sand")`).length, 2, "a colour name is still a colour");
+  const win = browser();
+  assert.match(win.Modulate.run(`content({ title: "x" })`, win.document.body).error, /the kinds are names, prices, titles, lines/);
+  // and the bank comes back on the next run
+  assert.deepEqual(texts(`text()`), ["Canvas tote"]);
+});

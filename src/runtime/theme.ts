@@ -37,6 +37,9 @@ export function resolveColor(c: string): string {
   return c;
 }
 
+// does this string name a colour (rather than being words to show)?
+export const isColorWord = (c: string) => c in palette || isToken(c) || /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\(.*\)|transparent)$/i.test(c.trim());
+
 export const isToken = (c: string) => ["accent", "surface", "text", "dim", "fill", "line", "bg"].includes(c);
 
 export function luminance(color: string): number {

@@ -7,7 +7,7 @@ import { Driver, tap, hold, drag, scroll, time, lfo, page } from "./drivers";
 import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar } from "./pieces";
 import { theme, palette } from "./theme";
 import { presets } from "./presets";
-import { provider, bank } from "./content";
+import { provider, bank, content } from "./content";
 import { mini } from "./mini";
 import { run, check, preprocess, setApi } from "./run";
 import { mountStage, stage } from "./stage";
@@ -19,7 +19,7 @@ export const version: string = __VERSION__;
 export const vocabulary = {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
-  between, modulate, theme, provider,
+  between, modulate, theme, content, provider,
 };
 setApi(vocabulary);
 
@@ -33,7 +33,7 @@ export const mount = (el: HTMLElement) => mountStage(el);
 export {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, bubbles, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
-  between, modulate, theme, provider,
+  between, modulate, theme, content, provider,
   run, check, preprocess, mini, stage,
   Value, Layer, Group, Reaction, Driver, presets, palette, bank, VERBS,
 };

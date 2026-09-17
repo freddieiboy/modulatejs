@@ -60,11 +60,65 @@ function showResult(r: { ok: boolean; error?: string; line?: number; ms: number 
 function fitDevice() {
   if (player) return;
   const fit = $("fit"), device = $("device");
-  const k = Math.min(1, fit.clientHeight / 856, fit.clientWidth / 402);
+  const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / 856, (fit.clientWidth - 24) / 402));
   device.style.transform = `scale(${k})`;
   device.style.margin = `${(-856 * (1 - k)) / 2}px ${(-402 * (1 - k)) / 2}px`;
 }
 new ResizeObserver(fitDevice).observe($("fit"));
+
+// ——— the split: drag the handle between the editor and the device, the way iPadOS splits a screen
+const split = $("split"), stageEl = $("stage"), work = stageEl.parentElement!;
+const SNAPS = [0.3, 0.4, 0.5, 0.6];
+const remember = (v: string | null) => {
+  try {
+    v ? localStorage.setItem("coral.split", v) : localStorage.removeItem("coral.split");
+  } catch {}
+};
+function setSplit(share: number | null) {
+  if (share == null) stageEl.style.removeProperty("--stage-w");
+  else stageEl.style.setProperty("--stage-w", (Math.max(0.18, Math.min(0.75, share)) * 100).toFixed(2) + "%");
+  split.setAttribute("aria-valuenow", String(Math.round((share ?? 0.4) * 100)));
+}
+const shareNow = () => stageEl.getBoundingClientRect().width / work.getBoundingClientRect().width;
+try {
+  const saved = parseFloat(localStorage.getItem("coral.split") ?? "");
+  if (saved > 0) setSplit(saved);
+} catch {}
+
+split.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  split.setPointerCapture(e.pointerId);
+  split.classList.add("dragging");
+  document.body.classList.add("resizing");
+  const r = work.getBoundingClientRect();
+  const right = r.right - stageEl.getBoundingClientRect().right; // the spec strip, and anything else to the right
+  const grab = e.clientX - split.getBoundingClientRect().right;
+  const move = (m: PointerEvent) => setSplit((r.right - right - (m.clientX - grab)) / r.width);
+  const up = () => {
+    split.removeEventListener("pointermove", move);
+    split.classList.remove("dragging");
+    document.body.classList.remove("resizing");
+    // settle on a tidy share if you let go near one
+    const s = shareNow();
+    const near = SNAPS.find((p) => Math.abs(p - s) < 0.015);
+    if (near) setSplit(near);
+    remember(String(near ?? s));
+  };
+  split.addEventListener("pointermove", move);
+  split.addEventListener("pointerup", up, { once: true });
+  split.addEventListener("pointercancel", up, { once: true });
+});
+split.addEventListener("dblclick", () => {
+  setSplit(null);
+  remember(null);
+});
+split.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  e.preventDefault();
+  const next = shareNow() + (e.key === "ArrowLeft" ? 0.02 : -0.02);
+  setSplit(next);
+  remember(String(next));
+});
 
 // ——— the editor
 const look = HighlightStyle.define([

@@ -124,6 +124,8 @@ export function between(describe: () => void): Reaction;
 export function between(driver: DriverSource, describe: () => void): Reaction;
 export function modulate<T = number>(source: Value<number> | Driver, from: number[], to: T[], clamp?: boolean): Value<T>;
 export function theme(...names: string[]): void;
+/** Your words instead of the built-in bank. Strings split on commas; arrays are taken as they are. */
+export function content(yours: { titles?: string | string[]; prices?: string | string[]; names?: string | string[]; lines?: string | string[] }): void;
 export function provider(next: { image?(seed: string, w: number, h: number): string | null; avatar?(seed: string): string | null }): void;
 
 export interface RunResult {

@@ -64,7 +64,7 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `emoji(char, size = 32)` | one glyph; turns white when centred on a strong colour |
 | `image(seed or url?, w = 342, h = 220)` | a photo by seed (picsum), over a gradient that stands in when offline |
 | `avatar(name?, size = 44)` | a face by name (DiceBear), over initials |
-| `card(...children)` | white, 342 wide, radius 28, soft shadow; stacks children padded 16 and grows to fit. `card(w, h)` fixes it |
+| `card(title?, line?, ...children)` | white, 342 wide, radius 28, soft shadow; stacks children padded 16 and grows to fit. Strings are its words: `card("Canvas tote", "$48")` is a photo, that title, that line. `card()` takes all three from the bank. `card(w, h)` is a blank card of that size; `card("sand")` is still a colour |
 | `row(...layers)` · `row(n, layer)` | side by side, gap 12 |
 | `stack(...layers)` · `stack(n, layer)` | top to bottom, gap 12 |
 | `grid(cols = 3, rows = 3, layer = box(88))` | a grid, gap 12 |
@@ -155,7 +155,15 @@ Before `.on()`, a cycle is 2 seconds (`.every(seconds)` changes it) and steps ar
 
 ## Demo content
 
-`text()`, `image()`, `avatar()` and `bubbles()` fill themselves from a built-in bank of names, prices, titles and chat lines, the same on every run. Images and avatars load from picsum and DiceBear and fall back to a gradient or initials, so a prototype still looks right offline. `image()` takes a seed or a URL and never inlines bytes. `provider({ image, avatar })` swaps the sources.
+`text()`, `card()`, `image()`, `avatar()`, `sheet()` and `bubbles()` fill themselves from a built-in bank of names, prices, titles and chat lines, the same on every run. What you see with no arguments is demo content, never data.
+
+`content({ titles, prices, names, lines })` swaps in your words, once, on the first line, and everything below draws from them in order. A string splits on commas; an array is taken as it is.
+
+```js
+content({ titles: "Canvas tote, Stone mug, Linen apron", prices: "$48, $22, $65", names: "Addie Moreau" })
+shelf: stack(3, card()).gap(16)
+```
+ Images and avatars load from picsum and DiceBear and fall back to a gradient or initials, so a prototype still looks right offline. `image()` takes a seed or a URL and never inlines bytes. `provider({ image, avatar })` swaps the sources.
 
 ## Links
 

@@ -1,6 +1,6 @@
 import { Layer, Group, rootOf } from "./layer";
 import { stage, SAFE_BOTTOM } from "./stage";
-import { resolveColor, luminance } from "./theme";
+import { resolveColor, luminance, isColorWord } from "./theme";
 import { providers, next, placeholder, duo, looksLikeUrl, initials } from "./content";
 import { PageDriver } from "./drivers";
 import { mapRange } from "./engine";
@@ -156,11 +156,21 @@ export function avatar(...args: any[]): Layer {
 
 export function card(...args: any[]): Layer {
   const { nums, strs, kids } = sort(args);
-  // a card with nothing in it is still a finished card
-  if (!args.length) kids.push(image(310, 180), (text() as any).bold(), (text(next("prices") + " · " + next("names"), 15) as any).color("dim"));
+  // strings are content, unless they name a colour: card("Canvas tote", "$48"), card("sand")
+  const words = strs.filter((s) => !isColorWord(s));
+  const colour = strs.find(isColorWord);
+  // a card with nothing in it is still a finished card, in your words if you gave any
+  if (!kids.length && !nums.length) {
+    const title = words[0] ?? next("titles");
+    const line = words[1] ?? next("prices") + " · " + next("names");
+    kids.push(image(title, 310, 180), (text(title) as any).bold(), (text(line, 15) as any).color("dim"));
+  } else {
+    if (words[0]) kids.push((text(words[0]) as any).bold());
+    if (words[1]) kids.push((text(words[1], 15) as any).color("dim"));
+  }
   const w = nums[0] ?? 342, h = nums[1] ?? 220;
   const l = new Layer("card", { w, h, radius: 28 });
-  paint(l, strs[0] ?? "surface");
+  paint(l, colour ?? "surface");
   l.el.style.boxShadow = "0 2px 4px rgba(0,0,0,.05), 0 12px 32px rgba(0,0,0,.10)";
   l.el.style.overflow = "hidden";
   l.pad = 16;
