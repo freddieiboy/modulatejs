@@ -73,7 +73,7 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | driver | what it is | t |
 | --- | --- | --- |
 | `"tap"` · `layer.tap` · `tap(layer)` · `tap()` | a tap on the layer (or anywhere) | **played**: springs 0 → 1; tap again springs back |
-| `"hold"` · `layer.hold` · `hold(layer)` | pressed or not | 1 while held |
+| `"hold"` · `layer.hold` · `hold(layer)` | a finger is down on it, or not (touch start to touch end) | 1 while held |
 | `drag(layer)` · `"drag"` | how far the layer has been dragged | distance ÷ 160; `.range(px)` changes it; `.x` `.y` are raw Values |
 | `scroll(length = 400)` · `"scroll"` | the screen scrolls natively over `length` points | scrollTop ÷ length |
 | `page(n = 3)` | swipe sideways through n pages, snapping | 0 → 1 across all pages |
@@ -146,6 +146,7 @@ Each takes a number, a Value or a pattern. Before `.on()` they set the layer; af
 | `between(() => { … })` | the same for many layers at once; `.drive(a, b, …)` attaches drivers, `.spring()` `.curve()` set its feel |
 | `spring(preset, amount?)` | which spring plays it. Alone after `on("tap")`, it is a kick: scale to `amount` (1.2) and spring back |
 | `curve(name = "ease", seconds = .3)` | a timed ease instead: `linear` `ease` `in` `out` |
+| `release(preset = "settle")` | the spring for the way back, when it should differ from the way in. `b.on("hold").scale(.85).release("bounce")` goes in at once under the finger and bounces when let go; add `.spring("snappy")` to shape the way in too |
 | `range(a, b)` | this layer only moves during that slice of t: `range(.35, 1)` |
 | `fade()` | dissolve: a visible layer fades out, a hidden one fades in |
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
@@ -164,7 +165,7 @@ Presets are frozen: `pop` (fast, overshoots) · `settle` (the default, no fuss) 
 | --- | --- |
 | `drag()` · `drag("x")` · `drag("y", [min, max])` | follow the finger: both ways with nothing in it, or along one axis, optionally within limits. Anything else is an error that says so |
 | `rubberband(k = .55)` | resist past the limits, like iOS; with no limits the whole drag resists |
-| `release(preset = "settle")` | spring home when let go |
+| `release(preset = "settle")` | spring home when let go (after `.on()`, the same idea for a change: see Feel) |
 | `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy) |
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.

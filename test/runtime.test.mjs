@@ -177,3 +177,37 @@ test("a sheet reads the way you'd describe it", () => {
   assert.match(win.Modulate.run(`sheet().on("tap").rise("a bit")`, win.document.body).error, /"half" or "full"/);
   assert.match(win.Modulate.run(`stack(box(), box()).spread()`, win.document.body).error, /spread\(\) is for a row/);
 });
+
+test("release() gives the way back its own spring; outside on() it is still the drag's", () => {
+  const win = browser();
+  let r = win.Modulate.run(`b: box()\nb.on("hold").scale(.85).release("bounce")\nc: card().drag("x").release("pop")`, win.document.body);
+  assert.equal(r.error, undefined);
+  const st = win.Modulate.stage();
+  const b = st.layers.find((l) => l.label === "b"), c = st.layers.find((l) => l.label === "c");
+  const rx = b.reactions[0];
+  assert.equal(rx.back.damping, win.Modulate.presets.bounce.damping);
+  assert.equal(rx.springSet, false, "no spring() means the way in is immediate");
+  assert.equal(b.dragCfg, null, "release after on() is not about dragging");
+  assert.equal(c.dragCfg.release, "pop");
+  r = win.Modulate.run(`a: box()\nbetween(() => { a.x(100) }).drive(tap()).spring("snappy").release("bounce")`, win.document.body);
+  assert.equal(r.error, undefined);
+});
+
+test("numbers follow a spring past its ends; colours, opacity and range() slices don't", () => {
+  const win = browser();
+  const r = win.Modulate.run(`a: box("coral")\na.on("tap").rotate(90).color("plum").fade()\nb: box()\nb.on("tap").x(100).range(.5, 1)\nc: box()\nc.on("tap").x(100).range(0, .5)`, win.document.body);
+  assert.equal(r.error, undefined);
+  const st = win.Modulate.stage();
+  const tracks = (name) => Object.fromEntries(st.layers.find((l) => l.label === name).reactions[0].entries[0].tracks.map((k) => [k.prop, k.map]));
+  const a = tracks("a");
+  assert.ok(Math.abs(a.rotate(1.2) - 108) < 1e-9, "overshoot is the bounce");
+  assert.ok(Math.abs(a.rotate(-0.1) + 9) < 1e-9);
+  assert.equal(a.color(1.2), a.color(1));
+  assert.equal(a.opacity(1.2), 0);
+  const b = tracks("b");
+  assert.equal(b.ox(0.25), 0, "held before its slice begins");
+  assert.ok(Math.abs(b.ox(1.1) - 120) < 1e-9, "free at the true end");
+  const c = tracks("c");
+  assert.equal(c.ox(0.75), 100, "held after its slice ends");
+  assert.ok(Math.abs(c.ox(-0.1) + 20) < 1e-9, "free at the true start");
+});

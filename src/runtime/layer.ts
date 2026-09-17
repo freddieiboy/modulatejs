@@ -585,8 +585,11 @@ verb("rubberband", (L, _c, k = 0.55) => {
   cfg.band = k;
   cfg.limits ??= [0, 0];
 });
-verb("release", (L, _c, name = "settle") => {
-  (L.dragCfg ??= { axis: "both" }).release = name;
+// release: how it comes home when let go. For a drag, the spring back to where it was.
+// After .on(), the spring for the way back, so a press can go in one way and come out another.
+verb("release", (L, ctx, name = "settle") => {
+  if (ctx) ctx.release(name);
+  else (L.dragCfg ??= { axis: "both" }).release = name;
 });
 verb("dismiss", (L) => {
   (L.dragCfg ??= { axis: "x" }).dismiss = true;

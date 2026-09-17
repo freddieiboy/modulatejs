@@ -32,6 +32,16 @@ interface Entry {
   stagger: number;
 }
 
+// A spring's t runs past 0 and 1 before it settles, and that overshoot is the bounce: a number has to be
+// allowed to follow it. So a track is only held still outside a slice that range() cut from the middle
+// of t; at the true ends it keeps going. Colours and opacity don't extrapolate, so they stop at their ends.
+function springy(prop: string, lo: number, hi: number, from: any, to: any): (t: number) => any {
+  const held = mapRange([lo, hi], [from, to], true);
+  if (typeof from !== "number" || typeof to !== "number" || prop === "opacity") return held;
+  const free = mapRange([lo, hi], [from, to], false);
+  return (t) => (t < lo ? (lo <= 0 ? free(t) : from) : t > hi ? (hi >= 1 ? free(t) : to) : held(t));
+}
+
 let active: Reaction | null = null;
 export const capturing = () => active;
 
@@ -46,6 +56,7 @@ export class Reaction extends Driver {
   entries: Entry[] = [];
   transition: Transition = preset("settle");
   springSet = false;
+  back: Transition | null = null; // release(): a different feel for the way home
   impulseCandidate: { layer: Layer; amount?: number } | null = null;
   impulse = false;
   transient = false;
@@ -99,6 +110,17 @@ export class Reaction extends Driver {
     this.transition = makeCurve(name, duration);
     this.springSet = true;
     return this;
+  }
+
+  // The way back gets its own spring: in one way, out another. With no spring() for the way in,
+  // a followed driver (hold) goes in at once and only the letting go is sprung.
+  release(name = "settle") {
+    this.back = preset(name);
+    return this;
+  }
+
+  private feel(to: number): Transition {
+    return this.back && to < this.t.get() ? this.back : this.transition;
   }
 
   // ——— wiring, once the script has finished
@@ -162,7 +184,7 @@ export class Reaction extends Driver {
     const tracks: Entry["tracks"] = [];
     const add = (prop: string, to: any, from: any = layer.v[prop].get(), lo = a, hi = b) => {
       if (from === to) return;
-      tracks.push({ prop, map: mapRange([lo, hi], [from, to]) });
+      tracks.push({ prop, map: springy(prop, lo, hi, from, to) });
     };
     const props = { ...tg.props };
     if ((layer.kind === "text" || layer.kind === "emoji") && props.w != null) {
@@ -224,8 +246,9 @@ export class Reaction extends Driver {
 
   // a continuous driver moved, or a drag is scrubbing
   follow(t: number, instant = false) {
-    if (this.springSet && !instant) {
-      this.t.to(t, this.transition);
+    const homeward = !!this.back && t < this.t.get();
+    if ((this.springSet || homeward) && !instant) {
+      this.t.to(t, this.feel(t));
       return this.ensureLinked();
     }
     this.t.stop();
@@ -274,7 +297,7 @@ export class Reaction extends Driver {
     const all = (to: number, tr: Transition) => Promise.all([this.t.to(to, tr), ...this.entries.map((e) => e.t.to(to, tr))]);
     return all(1, { type: "tween", duration: 0.09, ease: "easeOut" }).then(() => {
       if (id !== this.run) return;
-      return all(0, this.transition).then(() => {
+      return all(0, this.back ?? this.transition).then(() => {
         if (id === this.run) this.playing = false;
       });
     });
@@ -292,11 +315,12 @@ export class Reaction extends Driver {
     const id = ++this.run;
     this.goal = to;
     this.playing = true;
-    const jobs = [this.t.to(to, this.transition, { velocity })];
+    const feel = this.feel(to);
+    const jobs = [this.t.to(to, feel, { velocity })];
     for (const e of this.entries) {
       if (e.peak) continue;
       const order = to === 1 ? e.index : e.count - 1 - e.index;
-      jobs.push(e.t.to(to, this.transition, { delay: order * e.stagger, velocity: e.stagger ? undefined : velocity }));
+      jobs.push(e.t.to(to, feel, { delay: order * e.stagger, velocity: e.stagger ? undefined : velocity }));
     }
     const peaks = this.entries.filter((e) => e.peak);
     const off = peaks.length ? this.t.on((t) => peaks.forEach((e) => e.t.set(this.shape(e, t)))) : null;

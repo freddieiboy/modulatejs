@@ -37,6 +37,8 @@ export class Reaction extends Driver {
   drive(...drivers: DriverSource[]): this;
   spring(preset: Preset): this;
   curve(name?: CurveName, seconds?: number): this;
+  /** a different spring for the way back */
+  release(preset?: Preset): this;
 }
 
 export type DriverSource = "tap" | "hold" | "drag" | "scroll" | Driver | Layer | Value<number>;
