@@ -21,6 +21,32 @@ const common = {
   logLevel: "warning",
 };
 
+// Every table row in SPEC.md whose first cell names verbs becomes hover documentation in the editor:
+// { name: [{ sig, text, section, also }] }. The spec stays the one place anything is described.
+function specDocs(md, known) {
+  const docs = {};
+  let section = "", table = null;
+  const flush = () => {
+    if (!table) return;
+    const names = [...new Set(table.flatMap((r) => r.names))];
+    for (const row of table) for (const name of row.names) (docs[name] ??= []).push({ sig: row.sigs.filter((s) => s.startsWith(name)).join("  ·  ") || row.sigs[0], text: row.text, section, also: names.filter((n) => n !== name).slice(0, 12) });
+    table = null;
+  };
+  for (const line of md.split("\n")) {
+    const h = /^#{2,3}\s+(.*)$/.exec(line);
+    if (h) (flush(), (section = h[1]));
+    if (!line.startsWith("|")) { flush(); continue; }
+    const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+    if (cells.every((c) => /^:?-+:?$/.test(c)) || /^(verb|piece|driver|preset)$/i.test(cells[0])) { table ??= []; continue; }
+    const sigs = [...cells[0].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    const names = [...new Set(sigs.map((s) => /^([a-z][A-Za-z]*)(?=\(|$)/.exec(s)?.[1]).filter((n) => n && known.has(n)))];
+    if (!names.length) continue;
+    (table ??= []).push({ names, sigs: sigs.filter((s) => /^[a-z][A-Za-z]*(\(|$)/.test(s)), text: cells.slice(1).filter(Boolean).join(" · ") });
+  }
+  flush();
+  return docs;
+}
+
 async function build() {
   const dist = join(root, "dist");
   mkdirSync(dist, { recursive: true });
@@ -80,6 +106,11 @@ async function build() {
     // verbs, plus what drivers and between() answer to
     methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go"])],
     over: { min: 0.05, max: 3 },
+    presetTable: rt.presetTable,
+    paletteHex: rt.palette,
+    roles: ["accent", "surface", "text", "dim", "fill", "line"],
+    deviceSizes: Object.fromEntries(Object.entries(rt.devices).map(([k, d]) => [k, `${d.w} × ${d.h}`])),
+    docs: specDocs(readFileSync(join(root, "SPEC.md"), "utf8"), new Set([...globals, ...rt.VERBS, "drive", "pause", "once", "go"])),
     presets: Object.keys(rt.presets),
     palette: Object.keys(rt.palette),
     devices: Object.keys(rt.devices),

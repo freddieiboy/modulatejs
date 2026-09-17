@@ -114,17 +114,28 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `center(layer?)` | centre on the screen, or on a layer; centring on a layer also rides on it (moves, scales, fades along) |
 | `below(layer, gap = 12)` `above` `right` `left` | sit next to a layer, centres aligned; `below` and `above` keep a layer that fits inside the screen's side margins |
 | `fill(inset = 0)` | fill the screen or the parent |
-| `move(dx, dy)` | nudge |
+| `move(dx, dy)` | nudge it by that many points from wherever it is now |
 | `around(layer, n = 8)` | n copies on a ring just outside the layer; `fly()` sends them outward |
 | `gap(n)` | spacing of a row, stack or grid |
 | `spread()` | on a row: the first at one edge, the last at the other, the rest evenly between. Two buttons across the top of a sheet or a card |
 | `z(n)` | stacking order |
+| `scrolls()` | move with the screen as it scrolls, like ordinary content. Layers otherwise stay put while `scroll()` drives them |
 
 Placement is computed when the line runs, so place a layer after the layer it refers to.
 
 ## Look
 
-`color(c)` · `radius(r)` · `opacity(o)` · `shadow(0–3)` · `hide()` · `show()` · `bold()` · `wrap(width)` · `clip()`
+| verb | does |
+| --- | --- |
+| `color(c)` | fill colour, or text colour on type: a palette name, a role, or any CSS colour |
+| `radius(r)` | corner radius in points |
+| `opacity(o)` | 0 is invisible, 1 is solid |
+| `shadow(level = 2)` | a soft shadow, from 0 (none) to 3 (floating) |
+| `hide()` | invisible, and untouchable; after `.on()`, gone at the end |
+| `show()` | visible again; after `.on()`, appears quickly at the start |
+| `bold()` | heavier type |
+| `wrap(width = 310)` | let text wrap at that width |
+| `clip()` | cut children off at this layer's edge |
 
 Colours are the palette, a role, or any CSS colour.
 Palette: `coral` `plum` `mint` `sky` `sun` `rose` `sand` `ink` `grey` `white` `black`.
@@ -134,7 +145,15 @@ Roles: `accent` `surface` `text` `dim` `fill` `line`.
 
 ## Properties
 
-`x(n)` `y(n)` (offsets from where it was placed) · `scale(n)` · `rotate(deg)` · `opacity(n)` · `width(n)` `height(n)` (resize without re-centring) · `radius(n)` · `color(c)`
+| verb | does |
+| --- | --- |
+| `x(n)` `y(n)` | offset, in points, from where it was placed |
+| `scale(n)` | 1 is its own size |
+| `rotate(deg)` | degrees, clockwise |
+| `width(n)` `height(n)` | resize without re-centring (a bar that grows from its left edge) |
+| `every(seconds = 2)` | how long one cycle of this layer's patterns lasts |
+
+`opacity(n)`, `radius(n)` and `color(c)` from Look are properties too.
 
 Each takes a number, a Value or a pattern. Before `.on()` they set the layer; after `.on()` or inside `between()` they describe the other state. Everything animates on transforms, never layout.
 
@@ -212,6 +231,11 @@ content({ titles: "Canvas tote, Stone mug, Linen apron", prices: "$48, $22, $65"
 shelf: stack(3, card()).gap(16)
 ```
  Images and avatars load from picsum and DiceBear and fall back to a gradient or initials, so a prototype still looks right offline. `image()` takes a seed or a URL and never inlines bytes. `provider({ image, avatar })` swaps the sources.
+
+| verb | does |
+| --- | --- |
+| `content({ titles, prices, names, lines })` | your words for the pieces that fill themselves |
+| `provider({ image, avatar })` | where photos and faces come from: each is a function returning a URL, or null to stay on the placeholder |
 
 ## Links
 

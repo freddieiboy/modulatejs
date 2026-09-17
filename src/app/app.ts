@@ -11,6 +11,7 @@ import qrcode from "qrcode-generator";
 import { encode, decode } from "../link";
 import { tint } from "./tint";
 import { renderSpec } from "./spec";
+import { hints, loadHints } from "./hints";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -220,6 +221,7 @@ if (!player) {
         syntaxHighlighting(look),
         badLine,
         keepCentred,
+        hints,
         placeholder("// type here, or paste a link"),
         keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),
         EditorView.lineWrapping,
@@ -240,6 +242,8 @@ if (!player) {
       ],
     }),
   });
+  loadHints(view);
+
   $("typewriter").onclick = () => {
     typewriter = !typewriter;
     try {

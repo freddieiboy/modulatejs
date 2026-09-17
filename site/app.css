@@ -83,6 +83,28 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .pane.typewriter .try { position: absolute; left: 0; top: calc(var(--centre, 50%) + 34px); }
 body.player .mode { display: none; }
 
+/* hover docs and option pickers */
+.cm-opt { border-radius: 5px; box-shadow: 0 0 0 1px #e9a38d59; padding: 1px 3px; margin: 0 -3px; cursor: pointer; }
+.cm-opt:hover { box-shadow: 0 0 0 1px var(--str); }
+.cm-tooltip { background: #161618 !important; border: 1px solid #34343a !important; border-radius: 12px !important; box-shadow: 0 18px 50px rgba(0,0,0,.6); color: #d6d6db; z-index: 40 !important; }
+.tip { max-width: 460px; padding: 12px 14px 12px; font: 13.5px/1.55 var(--sans); }
+.tip-sig { display: flex; gap: 16px; align-items: baseline; justify-content: space-between; }
+.tip-sig code { font: 13px/1.5 var(--mono); color: #e4e4e8; }
+.tip-sig em { font: 11px var(--mono); font-style: normal; color: var(--dim); white-space: nowrap; letter-spacing: .04em; text-transform: lowercase; }
+.tip-text { margin-top: 6px; color: #c4c4cb; }
+.tip-text code { font: 12px var(--mono); background: #222226; padding: 1px 5px; border-radius: 4px; color: #e4e4e8; }
+.tip-rule { border: 0; border-top: 1px solid #2a2a2f; margin: 10px 0; }
+.tip-also, .tip-options { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #2a2a2f; align-items: center; }
+.tip-also em { font: 11px var(--mono); font-style: normal; color: var(--dim); margin-right: 4px; width: 100%; }
+.tip-also button, .tip-options button { font: 12px var(--mono); color: var(--fn); border: 1px solid #34343a; border-radius: 7px; padding: 3px 8px; background: #1b1b1e; }
+.tip-also button:hover, .tip-options button:hover { border-color: #6a6a74; color: #fff; }
+.tip-options { border-top: 0; padding-top: 2px; gap: 6px; }
+.tip-options button { display: inline-flex; align-items: center; gap: 7px; color: var(--str); padding: 5px 10px; }
+.tip-options button b { font-weight: 400; }
+.tip-options button small { font: 11px var(--mono); color: var(--dim); }
+.tip-options button i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1px #ffffff2e; }
+.tip-options button.is { border-color: var(--str); background: #e9a38d1f; color: #fff; }
+
 /* the device */
 .stage { background: var(--stage); flex: 0 0 auto; width: var(--stage-w, 40%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 0 10px; min-width: 260px; max-width: calc(100% - 420px); }
 .device-fit { flex: 1; width: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }

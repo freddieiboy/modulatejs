@@ -84,3 +84,9 @@ test("the tools do their jobs", async () => {
   assert.ok(made.startsWith(link("box()")));
   assert.match((await call("link", { code: "box().nope()" })).content[0].text, /problems a person will see/);
 });
+
+test("every piece, driver and verb has a row in the spec, which is where the editor's hover docs come from", () => {
+  const missing = [...new Set([...vocab.globals, ...vocab.verbs])].filter((n) => n !== "name" && !vocab.docs[n]);
+  assert.deepEqual(missing, [], "add a table row to SPEC.md for: " + missing.join(", "));
+  for (const [name, entries] of Object.entries(vocab.docs)) for (const e of entries) assert.ok(e.sig.startsWith(name) && e.text.length > 10 && e.section, name);
+});
