@@ -40,7 +40,7 @@ If your client speaks the Model Context Protocol, you don't have to fetch or enc
 
 ## Optional
 
-- [library.md](https://modulatejs.com/library.md): every verb with a paragraph and a one-line example
+- [library.md](https://modulatejs.com/library.md): a short tour: each idea in a sentence and a few runnable lines
 - [modulate.js](https://modulatejs.com/modulate.js): the runtime, one file, MIT, `Modulate.run(code, element)`; also `npm i modulatejs` and https://unpkg.com/modulatejs
 - `npx modulatejs proto.js`: the coral editor on a file on disk, mirrored live to phones on the same network (for working with Claude Code)
 - Every file here is served on both domains; coral.fm/spec.md and modulatejs.com/spec.md are the same document

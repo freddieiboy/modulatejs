@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ModulateJS — a lightweight prototyping library</title>
-<meta name="description" content="ModulateJS is a lightweight prototyping library: a small vocabulary for mobile-app feel, on Motion's animation engine. Every verb with a live example you can poke.">
+<meta name="description" content="ModulateJS is a lightweight prototyping library: about eighty words for mobile-app feel, on Motion's animation engine. A short tour you can poke, and every word on one page.">
 <meta name="theme-color" content="#0b0b0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="text/markdown" href="/library.md" title="This page, as markdown">
@@ -24,27 +24,40 @@
   <nav class="links top"><a href="https://coral.fm/" data-editor>coral.fm, the editor</a><a href="/spec.md">spec.md</a><a href="/llms.txt">llms.txt</a><a href="https://github.com/freddieiboy/modulatejs">github</a></nav>
 </header>
 <div class="scroll">
-  <div class="hero">
-    <h1>ModulateJS is a lightweight<br>prototyping library.</h1>
-    <p>A toy vocabulary for mobile-app feel: about seventy verbs on top of <a href="https://motion.dev">Motion</a>'s animation engine. Pieces that already look good, drivers that all speak <code>t</code>, and two states with a spring between them. Fifteen lines is a prototype; a prototype is a link; the link opens in <a href="https://coral.fm/" data-editor>coral.fm</a> and runs on your phone.</p>
-    <div class="install" id="install">
-      <div><span class="dim">in a page</span><code>&lt;script src="https://unpkg.com/modulatejs"&gt;&lt;/script&gt;</code><button data-copy='<script src="https://unpkg.com/modulatejs"></script>'>copy</button></div>
-      <div><span class="dim">in a project</span><code>npm i modulatejs</code><button data-copy="npm i modulatejs">copy</button></div>
-      <div><span class="dim">on a file, with your phone</span><code>npx modulatejs proto.js</code><button data-copy="npx modulatejs proto.js">copy</button></div>
-      <div><span class="dim">for Claude Code (MCP)</span><code>claude mcp add modulatejs -- npx -y modulatejs mcp</code><button data-copy="claude mcp add modulatejs -- npx -y modulatejs mcp">copy</button></div>
-      <div><span class="dim">for any chat client (MCP)</span><code>https://coral.fm/mcp</code><button data-copy="https://coral.fm/mcp">copy</button></div>
+  <div class="cols">
+    <div class="left">
+      <div class="hero">
+        <h1>ModulateJS is a lightweight<br>prototyping library.</h1>
+        <p>About eighty words for mobile-app feel, on <a href="https://motion.dev">Motion</a>'s animation engine: pieces that already look finished, two states, and a driver between them. Fifteen lines is a prototype, a prototype is a link, and the link opens in <a href="https://coral.fm/" data-editor>coral.fm</a> and runs on your phone.</p>
+        <div class="install" id="install">
+          <div><span class="dim">in a page</span><code>&lt;script src="https://unpkg.com/modulatejs"&gt;&lt;/script&gt;</code><button data-copy='<script src="https://unpkg.com/modulatejs"></script>'>copy</button></div>
+          <div><span class="dim">on your phone</span><code>npx modulatejs proto.js</code><button data-copy="npx modulatejs proto.js">copy</button></div>
+          <div><span class="dim">for Claude Code</span><code>claude mcp add modulatejs -- npx -y modulatejs mcp</code><button data-copy="claude mcp add modulatejs -- npx -y modulatejs mcp">copy</button></div>
+        </div>
+        <p class="small">Also <code>npm i modulatejs</code>, and <code>https://coral.fm/mcp</code> for any other MCP client. Models read <a href="/spec.md">spec.md</a>.</p>
+      </div>
+      <section id="reads" class="prose">
+        <h2>How it reads</h2>
+<pre><code id="reads-code"></code></pre>
+        <p>A <b>name and a colon</b> makes a layer you can refer to. A <b>piece</b> draws it, <b>verbs</b> chain on it, and after <b><code>.on(driver)</code></b> the verbs describe the other state instead. That is the whole model. It is JavaScript underneath, so anything else you need is there, and <code>init:</code> <code>draw:</code> <code>update:</code> blocks are optional labels for keeping a longer one tidy.</p>
+      </section>
+      <nav class="toc" id="toc"></nav>
+      <main id="sections"></main>
+      <section id="prototypes">
+        <h2>The prototypes</h2>
+        <p class="lede">Each about fifteen lines, each runs as written. They are the test suite, the examples a model reads, and the proof the language is enough.</p>
+      </section>
     </div>
-    <nav class="toc"><a href="#pieces">pieces</a><a href="#placement">placement</a><a href="#look">look</a><a href="#drivers">drivers</a><a href="#feel">feel</a><a href="#drag">dragging</a><a href="#patterns">patterns</a><a href="#prototypes">prototypes</a><a href="#licences">licences</a></nav>
+    <aside class="right"><div class="phone" id="phone"><iframe title="the example, running" id="device"></iframe></div><div class="now"><span id="now-title" class="dim"></span><a id="now-open" class="open" href="https://coral.fm/">open in coral →</a></div></aside>
   </div>
-  <main id="sections"></main>
-  <section id="prototypes">
-    <h2>The prototypes</h2>
-    <p class="lede">Each under fifteen lines, each runs as written. They are the test suite, the examples a model reads, and the proof the language is enough.</p>
+  <section id="reference">
+    <h2>Every word</h2>
+    <p class="lede">Made from <a href="/spec.md">spec.md</a> when the site is built, so it is never behind. Long ones open when you click them.</p>
+    <div id="ref"></div>
   </section>
   <section id="licences" class="prose">
     <h2>Licences</h2>
-    <p><b>modulate.js</b>, the runtime, is MIT: embed it anywhere, no conditions. The <b>editor page and the CLI</b> are AGPL-3.0: read them, fork them, run them locally; a hosted clone publishes its changes. The <b>spec and the prototypes</b> are CC BY 4.0, meant to be copied into prompts and docs. The names, modulatejs.com and coral.fm are what's kept.</p>
-    <p>Built on <a href="https://motion.dev">Motion</a> (MIT). Also inside: lz-string, CodeMirror 6, qrcode-generator, marked, all MIT. Avatars are DiceBear's Notionists Neutral (CC0); photos come from picsum.photos. Full notices in <a href="/THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+    <p><b>modulate.js</b>, the runtime, is MIT: embed it anywhere. The <b>editor and the CLI</b> are AGPL-3.0: read them, fork them, run them locally; a hosted clone publishes its changes. The <b>spec and the prototypes</b> are CC BY 4.0, meant to be copied into prompts and docs. Built on <a href="https://motion.dev">Motion</a> (MIT); full notices in <a href="/THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
   </section>
   <footer class="foot"><span class="dim">ModulateJS · a lightweight prototyping library</span><nav class="links"><a href="https://coral.fm/" data-editor>coral.fm</a><a href="/spec.md">spec.md</a><a href="/library.md">library.md</a><a href="/llms.txt">llms.txt</a></nav></footer>
 </div>

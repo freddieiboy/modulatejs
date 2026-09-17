@@ -43,6 +43,6 @@ A Model Context Protocol server lives at `https://coral.fm/mcp` (streamable HTTP
 ## Everything else
 
 - [llms.txt](https://modulatejs.com/llms.txt)
-- [library.md](https://modulatejs.com/library.md): every verb with an example
+- [library.md](https://modulatejs.com/library.md): a short tour with runnable examples
 - [modulatejs.com](https://modulatejs.com): the library's own page. [modulate.js](https://modulatejs.com/modulate.js) is the runtime (MIT), built on Motion; `npm i modulatejs`
 - Rooms and published short links are planned and not live yet; there are no endpoints to call.

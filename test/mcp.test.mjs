@@ -26,8 +26,8 @@ const rpc = (method, params, id = 1) => server.handle({ jsonrpc: "2.0", id, meth
 const call = async (name, args) => (await rpc("tools/call", { name, arguments: args })).result;
 
 test("the lint has no complaints about anything known to be good", async () => {
-  const { sections } = await import("../src/app/library-data.mjs");
-  const codes = [...protos.map(proto), ...sections.flatMap((s) => s.items.map((i) => i.code))];
+  const { sections, hello } = await import("../src/app/library-data.mjs");
+  const codes = [hello, ...protos.map(proto), ...sections.flatMap((s) => s.items.map((i) => i.code))];
   for (const m of readFileSync(root + "SPEC.md", "utf8").matchAll(/```js\n([\s\S]*?)```/g)) if (!/\bimport\b/.test(m[1])) codes.push(m[1]);
   assert.ok(codes.length > 40);
   for (const code of codes) assert.deepEqual(lint(code, vocab).problems, [], code);

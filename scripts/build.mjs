@@ -118,9 +118,10 @@ async function build() {
   }, null, 1));
 
   // /library.md: the library page for readers who don't run JavaScript
-  const { sections } = await import(join(root, "src/app/library-data.mjs") + "?" + Date.now());
-  let md = "# modulate.js — the library\n\nA toy vocabulary for mobile-app feel, on Motion's animation engine. The canonical vocabulary is [spec.md](https://modulatejs.com/spec.md); this page walks through it with one example per idea. Every example runs as written at https://modulatejs.com.\n\n";
-  md += "Install: `<script src=\"https://unpkg.com/modulatejs\"></script>` · `npm i modulatejs` · `npx modulatejs proto.js`\n";
+  const { sections, hello } = await import(join(root, "src/app/library-data.mjs") + "?" + Date.now());
+  let md = "# ModulateJS — a lightweight prototyping library\n\nAbout eighty words for mobile-app feel, on Motion's animation engine: pieces that already look finished, two states, and a driver between them. This page is a short tour; every word, in full, is in [spec.md](https://modulatejs.com/spec.md). Every example runs as written: paste it into [coral.fm](https://coral.fm/).\n\n";
+  md += "Install: `<script src=\"https://unpkg.com/modulatejs\"></script>` · `npm i modulatejs` · `npx modulatejs proto.js` · MCP: `npx -y modulatejs mcp` or `https://coral.fm/mcp`\n";
+  md += `\n## How it reads\n\n\`\`\`js\n${hello}\n\`\`\`\n\nA name and a colon makes a layer you can refer to. A piece draws it, verbs chain on it, and after \`.on(driver)\` the verbs describe the other state instead.\n`;
   for (const sec of sections) {
     md += `\n## ${sec.title}\n\n${sec.intro}\n`;
     for (const it of sec.items) md += `\n### ${it.verbs}\n\n${it.text}\n\n\`\`\`js\n${it.code}\n\`\`\`\n`;

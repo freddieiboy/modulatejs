@@ -90,8 +90,8 @@ test("link codec", () => {
 });
 
 test("every library example and every js block in the spec runs", async () => {
-  const { sections } = await import("../src/app/library-data.mjs");
-  const codes = sections.flatMap((s) => s.items.map((i) => i.code));
+  const { sections, hello } = await import("../src/app/library-data.mjs");
+  const codes = [hello, ...sections.flatMap((s) => s.items.map((i) => i.code))];
   const spec = readFileSync(root + "SPEC.md", "utf8");
   for (const m of spec.matchAll(/```js\n([\s\S]*?)```/g)) if (!/\bimport\b/.test(m[1])) codes.push(m[1]);
   assert.ok(codes.length > 25);

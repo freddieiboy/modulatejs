@@ -30,4 +30,4 @@ Two names. **modulatejs** is the library: a toy vocabulary for mobile-app feel (
 
 - `npm run build`, then `node bin/modulate.mjs some.js` serves `dist/site` locally with the file mirrored.
 - To see a prototype for real, drive headless Chrome with `playwright-core` against `dist/modulate.js` (`Modulate.run(code, document.body)`), screenshot, and look. jsdom can't see motion.
-- Adding a verb means: a prototype that needs it, the `verb()` in `layer.ts`, a line in `SPEC.md`, a line in `modulate.d.ts`, an entry in `library-data.mjs`. `vocab.json` and the lint pick it up from the build.
+- Adding a verb means: a prototype that needs it, the `verb()` in `layer.ts`, a line in `SPEC.md` (the library page's "every word" reference is generated from the spec's tables, so that is what keeps the page true), a line in `modulate.d.ts`. `library-data.mjs` is the page's short tour: add to it only when the verb earns a place there. `vocab.json` and the lint pick it up from the build.
