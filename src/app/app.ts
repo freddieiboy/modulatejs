@@ -275,6 +275,25 @@ function fromLocation() {
 addEventListener("popstate", fromLocation);
 addEventListener("hashchange", fromLocation);
 
+// ——— ⌘S: there is nothing to save, the link already is the file. Never the browser's "save page" dialog;
+// instead run now, bring the URL up to date, and write the file straight away if there is one on disk.
+addEventListener(
+  "keydown",
+  (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || e.key.toLowerCase() !== "s") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (player) return;
+    clearTimeout(runTimer);
+    send();
+    history_.replace();
+    local.write(true);
+    const right = $("status-right");
+    right.textContent = local.on ? "written to disk" : "it's in the link";
+  },
+  true
+);
+
 // ——— open on phone · copy link
 let lanOrigin: string | null = null;
 const shareUrl = () => (lanOrigin ?? location.origin) + location.pathname + fragment().trim();
@@ -366,13 +385,16 @@ const local = {
       return false;
     }
   },
-  write() {
+  write(now = false) {
     if (!this.on || player || code === this.lastFromDisk) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => {
-      this.lastFromDisk = code;
-      fetch("/__modulate/file", { method: "POST", body: code });
-    }, 250);
+    this.timer = setTimeout(
+      () => {
+        this.lastFromDisk = code;
+        fetch("/__modulate/file", { method: "POST", body: code });
+      },
+      now ? 0 : 250
+    );
   },
 };
 

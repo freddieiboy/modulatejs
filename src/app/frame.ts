@@ -20,6 +20,11 @@ addEventListener("message", (e) => {
   if (e.data?.type === "run") run(String(e.data.code ?? ""));
 });
 
+// ⌘S with the device focused shouldn't open the browser's save dialog either
+addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "s") e.preventDefault();
+});
+
 let timer: any;
 addEventListener("resize", () => {
   clearTimeout(timer);
