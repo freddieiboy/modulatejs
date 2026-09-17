@@ -8,11 +8,20 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; overscroll-behavior: none; touch-action: manipulation; }
   #empty { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; z-index: 1; font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; pointer-events: none; }
   #empty[hidden] { display: none; }
+  /* with a mouse, the pointer is a fingertip: what you see is what a thumb would do */
+  html.finger, html.finger * { cursor: none !important; }
+  #touch { position: fixed; left: 0; top: 0; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; pointer-events: none; z-index: 2147483647;
+    background: rgba(150, 150, 160, .32); border: 1.5px solid rgba(255, 255, 255, .92); box-shadow: 0 0 0 1px rgba(0, 0, 0, .16), 0 3px 10px rgba(0, 0, 0, .22);
+    opacity: 0; will-change: transform; transition: opacity .18s; }
+  #touch i { position: absolute; inset: 0; border-radius: 50%; background: rgba(90, 90, 100, .0); transform: scale(1); transition: transform .12s ease-out, background .12s; }
+  #touch.on { opacity: 1; }
+  #touch.down i { transform: scale(.78); background: rgba(90, 90, 100, .38); }
   #empty b { font-weight: 400; font-size: 15px; color: #b9b9bd; }
   #empty span { font-size: 11.5px; color: #d6d6da; }
 </style>
 </head>
 <body>
+<div id="touch"><i></i></div>
 <div id="empty" hidden><b>nothing yet</b><span>the device shows what the code says</span></div>
 <script src="/modulate.js"></script>
 <script src="/frame.js"></script>

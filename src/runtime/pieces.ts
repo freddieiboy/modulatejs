@@ -18,6 +18,18 @@ function sort(args: any[]) {
   return { nums, strs, kids };
 }
 
+// A container's children in the order they were written: layers as they are, strings as type.
+// styles[i] is how the i-th string is set: the first is a title, the second a dim line, the rest body.
+function inOrder(args: any[], styles: ((s: string) => Layer)[]): Layer[] {
+  const out: Layer[] = [];
+  let n = 0;
+  for (const a of args) {
+    if (typeof a === "string" && !isColorWord(a)) out.push(styles[Math.min(n++, styles.length - 1)](a));
+    else if (a && typeof a === "object" && "el" in rootOf(a)) out.push(rootOf(a));
+  }
+  return out;
+}
+
 function paint(l: Layer, color: string, mode: "bg" | "text" = "bg") {
   l.colorMode = mode;
   l.colorSrc = color;
@@ -164,9 +176,9 @@ export function card(...args: any[]): Layer {
     const title = words[0] ?? next("titles");
     const line = words[1] ?? next("prices") + " · " + next("names");
     kids.push(image(title, 310, 180), (text(title) as any).bold(), (text(line, 15) as any).color("dim"));
-  } else {
-    if (words[0]) kids.push((text(words[0]) as any).bold());
-    if (words[1]) kids.push((text(words[1], 15) as any).color("dim"));
+  } else if (words.length) {
+    kids.length = 0;
+    kids.push(...inOrder(args, [(s) => (text(s) as any).bold(), (s) => (text(s, 15) as any).color("dim")]));
   }
   const w = nums[0] ?? Math.min(stage().W - 48, 420), h = nums[1] ?? 220;
   const l = new Layer("card", { w, h, radius: 28 });
@@ -240,12 +252,14 @@ export function bubbles(...args: any[]): Layer {
 }
 
 export function sheet(...args: any[]): Layer {
-  const { nums, strs, kids } = sort(args);
-  if (!args.length) kids.push(text(next("titles"), 28), (text("Pull me up, push me down", 15) as any).color("dim"), row(pill("Nearby"), pill("Open now", "fill")));
+  const { nums, strs } = sort(args);
+  // strings are its words, in the order written: a title, a dim line, then body. sheet("sand") is still a colour.
+  const kids = inOrder(args, [(s) => text(s, 28), (s) => (text(s, 17) as any).color("dim"), (s) => (text(s, 17) as any).wrap(stage().W - 48)]);
+  if (!kids.length) kids.push(text(next("titles"), 28), (text("Pull me up, push me down", 15) as any).color("dim"), row(pill("Nearby"), pill("Open now", "fill")));
   const st = stage();
   const h = nums[0] ?? 560, peek = nums[1] ?? 96;
   const l = new Layer("sheet", { w: st.W, h: h + 80, radius: 32, z: 10 });
-  paint(l, strs[0] ?? "surface");
+  paint(l, strs.find(isColorWord) ?? "surface");
   l.el.style.boxShadow = "0 -2px 6px rgba(0,0,0,.04), 0 -16px 48px rgba(0,0,0,.14)";
   const grab = new Layer("grabber", { w: 40, h: 5, radius: 3 });
   paint(grab, "line");
@@ -257,6 +271,7 @@ export function sheet(...args: any[]): Layer {
   l.pad = 24;
   l.stacks = true;
   l.riseBy = h - peek;
+  (l as any).peek = peek;
   l.place((c) => {
     c.v.x.jump(0);
     c.v.y.jump(st.H - peek);

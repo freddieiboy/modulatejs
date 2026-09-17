@@ -159,3 +159,21 @@ test("device() sets the screen, and has to come first", () => {
   // and the next run is back on the default
   assert.equal(win.Modulate.run(`box()`, win.document.body).device.name, "iphone");
 });
+
+test("a sheet reads the way you'd describe it", () => {
+  const win = browser();
+  const r = win.Modulate.run(`buttons: row(pill("Cancel", "fill"), pill("Done")).spread()\nitem: sheet(buttons, "Canvas tote", image("tote"), "$48")\nitem.on("tap").rise("half").drag("y").dismiss()`, win.document.body);
+  assert.equal(r.error, undefined);
+  const st = win.Modulate.stage();
+  const item = st.layers.find((l) => l.label === "item"), buttons = st.layers.find((l) => l.label === "buttons");
+  // children keep the order they were written in (after the grabber)
+  assert.equal(item.children.slice(1).map((c) => c.kind).join(" "), "row text image text");
+  // the row reaches from one padded edge of the sheet to the other
+  assert.equal(buttons.v.w.get(), 390 - 48);
+  assert.equal(buttons.children[1].v.x.get() + buttons.children[1].v.w.get(), 390 - 48);
+  // half: the sheet's top edge ends at the middle of the screen
+  const travel = item.reactions[0].travel(item, "y");
+  assert.equal(item.v.y.get() + travel, st.H / 2);
+  assert.match(win.Modulate.run(`sheet().on("tap").rise("a bit")`, win.document.body).error, /"half" or "full"/);
+  assert.match(win.Modulate.run(`stack(box(), box()).spread()`, win.document.body).error, /spread\(\) is for a row/);
+});

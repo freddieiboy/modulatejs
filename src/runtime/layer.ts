@@ -211,6 +211,7 @@ export class Layer {
         c.replace();
         continue;
       }
+      if ((c as any).spreads) (c as any).arrange(); // a spread row takes this container's width
       // pictures and cards shrink to fit the container, and grow back if it grows
       if (c.kind === "image" || c.kind === "card" || c.kind === "box") {
         const nat = ((c as any).natural ??= { w: c.v.w.get(), h: c.v.h.get() });
@@ -446,6 +447,14 @@ verb("move", (L, ctx, dx = 0, dy = 0) => {
   }
 });
 
+// row(a, b).spread(): the first at one edge, the last at the other, the rest evenly between
+verb("spread", (L) => {
+  if (L.kind !== "row") throw new Error("spread() is for a row: row(a, b).spread()");
+  (L as any).spreads = true;
+  (L as any).arrange();
+  L.replace();
+});
+
 verb("gap", (L, _c, n: number) => {
   L.gapSize = n;
   (L as any).arrange?.();
@@ -529,8 +538,16 @@ verb("range", (L, ctx, a: number, b: number) => {
 verb("fade", (L, ctx) => {
   needsCtx(ctx, "fade").target(L).fade = true;
 });
-verb("rise", (L, ctx, d?: number) => {
-  needsCtx(ctx, "rise").target(L).rise = d ?? L.riseBy;
+verb("rise", (L, ctx, d?: number | "half" | "full") => {
+  const rx = needsCtx(ctx, "rise");
+  if (typeof d === "string") {
+    // how far up: until its top edge is halfway up the screen, or all the way
+    const st = stage(), top = L.abs().y;
+    if (d === "half") d = top - st.H / 2;
+    else if (d === "full") d = L.kind === "sheet" ? L.riseBy : top - (st.safeTop + 8);
+    else throw new Error(`rise("${d}"): use a distance, or "half" or "full"`);
+  }
+  rx.target(L).rise = d ?? L.riseBy;
 });
 verb("fly", (L, ctx, d = 40, angle?: number) => {
   const t = needsCtx(ctx, "fly").target(L);
@@ -610,13 +627,16 @@ export class Group extends Layer {
     if (this.kind === "ring") return;
     if (this.kind === "row") {
       h = Math.max(0, ...kids.map((k) => k.v.h.get()));
+      const used = kids.reduce((sum, k) => sum + k.v.w.get(), 0);
+      const room = this.parent ? this.parent.v.w.get() - 2 * (this.parent.pad || 16) : stage().W - 48;
+      const step = (this as any).spreads && kids.length > 1 ? Math.max(g, (room - used) / (kids.length - 1)) : g;
       for (const k of kids) {
         k.placeOp = null;
         k.v.x.jump(x);
         k.v.y.jump((h - k.v.h.get()) / 2);
-        x += k.v.w.get() + g;
+        x += k.v.w.get() + step;
       }
-      w = x - g;
+      w = x - step;
     } else if (this.kind === "stack") {
       w = Math.max(0, ...kids.map((k) => k.v.w.get()));
       for (const k of kids) {

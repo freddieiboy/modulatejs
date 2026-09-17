@@ -58,6 +58,8 @@ export class Layer {
   move(dx?: number, dy?: number): this;
   around(layer: Layer, count?: number, gap?: number): Layer;
   gap(n: number): this;
+  /** on a row: first at one edge, last at the other */
+  spread(): this;
   z(n: number): this;
   // look
   color(c: Color): this;
@@ -82,7 +84,7 @@ export class Layer {
   curve(name?: CurveName, seconds?: number): this;
   range(from: number, to: number): this;
   fade(): this;
-  rise(distance?: number): this;
+  rise(distance?: number | "half" | "full"): this;
   fly(distance?: number, angleDegrees?: number): this;
   into(layer: Layer): this;
   stagger(seconds?: number): this;

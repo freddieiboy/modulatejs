@@ -1,7 +1,8 @@
-// bottom sheet: rises on tap, follows a drag down
+// bottom sheet: two buttons on top, a product, up to the middle, easy to throw away
 map: image("map").fill()
 shade: box("ink").fill().hide()
-filters: sheet(text("Filters", 28), row(pill("Nearby"), pill("Open now", "fill")), text("Price", 17).color("dim"), row(4, pill(70, 44).color("fill")))
+buttons: row(pill("Cancel", "fill"), pill("Add to bag", "coral")).spread()
+item: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand")
 
-filters.on("tap").rise().drag("y").spring("snappy")
-shade.on(filters).opacity(.45)
+item.on("tap").rise("half").drag("y").dismiss().spring("snappy")
+shade.on(item).opacity(.45)

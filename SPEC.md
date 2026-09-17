@@ -100,7 +100,7 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `stack(...layers)` · `stack(n, layer)` | top to bottom, gap 12 |
 | `grid(cols = 3, rows = 3, layer = box(88))` | a grid, gap 12 |
 | `bubbles(n = 5)` · `bubbles("line", "line", …)` | a chat: grey on the left, plum on the right, words from the bank |
-| `sheet(...children)` | bottom sheet, 560 tall, resting with 96 showing. `rise()` on it lifts it fully |
+| `sheet(...words and children)` | bottom sheet, 560 tall, resting with 96 showing. What you give it stacks in the order written; strings are its words (a title, a dim line, then body). `rise()` lifts it fully, `rise("half")` to the middle of the screen |
 | `tabbar("Home Search Inbox Me")` | bottom tabs with a sliding indicator; `tabs.page` is its driver |
 
 `row`, `stack`, `grid`, `bubbles` and `around` make **groups**. Look verbs on a group reach its children; with `stagger()` or `peak()` so do feel verbs.
@@ -117,6 +117,7 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `move(dx, dy)` | nudge |
 | `around(layer, n = 8)` | n copies on a ring just outside the layer; `fly()` sends them outward |
 | `gap(n)` | spacing of a row, stack or grid |
+| `spread()` | on a row: the first at one edge, the last at the other, the rest evenly between. Two buttons across the top of a sheet or a card |
 | `z(n)` | stacking order |
 
 Placement is computed when the line runs, so place a layer after the layer it refers to.
@@ -148,7 +149,7 @@ Each takes a number, a Value or a pattern. Before `.on()` they set the layer; af
 | `range(a, b)` | this layer only moves during that slice of t: `range(.35, 1)` |
 | `fade()` | dissolve: a visible layer fades out, a hidden one fades in |
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
-| `rise(d?)` | move up by d; a hidden layer instead arrives from d below, fading in. On a `sheet`, d is its full travel |
+| `rise(d?)` | move up by d; a hidden layer instead arrives from d below, fading in. `rise("half")` stops with its top edge halfway up the screen, `rise("full")` goes all the way (the default on a `sheet`) |
 | `fly(d = 40, angle?)` | move d along its direction: outward for `around()` copies, else up |
 | `into(layer)` | grow into that layer's frame while it fades in over the top; tapping it goes back |
 | `stagger(s = .05)` | children of a group go one after another, s seconds apart (a share of t for continuous drivers) |
@@ -166,7 +167,7 @@ Presets are frozen: `pop` (fast, overshoots) · `settle` (the default, no fuss) 
 | `release(preset = "settle")` | spring home when let go |
 | `dismiss()` | flicked or dragged past a third of the screen, it leaves instead (and comes back after a moment, because this is a toy) |
 
-A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down.
+A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.
 
 ## Patterns
 
@@ -231,13 +232,14 @@ pass.rotate(modulate(drag(pass).x, [-200, 200], [-9, 9]))
 ```
 
 ```js
-// bottom sheet: rises on tap, follows a drag down
+// bottom sheet: two buttons on top, a product, up to the middle, easy to throw away
 map: image("map").fill()
 shade: box("ink").fill().hide()
-filters: sheet(text("Filters", 28), row(pill("Nearby"), pill("Open now", "fill")))
+buttons: row(pill("Cancel", "fill"), pill("Add to bag", "coral")).spread()
+item: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand")
 
-filters.on("tap").rise().drag("y").spring("snappy")
-shade.on(filters).opacity(.45)
+item.on("tap").rise("half").drag("y").dismiss().spring("snappy")
+shade.on(item).opacity(.45)
 ```
 
 ```js

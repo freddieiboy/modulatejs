@@ -190,7 +190,21 @@ export function startDrag(L: Layer, cfg: DragConfig) {
     if (scrubbing) {
       const vt = rx.t.velocity();
       const projected = rx.t.get() + vt * 0.18;
-      rx.play(projected > 0.5 ? 1 : 0, vt);
+      // dismiss(): easy to throw away. Any real flick back, or letting go below most of the way, sends it
+      // home, and then right off the screen; it comes back after a moment, because this is a toy.
+      const leaves = cfg.dismiss && (vt < -0.6 || projected < 0.8);
+      rx.play(cfg.dismiss ? (leaves ? 0 : 1) : projected > 0.5 ? 1 : 0, vt);
+      if (leaves) {
+        const away = axisOfScrub === "y" ? L.v.dy : L.v.dx;
+        const off = ((L as any).peek ?? 0) + 40;
+        gone = true;
+        away.to(travel < 0 ? off : -off, preset("snappy"));
+        const timer = setTimeout(() => {
+          gone = false;
+          away.to(0, preset("settle"));
+        }, 1100);
+        track(() => clearTimeout(timer));
+      }
       return;
     }
     const spring = preset(cfg.release ?? "settle");

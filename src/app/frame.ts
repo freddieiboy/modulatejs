@@ -20,6 +20,23 @@ addEventListener("message", (e) => {
   if (e.data?.type === "run") run(String(e.data.code ?? ""));
 });
 
+// A mouse becomes a fingertip: a soft white dot instead of an arrow, pressed while the button is down.
+// Real touches never see it.
+const touch = document.getElementById("touch")!;
+let scale = 1;
+const dot = (e: PointerEvent) => {
+  if (e.pointerType !== "mouse") return;
+  document.documentElement.classList.add("finger");
+  touch.classList.add("on");
+  touch.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(${scale})`;
+};
+addEventListener("pointermove", dot, true);
+addEventListener("pointerdown", (e) => (dot(e), e.pointerType === "mouse" && touch.classList.add("down")), true);
+addEventListener("pointerup", () => touch.classList.remove("down"), true);
+addEventListener("pointercancel", () => touch.classList.remove("down"), true);
+document.documentElement.addEventListener("pointerleave", () => touch.classList.remove("on", "down"));
+addEventListener("blur", () => touch.classList.remove("down"));
+
 // ⌘S with the device focused shouldn't open the browser's save dialog either
 addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "s") e.preventDefault();
