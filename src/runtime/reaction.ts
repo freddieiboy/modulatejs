@@ -4,11 +4,12 @@ import { track } from "./stage";
 import { preset, timed, checkOver, curve as makeCurve } from "./presets";
 import { stage } from "./stage";
 import { resolveColor } from "./theme";
-import { changePicture, type Layer } from "./layer";
+import { changePicture, Layer } from "./layer";
+import * as screens from "./screens";
 import { listOf, type Pattern } from "./mini";
 import { Origin, CENTRE } from "./origin";
 import { listen } from "./stage";
-import { Driver, resolveDriver } from "./drivers";
+import { Driver, resolveDriver, firingNow } from "./drivers";
 
 // What a layer becomes at t = 1.
 export interface Target {
@@ -38,6 +39,11 @@ interface Track {
   to?: any;
   weight?: (t: number) => number;
   still?: boolean; // from and to are the same: alone, it has nothing to say
+  // A screen change's say. It isn't a state of the property but something done to whatever the property is: a
+  // gate multiplies it (0 at rest hides the screen, 1 lets it be as it was designed), a plus is added on (the
+  // slide). Several openers of one screen share a slot, and the most open one speaks for the slot.
+  slot?: string;
+  gate?: boolean;
 }
 
 // Everything that reactions want of one property of one layer, settled into the one value the layer gets.
@@ -52,9 +58,21 @@ class Channel {
   tracks: Track[] = [];
   constructor(private layer: Layer, private prop: string, public base: any) {}
   update() {
-    const ts = this.tracks, val = this.layer.v[this.prop];
-    if (ts.length === 1) return void (ts[0].still || val.set(ts[0].map(ts[0].t)));
+    const all = this.tracks, val = this.layer.v[this.prop];
+    if (all.length === 1 && !all[0].slot) return void (all[0].still || val.set(all[0].map(all[0].t)));
+    const ts = all.filter((k) => !k.slot);
     const numeric = typeof this.base === "number";
+    let v = this.base;
+    if (ts.length === 1) v = ts[0].still ? this.base : ts[0].map(ts[0].t);
+    else v = this.mix(ts, numeric);
+    if (ts.length < all.length && typeof v === "number") {
+      const speaks = new Map<string, Track>();
+      for (const k of all) if (k.slot && (speaks.get(k.slot)?.t ?? -Infinity) < k.t) speaks.set(k.slot, k);
+      for (const k of speaks.values()) v = k.gate ? v * k.map(k.t) : v + k.map(k.t);
+    }
+    val.set(v);
+  }
+  private mix(ts: Track[], numeric: boolean) {
     let v = this.base;
     for (const k of ts) {
       if (k.rx.discrete) continue;
@@ -70,10 +88,10 @@ class Channel {
       if (numeric && typeof to === "number") v = v + (to - v) * w;
       else v = w >= 1 ? to : w <= 0 ? v : mapRange([0, 1], [v, to])(w);
     }
-    val.set(v);
+    return v;
   }
 }
-function channelOf(layer: Layer, prop: string): Channel {
+export function channelOf(layer: Layer, prop: string): Channel {
   return (layer.channels[prop] ??= new Channel(layer, prop, layer.v[prop].get()));
 }
 
@@ -113,6 +131,7 @@ function springy(prop: string, lo: number, hi: number, from: any, to: any): (t: 
   return (t) => (t < lo ? (lo <= 0 ? free(t) : from) : t > hi ? (hi >= 1 ? free(t) : to) : held(t));
 }
 
+let goIds = 0;
 let active: Reaction | null = null;
 export const capturing = () => active;
 
@@ -143,6 +162,9 @@ export class Reaction extends Driver {
   comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
   private returning: (() => void) | null = null;
   drivers: Driver[] = [];
+  goTo: { set: any; how: string } | null = null; // go(section, how): this change shows a screen
+  isBack = false; // back(): this one only closes whatever is on top
+  private opens = false; // go() or into(): it goes somewhere, and is remembered so it can come back
   discrete = true; // a state, rather than something that follows a continuous driver: see Channel
   goal = 0;
   fires = 0;
@@ -216,6 +238,7 @@ export class Reaction extends Driver {
 
   private resolveFeel(hold: boolean) {
     if (this.inCurve) this.transition = makeCurve(this.inCurve.name, this.inOver ?? this.inCurve.seconds);
+    else if (this.goTo && !this.inPreset) this.transition = timed("snappy", this.bothOver ?? 0.4); // a screen arrives without a bounce, at the pace iOS pushes one
     else this.transition = this.inPreset ? timed(this.inPreset, this.inOver) : timed(hold ? "snappy" : "settle", this.bothOver);
     const out = this.outPreset ?? (hold ? "settle" : null);
     this.back = out ? timed(out, this.outPreset ? this.outOver : this.bothOver) : null;
@@ -299,14 +322,16 @@ export class Reaction extends Driver {
         // Tapping the destination goes back, and it goes back as the tap that opened it: whatever else heard that
         // tap (the others that faded, the screen that came in) goes back too. Several layers can open into one
         // destination; only the one that is open answers.
+        this.opens = true;
         resolveDriver("tap", other).onFire(() => {
           if (this.goal !== 1) return;
-          const opener = this.drivers.find((d) => d.played);
-          if (opener) opener.emit({ back: true });
+          if (screens.top()?.rx === this || screens.isOnStack(this)) screens.closeFor(this);
           else this.play(0);
         });
       }
     }
+
+    if (this.goTo) this.buildGo();
 
     // A change whose every layer ends invisible leaves nothing to tap, so it can't be played back: it rewinds
     // by itself instead. Hidden at rest (a burst of particles): straight away, nobody sees it. Visible at rest
@@ -333,6 +358,12 @@ export class Reaction extends Driver {
     if (this.wired) return;
     this.wired = true;
     for (const e of this.entries) e.t.on((t) => this.apply(e, t));
+    if (this.opens) screens.register(this);
+    if (this.goTo) {
+      // while that screen is up, the tap that opens it does nothing at all: not this, nor what goes with it
+      const set = this.goTo.set;
+      for (const d of this.drivers) if (d.played) d.gates.push(() => !screens.isOpen(set));
+    }
     if (this.choice) {
       this.choice.at.on((i: number) => this.choose(i));
       this.choose(this.choice.index, true);
@@ -488,8 +519,70 @@ export class Reaction extends Driver {
 
   private playing = false;
 
+  // go(section, how): the screen's layers, a page behind them, and what is underneath when it has a part to play.
+  // All of it rides on top of whatever those properties are (see Track.slot), so the screen's own changes go on working.
+  private buildGo() {
+    const { set, how } = this.goTo!;
+    const st = stage(), W = st.W, H = st.H;
+    const id = (set.goId ??= ++goIds);
+    const lift = 100 * id;
+    const clamp = (t: number) => Math.max(0, Math.min(1, t));
+    const members: Layer[] = set.members;
+    const sheet = how === "sheet";
+    // one page per screen, however many ways lead to it: the ground it stands on, so what is under doesn't show through
+    if (!set.page) {
+      const page = (set.page = new Layer("page", { x: 0, y: 0, w: W, h: H + 80, radius: sheet ? 32 : 0, z: Math.min(0, ...members.map((m) => m.v.z.get())) - 1 }));
+      page.v.color.jump(resolveColor(sheet ? "surface" : "bg"));
+      page.inert = false;
+      if (sheet) (page.shadowUp = true), page.v.shadow.jump(2.5);
+      if (sheet) {
+        const shade = (set.shade = new Layer("shade", { x: 0, y: 0, w: W, h: H, opacity: 0.4, z: page.v.z.get() - 1 }));
+        shade.v.color.jump(resolveColor("ink"));
+        shade.inert = false;
+        resolveDriver("tap", shade).onFire(() => screens.top()?.section === set && screens.close());
+      }
+    }
+    const slot = "go:" + id;
+    const riding = (layer: Layer, shaded = false) => {
+      const tracks: Track[] = [];
+      const add = (prop: string, map: (t: number) => number, gate = false) => tracks.push(Object.assign(this.track(layer, prop, map), { slot, gate }));
+      if (layer.shownOpacity != null) channelOf(layer, "opacity").base = layer.shownOpacity; // hidden by section.hide(): this is what it looks like when shown
+      add("opacity", how === "fade" || shaded ? clamp : (t) => clamp(t / 0.02), true);
+      add("z", () => lift);
+      if (!shaded) {
+        if (how === "cover") add("oy", (t) => H * (1 - t));
+        if (how === "push") add("ox", (t) => W * (1 - t));
+        if (sheet) add("oy", (t) => H * (1 - t / 2));
+      }
+      this.entries.push({ layer, index: 0, count: 1, t: new Value(0), tracks, swaps: [], peak: false, stagger: 0 });
+    };
+    for (const m of [set.page, ...members]) riding(m);
+    if (set.shade) riding(set.shade, true);
+    if (how === "push") {
+      // what you are leaving slides a third of the way left: the screen the opener is on
+      const home = this.owner ? screens.screenOf(this.owner) : null;
+      const under: Layer[] = home ? [home.page, ...home.members].filter(Boolean) : st.layers.filter((l: Layer) => !l.parent && l.kind !== "page" && l.kind !== "shade" && !screens.screenOf(l));
+      for (const layer of under) {
+        if (members.includes(layer)) continue;
+        const k = Object.assign(this.track(layer, "ox", (t) => (-W / 3) * t), { slot: "under:" + id });
+        this.entries.push({ layer, index: 0, count: 1, t: new Value(0), tracks: [k], swaps: [], peak: false, stagger: 0 });
+      }
+    }
+    this.opens = true;
+    for (const e of this.entries) this.apply(e, 0);
+  }
+
   // a played driver fired
   fire() {
+    if (this.isBack) return void screens.back();
+    if (this.opens) {
+      if (this.goal === 1) return void screens.closeFor(this);
+      this.claimOrigins();
+      const all = firingNow();
+      all?.push(this);
+      screens.opened(this, all, this.goTo?.set ?? null, this.goTo?.how ?? "into");
+      return this.play(1);
+    }
     const n = this.fires++;
     if (this.goal === 0 || this.impulse || this.transient) this.claimOrigins();
     for (const e of this.entries) {
@@ -522,6 +615,7 @@ export class Reaction extends Driver {
       track(() => this.returning?.());
       return played;
     }
+    if (this.goal === 0) firingNow()?.push(this); // part of whatever move this tap starts: it goes back with it
     return this.play(this.goal === 1 ? 0 : 1);
   }
 

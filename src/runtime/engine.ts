@@ -39,8 +39,13 @@ export function mapRange(input: number[], output: any[], clamp = true): (t: numb
   return interpolate(input, output, { clamp });
 }
 
+// The editor can hold a screen still to look at it: everything that runs by the clock (lfo, time, drift,
+// physics) waits. Springs already in flight are left to land.
+let held = false;
+export const holdStill = (on: boolean) => (held = on);
+
 export function onFrame(cb: (time: number, delta: number) => void): () => void {
-  const fn = ({ timestamp, delta }: any) => cb(timestamp, delta);
+  const fn = ({ timestamp, delta }: any) => held || cb(timestamp, delta);
   frame.update(fn, true);
   return () => cancelFrame(fn);
 }

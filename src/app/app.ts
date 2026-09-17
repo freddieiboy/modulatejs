@@ -14,6 +14,7 @@ import { renderSpec } from "./spec";
 import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
 import { allPictures, keepPicture, removePicture, heldPictures } from "./assets";
+import { makeStrip, screensInEditor, type Strip } from "./screens";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -34,8 +35,10 @@ let frameReady = false;
 let code = "";
 let lastPushed = "";
 
+let screens: Strip | null = null;
 function send() {
   if (frameReady) frame.contentWindow!.postMessage({ type: "run", code }, "*");
+  screens?.clear();
 }
 
 addEventListener("message", (e) => {
@@ -72,8 +75,9 @@ function shapeDevice(d?: typeof dev) {
 
 const pictures: Promise<Record<string, Blob>> = player ? Promise.resolve({}) : allPictures().catch(() => ({}));
 
-function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev }) {
+function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev; sections?: string[] }) {
   if (!player) shapeDevice(r.device);
+  if (!player && r.ok) pictures.then((files) => (screens ??= makeStrip($("screens"), frame)).show(r.sections ?? [], code, dev, files));
   const left = $("status-left"), right = $("status-right");
   left.className = r.ok ? "" : "bad";
   left.textContent = r.ok ? (code.trim() ? `${dev.name} · ${dev.w} × ${dev.h}` : "") : r.error ?? "error";
@@ -228,6 +232,7 @@ if (!player) {
         javascript(),
         syntaxHighlighting(look),
         badLine,
+        screensInEditor(() => screens),
         keepCentred,
         hints,
         completion,

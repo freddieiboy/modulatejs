@@ -6,14 +6,16 @@ const host = document.createElement("div");
 host.id = "host";
 host.style.cssText = "position:fixed;inset:0";
 document.body.appendChild(host);
-let last = "";
+let last = "", alone: string | null = null;
 
-function run(code: string) {
+function run(code: string, solo: string | null = null) {
   last = code;
+  alone = solo;
   const blank = !code.trim();
   empty.hidden = !blank;
   const t0 = performance.now();
   const res = Modulate.run(blank ? "" : code, host);
+  if (solo && res.ok) Modulate.solo(solo); // the editor wants to look at one section by itself
   parent.postMessage({ type: "result", ...res, ms: Math.round(performance.now() - t0) }, "*");
 }
 
@@ -21,7 +23,7 @@ const held = new Map<string, string>();
 Modulate.provider({ file: (name: string) => held.get(name) ?? null });
 
 addEventListener("message", (e) => {
-  if (e.data?.type === "run") run(String(e.data.code ?? ""));
+  if (e.data?.type === "run") run(String(e.data.code ?? ""), e.data.solo ?? null);
   if (e.data?.type === "pictures") {
     for (const [name, blob] of Object.entries<Blob>(e.data.files ?? {})) {
       const old = held.get(name);
@@ -33,7 +35,7 @@ addEventListener("message", (e) => {
       if (old) URL.revokeObjectURL(old);
       held.delete(name);
     }
-    if (e.data.rerun && last) run(last);
+    if (e.data.rerun && last) run(last, alone);
   }
 });
 
@@ -62,7 +64,7 @@ addEventListener("keydown", (e) => {
 let timer: any;
 addEventListener("resize", () => {
   clearTimeout(timer);
-  timer = setTimeout(() => run(last), 120);
+  timer = setTimeout(() => run(last, alone), 120);
 });
 
 // either side may load first, so the editor also says hello and we answer

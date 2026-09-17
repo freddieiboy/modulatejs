@@ -126,6 +126,8 @@ function run(set: LayerSet, targets: any[], name: string, args: any[], self: any
     });
     return self;
   }
+  // a section hidden as a whole (detail.hide()) remembers how each layer looked, so go() can show it as designed
+  if (name === "hide" && targets === set.members) for (const m of set.members) m.shownOpacity ??= m.v.opacity.get();
   targets.forEach((t, i) => {
     if (PLACES.has(name) && i > 0) return;
     // words and pictures come as lists of their own kind, one each like any other "<…>"

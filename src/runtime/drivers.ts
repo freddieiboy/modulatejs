@@ -13,14 +13,27 @@ import { mini } from "./mini";
 export class Driver {
   t = new Value(0);
   private listeners: ((detail?: any) => void)[] = [];
+  // a gate can refuse a firing outright (a go() to the screen you are already on): then nobody hears it
+  gates: ((detail?: any) => boolean)[] = [];
   constructor(public kind: string, public played: boolean) {}
   onFire(cb: (detail?: any) => void) {
     this.listeners.push(cb);
   }
   emit(detail?: any) {
-    for (const l of this.listeners) l(detail);
+    if (this.gates.some((g) => !g(detail))) return;
+    // everything that fires because of one tap is one batch: a screen change remembers its batch, and going
+    // back undoes all of it
+    const outer = !batch;
+    if (outer) batch = [];
+    try {
+      for (const l of this.listeners) l(detail);
+    } finally {
+      if (outer) batch = null;
+    }
   }
 }
+let batch: any[] | null = null;
+export const firingNow = () => batch;
 
 const root = (l: any): Layer => l?.__root ?? l;
 const isLayer = (x: any) => !!x && typeof x === "object" && "reactions" in root(x) && "el" in root(x);

@@ -9,7 +9,8 @@ import { theme, palette } from "./theme";
 import { presets, presetTable } from "./presets";
 import { provider, bank, content } from "./content";
 import { mini } from "./mini";
-import { run, check, preprocess, setApi } from "./run";
+import { run, check, preprocess, setApi, solo } from "./run";
+import { depth } from "./screens";
 import { mountStage, stage } from "./stage";
 import { device, devices } from "./device";
 import { group, LayerSet } from "./set";
@@ -17,6 +18,9 @@ import { pick, Pick } from "./pick";
 
 declare const __VERSION__: string;
 export const version: string = __VERSION__;
+
+// stack.depth: how many screens deep. (stack() is the piece; this rides on it, because that is the word for it.)
+Object.defineProperty(stack, "depth", { get: () => depth(), configurable: true });
 
 // what a prototype can say without importing anything
 export const vocabulary = {
@@ -40,7 +44,7 @@ export {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
-  run, check, preprocess, mini, stage,
+  run, check, preprocess, mini, stage, solo,
   group, LayerSet, pick, Pick,
   Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };

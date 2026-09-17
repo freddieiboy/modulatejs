@@ -6,6 +6,7 @@ import { DriftConfig, Drifting, DRIFT_SHAPES } from "./drift";
 import { mini, looksLikePattern, Pattern, WAVES, isList, listOf } from "./mini";
 import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
+import * as screens from "./screens";
 import { resolveDriver, startDrag, DragConfig, SnapConfig } from "./drivers";
 import { Origin, CENTRE, parseOrigin } from "./origin";
 
@@ -99,6 +100,7 @@ export class Layer {
   private shadowDrawn = 0;
   private ringDrawn = 0;
   private gone = false;
+  shownOpacity: number | null = null; // what it looked like before its section was hidden as a whole
   pictureSrc: string | null = null; // the seed or URL an image layer is showing
   private dirty = false;
   private started = false;
@@ -724,6 +726,23 @@ verb("peak", (L, ctx) => {
 verb("into", (L, ctx, other: Layer) => {
   needsCtx(ctx, "into").target(L).into = rootOf(other);
 });
+// screens. A section is a screen: go() shows one on top of what is there and remembers; back() undoes the last
+// go() or into(), and so do the edge swipe and a tap on an into() destination.
+const HOWS = ["cover", "push", "fade", "sheet"];
+verb("go", (L, ctx, section: any, how: any = "cover") => {
+  const rx = needsCtx(ctx, "go");
+  const empty = section?.emptySection;
+  if (empty) throw new Error(`${empty} has no layers in it, so there is nothing to go to`);
+  if (!sets?.isSet(section)) throw new Error(`go(): where to? A section is a screen: detail: { … } and then row.on("tap").go(detail)`);
+  if (!HOWS.includes(how)) throw new Error(`go(…, "${how}"): it arrives one of these ways: ${HOWS.map((h) => `"${h}"`).join(", ")}`);
+  if (rx.goTo) throw new Error("go(): one change goes to one screen");
+  rx.goTo = { set: section, how };
+  screens.target(section);
+});
+verb("back", (_L, ctx) => {
+  needsCtx(ctx, "back").isBack = true;
+});
+
 verb("stagger", (L, ctx, s = 0.05) => {
   if (ctx) ctx.target(L).stagger = s;
   else L.bindStagger = s;

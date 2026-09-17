@@ -57,6 +57,32 @@ There is no frame loop to write. `draw` is declared once and the runtime keeps i
 - A section's name follows the rules for a layer's: not a verb, and not a name a layer or another section in the file already has.
 - A section with no layers in it (`init`, `update`) is only a fold, and a verb on it is an error rather than nothing: *"init has no layers in it, so init.hide() does nothing"*.
 
+### Screens
+
+A section is a screen. `go()` shows one on top of what is there and remembers it. `back()`, a tap on an `into()` destination, and a swipe in from the phone's left edge undo the last one, and everything that changed on the same tap goes back with it.
+
+| verb | does |
+| --- | --- |
+| `go(section, how = "cover")` | after `.on(…)`: show that section on top of what is there, and remember it. `how` is one word: `"cover"` slides up from the bottom, `"push"` slides in from the right while the screen you are leaving slides a third of the way left, `"fade"`, `"sheet"` arrives as a sheet at half height and dims what is under (a tap out there, or pulling it down past a third, goes back). The section waits hidden until then, with no `hide()` needed, on a page of its own so what is under doesn't show through; nothing under it is hidden or changed by `go()` itself. Going to the screen you are already on does nothing. On a group it goes for the tapped member. No bounce by default; `spring()` and `over()` change that |
+| `back()` | after `.on(…)`: undo the last `go()` or `into()`, played in reverse. Every change that fired on the same tap is part of the move and goes back with it; changes on other triggers are left alone. With nothing to go back to it does nothing, so a back button on the first screen is harmless |
+
+`stack.depth` is a Value: 0 on the first screen, 1 under a `go()` or an `into()`, and so on, following the move itself (a swipe scrubs it). `home.on(stack.depth).blur(8)` blurs home while anything covers it.
+
+The edge swipe: a drag that starts within 20 points of the left edge, while a screen is open, scrubs the move under the finger. Letting go past a third goes back, short of that stays, and a flick decides by its direction. A `drag()` layer that starts there loses to it; anywhere else it drags as ever. Interrupting a move either way carries on from where it is.
+
+```js
+home: {
+  rows: stack(pill("Canvas tote"), pill("Stone mug"), pill("Paper lamp")).at(24, 120)
+}
+detail: {
+  bar: text("‹ Back").at(24, 64)
+  photo: image("tote", 342, 300).at(24, 110)
+  buy: pill("Add to bag", "coral").at(24, 440)
+}
+rows.on("tap").go(detail, "push")
+bar.on("tap").back()
+```
+
 What belongs in `init`, with its defaults:
 
 | verb | default | does |
@@ -329,7 +355,7 @@ or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. 
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js) · 14. [screens](https://modulatejs.com/examples/14-screens.js)
 
 ```js
 // swipe to dismiss

@@ -2,6 +2,7 @@ import { mountStage, stage, hasStage } from "./stage";
 import { resetContent } from "./content";
 import { rootOf } from "./layer";
 import { preprocess } from "./preprocess";
+import { holdStill } from "./engine";
 
 export { preprocess };
 
@@ -19,6 +20,7 @@ function $name(name: string, value: any) {
 // While it is open, every layer made is noted; when it closes, the ones standing on their own (not riding on
 // another layer, not thrown away) are its members, and the name becomes a group of them.
 const opened: { name: string; made: any[] }[] = [];
+let sections: any[] = []; // the ones with layers in them, in the order they closed
 
 function $open(name: string) {
   opened.push({ name, made: [] });
@@ -35,6 +37,7 @@ function $close(name: string) {
   if (members.length) {
     const g: any = api.group(...members);
     g.label = name;
+    sections.push(g);
     return g;
   }
   // init: and update: are folds with nothing in them. A verb on one is a slip, and says so.
@@ -43,6 +46,7 @@ function $close(name: string) {
     {},
     {
       get(_t, prop) {
+        if (prop === "emptySection") return name;
         if (typeof prop !== "string" || quiet.has(prop)) return undefined;
         if (["tap", "hold", "snapped", "tapped", "members"].includes(prop)) throw new Error(`${name} has no layers in it, so ${name}.${prop} is nothing`);
         return () => {
@@ -57,6 +61,7 @@ export interface RunResult {
   ok: boolean;
   error?: string;
   line?: number;
+  sections?: string[]; // the sections that have layers in them: the editor shows one thumbnail each
   device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean; dark: boolean };
 }
 
@@ -116,11 +121,13 @@ export function run(code: string, target?: HTMLElement): RunResult {
   const st = mountStage(target ?? (hasStage() ? stage().mount : document.body));
   resetContent();
   opened.length = 0;
+  sections = [];
+  holdStill(false);
   st.made = (l: any) => opened.forEach((s) => s.made.push(l));
   try {
     fn(...Object.values(api), $name, $open, $close, { get w() { return st.W; }, get h() { return st.H; } });
     st.commit();
-    return { ok: true, device: shape(st) };
+    return { ok: true, device: shape(st), sections: sections.map((s) => s.label) };
   } catch (e) {
     const r = describe(e);
     try {
@@ -129,6 +136,24 @@ export function run(code: string, target?: HTMLElement): RunResult {
     st.showError(r.error!);
     return { ...r, device: shape(st) };
   }
+}
+
+// The editor's way of looking at one screen by itself: only that section's layers, as designed, and the clock
+// held so nothing drifts away while you look. Running again is the way back.
+export function solo(name: string): boolean {
+  const set = sections.find((s) => s.label === name);
+  if (!set || !hasStage()) return false;
+  const st = stage();
+  holdStill(true);
+  const arrive = st.reactions.find((r: any) => r.goTo?.set === set);
+  if (arrive) arrive.follow(1, true);
+  const keep = new Set<any>([...set.members, set.page].filter(Boolean));
+  for (const l of st.layers) {
+    if (l.parent) continue;
+    l.el.style.display = keep.has(l) ? "" : "none";
+    if (keep.has(l) && !arrive && l.shownOpacity != null && l.v.opacity.get() < 0.02) l.v.opacity.jump(l.shownOpacity);
+  }
+  return true;
 }
 
 const shape = (st: any) => {

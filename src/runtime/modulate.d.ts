@@ -72,6 +72,10 @@ export class Layer {
   color(c: Color): this;
   radius(r: Num): this;
   shadow(level?: number | string): this;
+  /** after .on(…): show that section on top of what is there and remember it. "cover" from the bottom, "push" from the right, "fade", or "sheet" at half height */
+  go(section: LayerGroup, how?: "cover" | "push" | "fade" | "sheet"): this;
+  /** after .on(…): undo the last go() or into(), with everything that changed on the same tap */
+  back(): this;
   /** an outline just outside the layer; a property, so a state can have one: strip.on(choice).ring("plum") */
   ring(colour?: Color, px?: Num): this;
   /** what it says. After .on(…) the words change with the state (they fade through); "<a, b, c>" is read by the index after .on(pick) */
@@ -144,7 +148,8 @@ export function image(...args: PieceArg[]): Layer;
 export function avatar(...args: PieceArg[]): Layer;
 export function card(...args: PieceArg[]): Layer;
 export function row(...args: PieceArg[]): Layer;
-export function stack(...args: PieceArg[]): Layer;
+/** stack(a, b) is the piece; stack.depth is how many screens deep (0 on the first), a Value that follows the move */
+export const stack: ((...args: PieceArg[]) => Layer) & { readonly depth: Value<number> };
 export function grid(...args: PieceArg[]): Layer;
 export function messages(...args: PieceArg[]): Layer;
 export function sheet(...args: PieceArg[]): Layer;
