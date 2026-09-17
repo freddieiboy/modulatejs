@@ -104,7 +104,7 @@ async function build() {
     globals,
     verbs: rt.VERBS,
     // verbs, plus what drivers and between() answer to
-    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go", "and"])],
+    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "release", "over", "range", "pause", "once", "go", "and", "layer", "set"])],
     over: { min: 0.05, max: 3 },
     originWords: ["center", "top", "bottom", "left", "right", "top left", "top right", "bottom left", "bottom right", "finger"],
     presetTable: rt.presetTable,

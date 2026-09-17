@@ -35,6 +35,17 @@ function evalNode(n: Node, cycle: number, frac: number): string | number | null 
   return evalNode(n.items[((cycle % len) + len) % len], Math.floor(cycle / len), frac);
 }
 
+// words("<Canvas tote, Stone mug>") and image("<tote.png mug.png>") take a list in the same brackets, but what is
+// in it isn't numbers or colours: words split on commas (they have spaces in them), pictures on spaces (a data:
+// URL has a comma in it). A plain string is a list of one.
+export const isList = (a: any): a is string => typeof a === "string" && /^\s*<[^<>]*>\s*$/.test(a);
+export function listOf(a: string, kind: "words" | "image"): string[] {
+  if (!isList(a)) return [a];
+  const inside = a.trim().slice(1, -1);
+  const items = kind === "words" && inside.includes(",") ? inside.split(",") : inside.split(/\s+/);
+  return items.map((s) => s.trim()).filter(Boolean);
+}
+
 export function looksLikePattern(s: string): boolean {
   if (/^#|\(/.test(s.trim())) return false; // css colours
   return /[\s<\[!~]/.test(s.trim()) || WAVES.includes(s.trim());

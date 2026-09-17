@@ -15,6 +15,7 @@ const CSS = `
 .m-stage.m-scrolls{overflow-y:auto}
 .m-view{position:sticky;top:0;left:0;width:100%;overflow:hidden}
 .m-layer{position:absolute;left:0;top:0;box-sizing:border-box;will-change:transform;transform-origin:50% 50%}
+.m-gone *{pointer-events:none!important}
 .m-text{white-space:pre;line-height:1.25}
 .m-wrap{white-space:normal}
 .m-img{background-size:cover;background-position:center}

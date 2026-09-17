@@ -101,7 +101,7 @@ b.on(lfo(.2)).blur(6)               // drifts in and out of focus by itself
 b.on("hold").scale(1.2).blur(0)     // sharp under a finger, whatever the lfo is doing
 ```
 
-Two rules for taps. **A tap plays the change; tapping again plays it back.** A change that is only a spring kick (`.on("tap").spring("pop", 1.3)`) or that ends with everything in it invisible **rewinds by itself**, so it can play again: a hidden burst (`.show().fly(40).fade()`) at once, and a visible layer that pops (`.on("tap").scale(1.3).fade()`) a second later, snapping back the way `dismiss()` does. A layer that fades as one part of a bigger `between()` stays a toggle.
+Two rules for taps. **A tap plays the change; tapping again plays it back.** A change that is only a spring kick (`.on("tap").spring("pop", 1.3)`) or that ends with everything in it invisible **rewinds by itself**, so it can play again: a hidden burst (`.show().fly(40).fade()`) at once, and a visible layer that pops (`.on("tap").scale(1.3).fade()`) a second later, snapping back the way `dismiss()` does. A layer that fades as one part of a bigger `between()` stays a toggle, and so does one that fades on something else's tap (`home.on(bubbles.tap).fade()`): that tap can still be tapped, and the one that comes back brings it back.
 
 ## Pieces
 
@@ -121,7 +121,7 @@ Two rules for taps. **A tap plays the change; tapping again plays it back.** A c
 | `messages(n = 5)` · `messages("line", "line", …)` | a conversation: grey on the left, plum on the right, words from the bank. (It used to be `bubbles()`; old links still run, and `bubbles` is free to be a name) |
 | `sheet(...words and children)` | bottom sheet, 560 tall, resting with 96 showing. What you give it stacks in the order written; strings are its words (a title, a dim line, then body). `rise()` lifts it fully, `rise("half")` to the middle of the screen |
 | `tabbar("Home Search Inbox Me")` | bottom tabs with a sliding indicator; `tabs.page` is its driver |
-| `group(a, b, c, …)` | a named set of layers you already made, for a set that doesn't match a block (a section, `name: { … }`, is the same thing for the layers made together); `.and(d)` makes a bigger one. It is not a layer: no box, no colour of its own, and a layer can be in several. Every verb runs on each member: `floaters.color("coral")`. A `"<…>"` pattern is read per member, cycling (`.y("<-20 -14 -9>")`; `~` leaves a member alone), and so is a driver's: `lfo("<.08 .11 .13>")` is one oscillator each. `on("tap")` is each member's own tap; `floaters.tap` fires for another layer when any member is tapped, and `floaters.tapped` is which. Placing verbs (`at`, `center`, `below`…) place the first member and leave the rest, so a change shifts each from its own place. `stagger(s)` starts each member s later than the one before. `circle(7).around(floaters, 10)` makes a ring round every member, as a group that matches it member for member, so `drops.on(floaters.tap)` flies only the ring of the one that was tapped |
+| `group(a, b, c, …)` | a named set of layers you already made, for a set that doesn't match a block (a section, `name: { … }`, is the same thing for the layers made together); `.and(d)` makes a bigger one. It is not a layer: no box, no colour of its own, and a layer can be in several. Every verb runs on each member: `floaters.color("coral")`. A `"<…>"` pattern is read per member, cycling (`.y("<-20 -14 -9>")`; `~` leaves a member alone), and so is a driver's: `lfo("<.08 .11 .13>")` is one oscillator each. `on("tap")` is each member's own tap; `floaters.tap` fires for another layer when any member is tapped, and `floaters.tapped` is which. Placing verbs (`at`, `center`, `below`…) place the first member and leave the rest, so a change shifts each from its own place. `floaters.others` is the group minus the member that fired: `floaters.others.on(floaters.tap).fade()` fades the ones that weren't tapped, and the next tap brings them back. `stagger(s)` starts each member s later than the one before. `circle(7).around(floaters, 10)` makes a ring round every member, as a group that matches it member for member, so `drops.on(floaters.tap)` flies only the ring of the one that was tapped |
 
 Three verbs name a point, and they don't all mean the same corner of a layer: `at(x, y)` is where its **top-left** goes; `center()` and the points in `snap()` are where its **centre** goes; `origin()` is a point inside it.
 
@@ -164,6 +164,9 @@ Placement is computed when the line runs, so place a layer after the layer it re
 | `radius(r)` | corner radius in points |
 | `opacity(o)` | 0 is invisible, 1 is solid |
 | `blur(px = 8)` | the layer itself goes soft; `blur(0)` is sharp. It is a property, so after `.on()` it animates: `feed.on(filters).blur(12).scale(.96)` sends the feed soft behind a sheet |
+| `ring(colour = "accent", px = 2)` | an outline just outside the layer, following its corners and taking no room. A property like the rest, so a state can have one: `strip.on(choice).ring("plum")` |
+| `words("…")` | what it says (on a pill or a card, what its type says). After `.on(…)` the words belong to the other state and fade through as it changes: `follow.on("tap").words("Following")` |
+| `image("…")` | which picture an image layer shows: a seed, a URL or a file, as for the piece. After `.on(…)` it belongs to the other state, and the change is a crossfade, so a transparent PNG never shows through the one before. On a row of pictures, `"<a.png b.png c.png>"` is one each |
 | `shadow(level = 2)` | a soft shadow, from 0 (none) to 3 (floating). A property like any other: after `.on(…)` it belongs to the other state and animates there. On a picture it follows the picture's own shape, so a transparent PNG casts the shadow of what is in it, not of its square |
 | `glass(px = 20)` | frosts whatever is behind the layer, not the layer or its children: `tabbar().glass()`, `sheet().glass(24)`. With no colour of its own it becomes a translucent surface so the frost reads; a colour you give it stays exactly as given, so give it one with some transparency |
 | `drift(amount = 12, hz = .1)` | floats lazily around its resting point on a path that never obviously repeats, seeded from its name so no two drift together: `bubble: image("bubble-3.png", 96).at(290, 470).drift(14)`. `amount` is the furthest it strays, in points; `hz` is how slow (.1 a soap bubble, .3 a bee). A third word picks the shape: `"float"` (the default), `"sway"` x only, `"bob"` y only, `"hover"` float with a slow 2° turn. It goes on top of everything else, pauses under a finger and eases back over one cycle, and `at()`, `snap()` and `between()` only ever see the resting point. On a group, each child drifts by itself. `drift(0)` stops it |
@@ -211,7 +214,7 @@ Roles: `accent` `surface` `text` `dim` `fill` `line`.
 | `show()` / `hide()` | appear quickly at the start / be gone at the end |
 | `rise(d?)` | move up by d; a hidden layer instead arrives from d below, fading in. `rise("half")` stops with its top edge halfway up the screen, `rise("full")` goes all the way (the default on a `sheet`) |
 | `fly(d = 40, angle?)` | move d along its direction: outward for `around()` copies, else up |
-| `into(layer)` | grow into that layer's frame while it fades in over the top; tapping it goes back |
+| `into(layer)` | grow into that layer's frame while it fades in over the top. Tapping it goes back, as the tap that opened it, so whatever else followed that tap goes back too. Several layers can open into one: only the open one answers |
 | `stagger(s = .05)` | children of a group go one after another, s seconds apart (a share of t for continuous drivers) |
 | `peak()` | child i of n is at its other state when t = i ÷ (n − 1): pager dots, tab highlights |
 | `modulate(value, [a, b], [c, d], clamp = true)` | a Value that follows another through a mapping; any number of stops, numbers or colours |
@@ -247,6 +250,29 @@ Numbers follow a spring past their target (that overshoot is the bounce); colour
 
 A `drag()` written after `.on(…)` scrubs that change instead of moving the layer: `filters.on("tap").rise().drag("y")` is a sheet that rises on tap and follows a finger down. Add `dismiss()` and it is easy to throw away: a short flick back sends it home and off the screen.
 
+### Choosing
+
+One choice that many layers follow: which product, which tab, which bubble.
+
+| verb | does |
+| --- | --- |
+| `pick(...groups)` | `choice: pick(bubbles, strip)` is which index is chosen, 0 to n − 1. Tapping any member of any listed group chooses that member's index, so the groups need the same number of members (one group is fine). A group is a section, a `group()`, or a `row` `stack` `grid` (its children). `choice.index` is the number; `choice.layer(bubbles)` is the chosen member of that group; `choice.set(2)` chooses from code, and `choice.set(page(7))` lets a driver choose |
+
+What `.on(choice)` means depends on who follows it:
+
+- **A layer** reads `"<…>"` by the chosen index: `photo.on(choice).image("<tote.png mug.png lamp.png>")`, `name.on(choice).words("<Canvas tote, Stone mug, Paper lamp>")`, `dot.on(choice).color("<coral plum mint>")`. Pictures crossfade, words fade through, numbers and colours tween. Words split on commas (they have spaces in them); pictures on spaces. Plain values follow t = index ÷ (n − 1), like `page`: `track.on(choice).x(-2 * 390)`.
+- **A group** has its chosen member in the other state and the rest at rest, tweened as the choice moves: `strip.on(choice).scale(1.15).ring("plum")` is the selected thumbnail. (A `row` does this when it is one of the choice's groups; any other container follows t as one layer.) `strip.others.on(choice).opacity(.5)` is the ones not chosen.
+
+```js
+photo: image("tote", 342, 300).at(24, 100)
+name: text("Canvas tote", 26).at(24, 420)
+strip: row(image("tote", 64, 64), image("mug", 64, 64), image("lamp", 64, 64)).at(24, 480)
+choice: pick(strip)
+photo.on(choice).image("<tote mug lamp>")
+name.on(choice).words("<Canvas tote, Stone mug, Paper lamp>")
+strip.on(choice).scale(1.12).ring("plum")
+```
+
 ## Patterns
 
 A string in a number or colour slot is a pattern, four things borrowed from Tidal:
@@ -260,6 +286,8 @@ A string in a number or colour slot is a pattern, four things borrowed from Tida
 | `"~"` | rest: keep what was there |
 
 Before `.on()`, a cycle is 2 seconds (`.every(seconds)` changes it) and steps are sprung: `box().y("0 -30")`. After `.on("tap")`, a cycle is one tap: `heart.on("tap").color("<coral plum>")` alternates per tap.
+
+After `.on(pick(…))`, a `"<…>"` is read by the chosen index instead: no cycle, the choice says which (see Choosing).
 
 `"wave"` `"saw"` `"square"` `"noise"` are continuous shapes: `grid(3, 3).y("wave").stagger(.1)` bobs; a second argument is the amplitude, `y("wave", 24)`.
 
@@ -301,7 +329,7 @@ or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. 
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js)
 
 ```js
 // swipe to dismiss

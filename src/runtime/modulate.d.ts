@@ -72,6 +72,12 @@ export class Layer {
   color(c: Color): this;
   radius(r: Num): this;
   shadow(level?: number | string): this;
+  /** an outline just outside the layer; a property, so a state can have one: strip.on(choice).ring("plum") */
+  ring(colour?: Color, px?: Num): this;
+  /** what it says. After .on(…) the words change with the state (they fade through); "<a, b, c>" is read by the index after .on(pick) */
+  words(said: string): this;
+  /** which picture it shows: a seed, a URL or a file. After .on(…) the change is a crossfade; "<a.png b.png>" is read by the index after .on(pick) */
+  image(src: string): this;
   /** the layer itself goes soft, in points; a property, so .on(…).blur(12) animates it */
   blur(px?: Num): this;
   /** it frosts what is behind it (backdrop blur); with no colour of its own it becomes a translucent surface */
@@ -151,8 +157,20 @@ export type LayerGroup = Omit<Layer, "el" | "name"> & {
   /** the member most recently tapped */
   readonly tapped: Layer | null;
   readonly members: Layer[];
+  /** the group minus the member that fired: bubbles.others.on(bubbles.tap).fade() */
+  readonly others: { on(source?: Driver | Choice): LayerGroup };
 };
 export function group(...layers: (Layer | LayerGroup)[]): LayerGroup;
+
+/** One choice that many layers follow: which index is chosen, 0 to n − 1. Tapping a member of any listed group chooses its index. */
+export interface Choice extends Driver {
+  readonly index: number;
+  /** choice.set(2), or choice.set(page(7)) to let a driver choose */
+  set(to: number | Driver | Value<number>): this;
+  /** the chosen member of one of the groups */
+  layer(group: Layer | LayerGroup): Layer;
+}
+export function pick(...groups: (Layer | LayerGroup)[]): Choice;
 
 export function tap(layer?: Layer): Driver;
 export function hold(layer?: Layer): Driver;

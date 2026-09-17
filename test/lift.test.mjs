@@ -78,3 +78,11 @@ test("a tap on a layer is still not a tap on the stage, or on what it sits in", 
 });
 
 test.after(() => browser?.close());
+
+test("nothing inside an invisible layer takes a tap: what is under it gets it", { skip: !chrome }, async () => {
+  const p = await page(`under: box(200, "coral")\nover: box("white", image("tote", 300, 300)).fill().hide()\nunder.on("tap").color("plum")`);
+  const [x, y] = await p.at("under");
+  await tap(x, y);
+  await sleep(700);
+  assert.equal(await p.css("under", "backgroundColor"), "rgb(122, 90, 248)");
+});

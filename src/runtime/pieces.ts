@@ -1,9 +1,9 @@
-import { Layer, Group, rootOf } from "./layer";
+import { Layer, Group, rootOf, registerPictures } from "./layer";
 import { stage } from "./stage";
 import { resolveColor, luminance, isColorWord } from "./theme";
 import { providers, next, placeholder, duo, looksLikeUrl, initials } from "./content";
 import { PageDriver } from "./drivers";
-import { mapRange } from "./engine";
+import { mapRange, afterTime } from "./engine";
 import { runAgain } from "./run";
 
 // The pieces. Each one looks finished with no arguments.
@@ -82,6 +82,33 @@ export class TextLayer extends Layer {
     }
     this.measure();
   }
+  // say something else: the old words fade out, the new ones fade in (at once, when nobody is looking yet)
+  private span: HTMLElement | null = null;
+  private saying = 0;
+  say(s: string, instant = false) {
+    const token = ++this.saying;
+    if (instant || (this.span ?? this.el).textContent === s) {
+      (this.span ?? this.el).textContent = s;
+      if (this.span) this.span.style.opacity = "1";
+      this.measure();
+      return this.replace();
+    }
+    if (!this.span) {
+      const span = (this.span = this.el.ownerDocument.createElement("span"));
+      span.textContent = this.el.textContent;
+      span.style.cssText = "display:inline-block;transition:opacity .12s";
+      this.el.textContent = "";
+      this.el.appendChild(span);
+    }
+    this.span.style.opacity = "0";
+    afterTime(130, () => {
+      if (token !== this.saying) return;
+      this.span!.textContent = s;
+      this.span!.style.opacity = "1";
+      this.measure();
+      this.replace();
+    });
+  }
   measure() {
     const size = parseFloat(this.el.style.fontSize) || this.fontSize;
     const chars = [...(this.el.textContent ?? "")].length;
@@ -152,6 +179,7 @@ export function image(...args: any[]): Layer {
   l.colorMode = "none";
   l.el.classList.add("m-img");
   l.el.style.backgroundImage = placeholder(seed);
+  l.pictureSrc = seed;
   loadInto(l, providers.image(seed, w, h));
   return finish(l, () => image(...args));
 }
@@ -167,6 +195,7 @@ function own(url: string, nums: number[], args: any[]): Layer {
   const l = new Layer("image", { w, h, radius: 0 });
   l.colorMode = "none";
   l.el.classList.add("m-img", "m-own");
+  l.pictureSrc = url;
   const held = providers.file?.(url.replace(/^\.?\//, "")) ?? null; // the editor may be holding this picture itself
   loadInto(l, held ?? url, (img) => {
     if (!img) {
@@ -186,6 +215,25 @@ function own(url: string, nums: number[], args: any[]): Layer {
   });
   return finish(l, () => image(...args));
 }
+
+// image("…") as a verb: the same layer shows another picture. The new one fades in as the old one fades out, so
+// a transparent PNG never shows through the one before it.
+let showing = 0;
+registerPictures((l, src) => {
+  if (l.pictureSrc === src) return;
+  l.pictureSrc = src;
+  const token = ((l as any).pictureToken = ++showing);
+  const old = [...l.el.querySelectorAll("img")];
+  const mine = looksLikeUrl(src);
+  const url = mine ? (providers.file?.(src.replace(/^\.?\//, "")) ?? src) : providers.image(src, Math.round(l.v.w.get()), Math.round(l.v.h.get()));
+  if (!mine) l.el.style.backgroundImage = placeholder(src);
+  const retire = () => old.forEach((o) => (o.classList.remove("m-ok"), afterTime(400, () => o.remove())));
+  if (!url) return retire();
+  loadInto(l, url, (img) => {
+    if ((l as any).pictureToken !== token) return void img?.remove(); // something newer was asked for meanwhile
+    retire();
+  });
+});
 
 export function avatar(...args: any[]): Layer {
   const { nums, strs } = sort(args);

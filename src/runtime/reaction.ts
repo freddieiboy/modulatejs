@@ -4,8 +4,8 @@ import { track } from "./stage";
 import { preset, timed, checkOver, curve as makeCurve } from "./presets";
 import { stage } from "./stage";
 import { resolveColor } from "./theme";
-import type { Layer } from "./layer";
-import type { Pattern } from "./mini";
+import { changePicture, type Layer } from "./layer";
+import { listOf, type Pattern } from "./mini";
 import { Origin, CENTRE } from "./origin";
 import { listen } from "./stage";
 import { Driver, resolveDriver } from "./drivers";
@@ -24,6 +24,8 @@ export interface Target {
   stagger?: number;
   range?: [number, number];
   into?: Layer;
+  words?: string; // what it says in the other state (a "<…>" list after .on(pick): one per index)
+  image?: string; // what it shows
 }
 
 // One reaction's say over one property. `to` and `weight` are there when it is a plain from → to, which is
@@ -83,6 +85,22 @@ interface Entry {
   tracks: Track[];
   peak: boolean;
   stagger: number;
+  swaps: Swap[];
+}
+
+// What a layer says or shows isn't a number to tween: it is one thing or the other, and changing over is a
+// crossfade. Halfway through t it changes; after .on(pick) it is whichever the index says.
+interface Swap {
+  kind: "words" | "image";
+  rest: string;
+  list: string[];
+  now: string;
+}
+function show(layer: Layer, sw: Swap, what: string, instant = false) {
+  if (what === sw.now) return;
+  sw.now = what;
+  if (sw.kind === "words") (layer as any).say(what, instant);
+  else changePicture(layer, what);
 }
 
 // A spring's t runs past 0 and 1 before it settles, and that overshoot is the bounce: a number has to be
@@ -201,7 +219,8 @@ export class Reaction extends Driver {
     else this.transition = this.inPreset ? timed(this.inPreset, this.inOver) : timed(hold ? "snappy" : "settle", this.bothOver);
     const out = this.outPreset ?? (hold ? "settle" : null);
     this.back = out ? timed(out, this.outPreset ? this.outOver : this.bothOver) : null;
-    if (hold) this.springSet = true;
+    // a choice moves in steps, and a step should be a tween, not a cut
+    if (hold || this.drivers.some((d) => d.kind === "pick" || d.kind === "picked")) this.springSet = true;
   }
 
   // The way back gets its own spring: in one way, out another. With no spring() for the way in,
@@ -275,10 +294,17 @@ export class Reaction extends Driver {
       if (tg.into) {
         const other = tg.into;
         other.v.opacity.jump(0);
-        this.entries.push({ layer: other, index: 0, count: 1, t: new Value(0), peak: false, stagger: 0, tracks: [this.track(other, "opacity", mapRange([0.45, 1], [0, 1]))] });
-        layer.v.z.jump(40);
+        this.entries.push({ layer: other, index: 0, count: 1, t: new Value(0), peak: false, stagger: 0, swaps: [], tracks: [this.track(other, "opacity", mapRange([0.45, 1], [0, 1]))] });
         other.v.z.jump(50);
-        this.drive(resolveDriver("tap", other));
+        // Tapping the destination goes back, and it goes back as the tap that opened it: whatever else heard that
+        // tap (the others that faded, the screen that came in) goes back too. Several layers can open into one
+        // destination; only the one that is open answers.
+        resolveDriver("tap", other).onFire(() => {
+          if (this.goal !== 1) return;
+          const opener = this.drivers.find((d) => d.played);
+          if (opener) opener.emit({ back: true });
+          else this.play(0);
+        });
       }
     }
 
@@ -288,9 +314,15 @@ export class Reaction extends Driver {
     // bigger change is not this: something is still on screen to tap, so that stays a toggle.
     const opacityAt = (e: Entry, t: number) => e.tracks.find((k) => k.prop === "opacity")?.map(t);
     const vanishes = !this.impulse && this.entries.length > 0 && this.entries.every((e) => (opacityAt(e, 1) ?? 1) < 0.02);
-    this.transient = vanishes;
-    this.comesBack = vanishes && this.entries.some((e) => (opacityAt(e, 0) ?? 1) >= 0.02);
+    // …unless something else drives it (another layer's tap, a group's): that can still be tapped, so what was
+    // visible stays a toggle. home.on(bubbles.tap).fade() stays faded until the tap that comes back.
+    const visibleAtRest = this.entries.some((e) => (opacityAt(e, 0) ?? 1) >= 0.02);
+    const mine = new Set<any>([this.owner, ...this.entries.map((e) => e.layer)]);
+    const ownTap = this.drivers.filter((d) => d.played).every((d) => [...mine].some((l) => l && (l as any)._tap === d));
+    this.transient = vanishes && (!visibleAtRest || ownTap);
+    this.comesBack = this.transient && visibleAtRest;
 
+    this.choice = (this.drivers.find((d) => d.kind === "pick") as any) ?? null;
     this.discrete = !this.drivers.length || this.drivers.some((d) => !CONTINUOUS.has(d.kind));
   }
 
@@ -301,6 +333,10 @@ export class Reaction extends Driver {
     if (this.wired) return;
     this.wired = true;
     for (const e of this.entries) e.t.on((t) => this.apply(e, t));
+    if (this.choice) {
+      this.choice.at.on((i: number) => this.choose(i));
+      this.choose(this.choice.index, true);
+    }
     for (const d of this.drivers) {
       if (d.played)
         d.onFire((detail) => {
@@ -360,9 +396,16 @@ export class Reaction extends Driver {
       add("w", f.w);
       add("h", f.h);
       add("radius", tg.into.v.radius.get());
+      add("z", 40, undefined, a, a + (b - a) * 0.02); // on top while it is open, and where it was in the pile at rest
+      // once the destination has covered it, it goes: what is left behind would show at the edges (it may still be drifting)
+      if (tg.props.opacity == null && !tg.fade) add("opacity", 0, undefined, a + (b - a) * 0.8, b);
       layer.el.style.overflow = "hidden";
     }
-    const e: Entry = { layer, index, count, t: new Value(0), tracks, peak: !!tg.peak, stagger: tg.stagger ?? 0 };
+    const swaps: Swap[] = [];
+    if (tg.words != null) swaps.push({ kind: "words", rest: (layer as any).el.textContent ?? "", list: listOf(tg.words, "words"), now: "" });
+    if (tg.image != null) swaps.push({ kind: "image", rest: layer.pictureSrc ?? "", list: listOf(tg.image, "image"), now: "" });
+    for (const sw of swaps) sw.now = sw.rest;
+    const e: Entry = { layer, index, count, t: new Value(0), tracks, swaps, peak: !!tg.peak, stagger: tg.stagger ?? 0 };
     (e as any).patterns = tg.patterns;
     return e;
   }
@@ -375,6 +418,23 @@ export class Reaction extends Driver {
 
   private apply(e: Entry, t: number) {
     for (const k of e.tracks) (k.t = t), e.layer.channels[k.prop].update();
+    if (!this.choice) for (const sw of e.swaps) show(e.layer, sw, t >= 0.5 ? sw.list[0] : sw.rest);
+  }
+
+  // .on(pick): "<…>" patterns and lists are read by the chosen index
+  private choice: any = null;
+  private choose(i: number, instant = false) {
+    for (const e of this.entries) {
+      const pats: Record<string, Pattern> = (e as any).patterns ?? {};
+      for (const prop in pats) {
+        let val: any = pats[prop].at(i);
+        if (val === null) continue;
+        if (prop === "color" || prop === "ringColor") val = resolveColor(String(val));
+        if (instant) e.layer.v[prop].jump(val);
+        else e.layer.v[prop].to(val, this.transition);
+      }
+      for (const sw of e.swaps) show(e.layer, sw, sw.list[i % sw.list.length], instant);
+    }
   }
 
   // where an entry sits for a given main t

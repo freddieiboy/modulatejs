@@ -3,7 +3,7 @@ import { nextRender, onFrame } from "./engine";
 import { stage, track } from "./stage";
 import { resolveColor, isToken, luminance, withAlpha } from "./theme";
 import { DriftConfig, Drifting, DRIFT_SHAPES } from "./drift";
-import { mini, looksLikePattern, Pattern, WAVES } from "./mini";
+import { mini, looksLikePattern, Pattern, WAVES, isList, listOf } from "./mini";
 import { preset, checkOver } from "./presets";
 import { Reaction, capturing } from "./reaction";
 import { resolveDriver, startDrag, DragConfig, SnapConfig } from "./drivers";
@@ -45,8 +45,11 @@ interface TimeBinding {
 export const rootOf = (l: any): Layer => l.__root ?? l;
 
 // group() lives in set.ts, which needs every verb defined first; it introduces itself here once it is loaded
-let sets: { isSet(x: any): boolean; members(s: any): Layer[]; make(rings: Layer[], around: any): any } | null = null;
+let sets: { isSet(x: any): boolean; members(s: any): Layer[]; make(rings: Layer[], around: any): any; handle(members: Layer[], source: any): any } | null = null;
 export const registerSetFactory = (f: NonNullable<typeof sets>) => (sets = f);
+// pictures are the pieces' business (providers, placeholders, your own files); they introduce themselves too
+let showPicture: ((l: Layer, src: string) => void) | null = null;
+export const registerPictures = (f: NonNullable<typeof showPicture>) => (showPicture = f);
 const noBox = (x: any, verb: string) => {
   if (sets?.isSet(x)) throw new Error(`${verb}(group): a group has no box to sit next to; name one of its members`);
 };
@@ -94,6 +97,9 @@ export class Layer {
   channels: Record<string, any> = {}; // per property, what the reactions that touch it add up to (reaction.ts)
   shadowUp = false; // a sheet's shadow falls upward
   private shadowDrawn = 0;
+  private ringDrawn = 0;
+  private gone = false;
+  pictureSrc: string | null = null; // the seed or URL an image layer is showing
   private dirty = false;
   private started = false;
 
@@ -101,7 +107,7 @@ export class Layer {
     const st = stage();
     this.el = st.el.ownerDocument.createElement("div");
     this.el.className = "m-layer";
-    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, shadow: 0, scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
+    const d: any = { x: 0, y: 0, w: 0, h: 0, ox: 0, oy: 0, dx: 0, dy: 0, wx: 0, wy: 0, fx: 0, fy: 0, fr: 0, blur: 0, glass: 0, shadow: 0, ring: 0, ringColor: "rgba(0,0,0,0)", scale: 1, rotate: 0, opacity: 1, radius: 0, color: "rgba(0,0,0,0)", z: 0, ...init };
     for (const k in d) {
       const val = new Value(d[k]);
       val.mv.on("change", () => this.invalidate());
@@ -149,9 +155,14 @@ export class Layer {
       s.height = Math.max(0, g("h")) + "px";
     }
     s.borderRadius = g("radius") + "px";
+    // ring: an outline just outside the layer, which follows its corners and takes no room
+    const ring = Math.max(0, g("ring"));
+    if (ring !== this.ringDrawn) (s.outline = (this.ringDrawn = ring) > 0.01 ? `${Math.round(ring * 100) / 100}px solid ${g("ringColor")}` : ""), (s.outlineOffset = "2px");
     const o = g("opacity");
     s.opacity = String(o);
     s.pointerEvents = o < 0.02 || this.inert ? "none" : "auto";
+    // and nothing inside an invisible layer can be touched either (a child says "auto" for itself, which would win)
+    if (o < 0.02 !== this.gone) this.el.classList.toggle("m-gone", (this.gone = o < 0.02));
     s.zIndex = String(Math.round(g("z"))); // a spring takes z through fractions, which CSS would ignore
     // glass with no colour of its own chosen is a translucent surface, so the frost reads; a colour you gave stays as given
     if (this.colorMode === "bg") s.backgroundColor = frost > 0.01 && this.colorAuto ? withAlpha("surface", 1 - 0.4 * Math.min(1, frost / 10)) : g("color");
@@ -182,7 +193,8 @@ export class Layer {
   // The one place a property is written: straight to the layer, or into the
   // reaction that is being described.
   put(prop: string, value: any, ctx: Reaction | null, amp?: number) {
-    if (typeof value === "string" && prop !== "color" && !looksLikePattern(value) && Number.isNaN(Number(value)))
+    const colour = prop === "color" || prop === "ringColor";
+    if (typeof value === "string" && !colour && !looksLikePattern(value) && Number.isNaN(Number(value)))
       throw new Error(`${this.kind}: "${value}" isn't a number or a pattern`);
     if (typeof value === "string" && looksLikePattern(value)) {
       const pattern = mini(value);
@@ -190,7 +202,7 @@ export class Layer {
       else this.bindings.push({ prop, pattern, amp });
       return;
     }
-    if (prop === "color" && typeof value === "string") value = resolveColor(value);
+    if (colour && typeof value === "string") value = resolveColor(value);
     else if (typeof value === "string") value = Number(value);
     if (isValue(value) || value?.t instanceof Value) {
       if (ctx) throw new Error("a Value can't be a target inside on() or between() — it's already live");
@@ -309,6 +321,11 @@ export class Layer {
   // Groups hand look and feel down to their children; everything else acts on itself.
   fan(): Layer[] | null {
     return null;
+  }
+
+  // only a group has others; said here so the slip gets a sentence instead of "undefined"
+  get others(): never {
+    throw new Error(`${rootOf(this).label || this.kind} isn't a group: others is the rest of a group or a section, as in bubbles.others`);
   }
 
   // Called once the script has run: time patterns, drags, scroll-following.
@@ -590,6 +607,38 @@ verb("drift", (L, ctx, amount = 12, hz = 0.1, shape: any = "float") => {
 // shadow is a property like blur: after .on(…) it belongs to the other state, and the way there is animated
 lookVerb("shadow", (L, ctx, level: any = 2) => L.put("shadow", typeof level === "number" ? Math.max(0, Math.min(3, level)) : level, ctx));
 verb("z", (L, ctx, n: number) => L.put("z", n, ctx));
+// ring(colour, px): an outline outside the layer. A property like the rest, so a state can have one.
+lookVerb("ring", (L, ctx, colour: any = "accent", px: any = 2) => {
+  if (typeof colour === "number") [colour, px] = [px === 2 ? "accent" : px, colour];
+  L.put("ringColor", resolveColor(String(colour)), ctx);
+  L.put("ring", px, ctx);
+});
+
+// words() and image(): what a layer says or shows. At rest they change it now; after .on(…) they belong to the
+// other state, and the change is a crossfade. "<a, b, c>" is one each for a group, or read by the index after .on(pick).
+const typeOf = (L: Layer): any => ((L as any).say ? L : L.children.find((c) => (c as any).say));
+verb("words", (L, ctx, said: any) => {
+  if (typeof said !== "string") throw new Error(`words("…"): what should it say? name.words("Canvas tote")`);
+  const kids = L.fan();
+  if (kids && isList(said) && !typeOf(L)) return void listOf(said, "words").forEach((w, i) => kids[i] && (kids[i] as any).words(w));
+  const type = typeOf(L);
+  if (!type) throw new Error(`words(): ${L.label || L.kind} has no type in it to change`);
+  if (ctx) ctx.target(type).words = said;
+  else type.say(listOf(said, "words")[0] ?? "", true);
+});
+verb("image", (L, ctx, src: any) => {
+  if (typeof src !== "string") throw new Error(`image("…"): which picture? photo.image("tote") or photo.image("tote.png")`);
+  const kids = L.fan();
+  if (kids && L.kind !== "image") {
+    // a row of pictures: one each, in order
+    const list = listOf(src, "image");
+    return void kids.forEach((k, i) => (ctx ? (ctx.target(k).image = list[i % list.length]) : (k as any).image(list[i % list.length])));
+  }
+  if (L.kind !== "image") throw new Error(`image(): ${L.label || L.kind} isn't a picture; make one with image(…) and change that`);
+  if (ctx) ctx.target(L).image = src;
+  else showPicture?.(L, listOf(src, "image")[0]);
+});
+export const changePicture = (l: Layer, src: string) => showPicture?.(l, src);
 verb("clip", (L, ctx) => {
   restOnly("clip", ctx);
   L.el.style.overflow = "hidden";
@@ -618,6 +667,8 @@ verb("show", (L, ctx) => {
 
 // feel
 verb("on", function (this: any, L, _ctx, source: any = "tap") {
+  // a row, stack or grid that a pick() chooses from: its chosen child is in the other state, not the whole box
+  if (source?.kind === "pick" && source.has?.(L) && L.fan()) return sets!.handle(L.fan()!, source);
   const rx = new Reaction();
   rx.owner = L;
   rx.drive(resolveDriver(source, L));

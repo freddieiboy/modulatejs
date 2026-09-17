@@ -1,6 +1,6 @@
 import { Layer, rootOf, VERBS, registerSetFactory } from "./layer";
 import { Driver, DriverSpec, resolveDriver } from "./drivers";
-import { mini } from "./mini";
+import { mini, listOf } from "./mini";
 
 // group(a, b, c): a named set of layers that takes every verb. One rule: a verb on a group runs on each
 // member, in order. A group is not a layer: no box, no colour of its own, nothing to contain. (row, stack, grid
@@ -51,6 +51,28 @@ export class LayerSet {
   get snapped() {
     return this.driver("snapped", true);
   }
+  // the group minus whichever member fired: bubbles.others.on(bubbles.tap).fade() fades the ones that weren't tapped
+  get others() {
+    return new Others(this);
+  }
+}
+
+// fires for member i when any member but i does
+class Except extends Driver {
+  constructor(from: AnyOf, i: number) {
+    super(from.of, true);
+    from.onFire((detail) => detail?.index !== i && this.emit(detail));
+  }
+}
+
+export class Others {
+  constructor(public set: LayerSet) {}
+  on(source: any = this.set.tap): SetHandle {
+    const pick = source && source.kind === "pick" && typeof source.not === "function" ? source : null;
+    if (!pick && !(source instanceof AnyOf && source.set === this.set && source.played))
+      throw new Error(`others: the ones that weren't chosen, so it follows its own group's tap or a pick(): ${this.set.label || "group"}.others.on(${this.set.label || "group"}.tap)`);
+    return new SetHandle(this.set, this.set.members.map((m: any, i) => m.on(pick ? pick.not(i) : new Except(source, i))));
+  }
 }
 
 // what .on(…) hands back for a group: one handle per member, taking verbs the same way
@@ -80,6 +102,7 @@ function driverFor(set: LayerSet, source: any, i: number): any {
   if (source instanceof DriverSpec) return source.make(i);
   if (source instanceof AnyOf) return set.alignedTo === source.set ? resolveDriver(source.of, source.set.members[i]) : source;
   if (isSet(source)) return source.members[i % source.members.length]; // follow the matching member's own change
+  if (source && source.kind === "pick" && typeof source.is === "function") return source.is(i); // the chosen member is in the other state
   return source; // "tap", "hold", "drag": each member's own. Anything else is shared.
 }
 
@@ -105,7 +128,8 @@ function run(set: LayerSet, targets: any[], name: string, args: any[], self: any
   }
   targets.forEach((t, i) => {
     if (PLACES.has(name) && i > 0) return;
-    const a = spread(args, i);
+    // words and pictures come as lists of their own kind, one each like any other "<…>"
+    const a = name === "words" || name === "image" ? args.map((x) => (perMember(x) ? ((list) => list[i % list.length])(listOf(x, name)) : x)) : spread(args, i);
     if (a) t[name](...a);
   });
   return self;
@@ -124,6 +148,11 @@ for (const name of VERBS) {
 registerSetFactory({
   isSet,
   members: (s: LayerSet) => s.members,
+  // a container's children taken as a set: what strip.on(choice) hands back when strip is one of the choice's groups
+  handle(members: Layer[], source: any) {
+    const set = new LayerSet(members);
+    return new SetHandle(set, members.map((m: any, i) => m.on(driverFor(set, source, i))));
+  },
   make(rings: Layer[], around: LayerSet) {
     const out = new LayerSet(rings);
     out.alignedTo = around;

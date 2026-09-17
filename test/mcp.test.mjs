@@ -99,6 +99,12 @@ test("check: a section is a group: its name takes verbs; not inside its own brac
   assert.match(old.warnings[0].message, /bubbles\(\) is now messages\(\)/);
 });
 
+test("check: pick, others, words, image and ring are known", () => {
+  const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
+  assert.deepEqual(p(`bubbles: {\n  a: image("a.png", 90)\n  b: image("b.png", 90)\n}\nphoto: image(342).hide()\nname: text()\nstrip: row(image(48), image(48))\nstrip.image("<a.png b.png>")\nchoice: pick(bubbles, strip)\nbubbles.on("tap").into(photo)\nbubbles.others.on(bubbles.tap).fade()\nphoto.on(choice).image("<a.png b.png>")\nname.on(choice).words("<Camera, Watch>")\nstrip.on(choice).scale(1.15).ring("plum")\nchoice.set(1)\njs { console.log(choice.layer(bubbles)) }`), []);
+  assert.match(p(`strip: row(box(), box())\nc: pick(strip)\nstrip.on(c).rnig("plum")`)[0], /^3: \.rnig\(\) is not a verb\. Did you mean \.ring\(\)\?/);
+});
+
 test("check: toss, walls and bump are known; toss() with release() on one chain is flagged with the line", () => {
   const p = (code) => lint(code, vocab).problems.map((x) => `${x.line}: ${x.message}`);
   assert.deepEqual(p(`a: circle(60)\nb: circle(90)\ng: group(a, b)\ng.drift(12).drag().toss(.3).walls()\ng.bump()\na.on("tap").scale(1.2).release("bounce")`), []);

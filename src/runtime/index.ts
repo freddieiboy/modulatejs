@@ -13,13 +13,14 @@ import { run, check, preprocess, setApi } from "./run";
 import { mountStage, stage } from "./stage";
 import { device, devices } from "./device";
 import { group, LayerSet } from "./set";
+import { pick, Pick } from "./pick";
 
 declare const __VERSION__: string;
 export const version: string = __VERSION__;
 
 // what a prototype can say without importing anything
 export const vocabulary = {
-  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group,
+  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group, pick,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, theme, content, provider,
 };
@@ -40,6 +41,6 @@ export {
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage,
-  group, LayerSet,
+  group, LayerSet, pick, Pick,
   Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };
