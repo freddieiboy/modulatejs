@@ -21,6 +21,14 @@ const link = "https://coral.fm/#1" + LZ.compressToEncodedURIComponent(code)
 - [link.mjs](https://modulatejs.com/link.mjs): the same encoder as a dependency-free ES module exporting `encode(code)`, `decode(fragment)`, `link(code)`
 - From a shell: `npx modulatejs link proto.js`
 
+## MCP
+
+If your client speaks the Model Context Protocol, you don't have to fetch or encode anything by hand.
+
+- Remote, nothing to install: `https://coral.fm/mcp` (streamable HTTP, no auth). Tools: `spec`, `examples`, `check` (parses the code and checks every piece and verb against the vocabulary, with line numbers and did-you-mean), `link` (code in, coral.fm link out).
+- Local, for coding agents: `npx -y modulatejs mcp` (stdio). The same four tools, plus `show` (puts the prototype in the person's browser and on their phone, live) and `screenshot` (runs it in headless Chrome at the device's size, taps and drags where you say, and returns pictures, so you can see what you built).
+- The vocabulary as data: [vocab.json](https://modulatejs.com/vocab.json)
+
 ## Rules of thumb
 
 - Every piece looks finished with no arguments and starts centred; write less than you think you need

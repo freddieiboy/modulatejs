@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "modulatejs": {
+      "command": "node",
+      "args": [
+        "bin/modulate.mjs",
+        "mcp",
+        "proto.js",
+        "--no-open"
+      ]
+    }
+  }
+}

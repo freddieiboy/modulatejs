@@ -266,7 +266,9 @@ between(() => {
 </script>
 ```
 
-`Modulate.run(code, element?)` takes the language above, labels included. In plain JavaScript the verbs are globals (or `import { box, between } from "modulatejs"`) and you keep names with `const`. `npx modulatejs proto.js` opens the editor on a file on disk, with your phone on the same network.
+`Modulate.run(code, element?)` takes the language above, labels included. In plain JavaScript the verbs are globals (or `import { box, between } from "modulatejs"`) and you keep names with `const`. `npx modulatejs proto.js` opens the editor on a file on disk, with your phone on the same network. `npx modulatejs check proto.js` checks a file against this vocabulary.
+
+Models can use all of this over MCP: `https://coral.fm/mcp` remotely (`spec`, `examples`, `check`, `link`), or `npx -y modulatejs mcp` locally, which adds `show` and `screenshot`. The vocabulary as data is at [vocab.json](https://modulatejs.com/vocab.json).
 
 ---
 

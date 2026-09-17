@@ -12,6 +12,7 @@ Only the open-source vanilla API is used (`motionValue`, `animate`, `interpolate
 **lz-string** 1.5.0 · MIT · Copyright (c) 2013 pieroxy · https://github.com/pieroxy/lz-string
 **CodeMirror 6** (`codemirror`, `@codemirror/*`, `@lezer/*`) · MIT · Copyright (C) 2018-2021 by Marijn Haverbeke and others · https://codemirror.net
 **qrcode-generator** 2.0.4 · MIT · Copyright (c) 2009 Kazuhiko Arase · https://github.com/kazuhikoarase/qrcode-generator
+**acorn** 8.18.0 · MIT · Copyright (C) 2012-2022 by various contributors · https://github.com/acornjs/acorn (in the CLI and the worker, for `check`)
 **marked** 18.0.13 · MIT · Copyright (c) 2018+, MarkedJS; Copyright (c) 2011-2018, Christopher Jeffrey · https://github.com/markedjs/marked
 
 The MIT License, which covers each of the above:

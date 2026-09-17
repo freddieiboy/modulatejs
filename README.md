@@ -33,6 +33,27 @@ npx modulatejs link proto.js   # print the coral.fm link for a file
 
 `npx modulatejs` is the mode for working with Claude Code: it edits `proto.js`, the page and your phone follow.
 
+## For models: MCP
+
+```sh
+# Claude Code, or any agent that can run a command: everything, including eyes
+claude mcp add modulatejs -- npx -y modulatejs mcp
+
+# claude.ai, ChatGPT, or anything that takes a remote server URL: nothing to install
+https://coral.fm/mcp
+```
+
+| tool | local | remote | does |
+| --- | --- | --- | --- |
+| `spec` | ✓ | ✓ | the whole language, one page |
+| `examples` | ✓ | ✓ | the ten reference prototypes |
+| `check` | ✓ | ✓ | parses the code and checks every piece and verb against the vocabulary: line numbers, did-you-mean |
+| `link` | ✓ | ✓ | code in, coral.fm link out |
+| `show` | ✓ | | writes the file being watched, so the person's browser and phone update live |
+| `screenshot` | ✓ | | runs it in headless Chrome at the device's size, taps, drags and scrolls where told, returns pictures |
+
+`screenshot` is the one that closes the loop: a model writes a prototype, looks at it, fixes it, and only then hands over the link. It needs Chrome, Edge, Brave or Chromium, and Node 22 or newer. The remote server is stateless and read-only; the site still never talks to a model, holds a key or stores anything. `npx modulatejs check proto.js` is the same check from a shell.
+
 ## Build it
 
 ```sh
@@ -47,7 +68,8 @@ npx wrangler deploy   # both sites, to Cloudflare: one worker, coral.fm and modu
 - `prototypes/`: ten hand-sized prototypes. They are the test suite and the examples models read.
 - `src/runtime/`: the library. Only `engine.ts` touches Motion.
 - `src/app/`: the editor page (coral.fm) and the library page (modulatejs.com). `site/`: their static files.
-- `src/cli/`: `npx modulatejs`. `src/worker/`: the Cloudflare worker (static assets plus a markdown route).
+- `src/cli/`: `npx modulatejs`, and the headless Chrome behind `screenshot`. `src/mcp/`: the MCP core and the lint, shared by the CLI and the worker.
+- `src/worker/`: the Cloudflare worker: static assets, the markdown route, and `/mcp`.
 
 ## Licences
 

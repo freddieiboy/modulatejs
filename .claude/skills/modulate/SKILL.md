@@ -7,7 +7,8 @@ description: Write a modulate prototype (mobile-app feel in about fifteen lines)
 
 1. Read the spec before writing anything: `SPEC.md` in this repo, or https://modulatejs.com/spec.md. It is one page. The ten files in `prototypes/` (https://modulatejs.com/examples/index.json) are the style to match.
 2. Write the prototype. Under fifteen lines. Lean on defaults: every piece looks finished with no arguments and starts centred. Name layers with labels (`heart: circle(72)`); a label can't be a verb name. Describe change as the other state after `.on(driver)` or inside `between(() => { … })`; never animate by hand. Presets only: pop, settle, snappy, lazy, bounce.
-3. Check it runs. In this repo: `npm run build`, then run it through `Modulate.run` in headless Chrome or `npm test` if you added it to `prototypes/`. Elsewhere: read it against the spec's tables line by line.
+3. If the modulatejs MCP server is connected, use it: `check` the code, then `screenshot` it (with a tap or a drag) and look before you hand anything over; `link` makes the link and `show` puts it on the person's screens. Otherwise:
+   Check it runs. In this repo: `npm run build`, then run it through `Modulate.run` in headless Chrome or `npm test` if you added it to `prototypes/`. Elsewhere: read it against the spec's tables line by line.
 4. Hand over a link: `npx modulatejs link proto.js`, or
 
    ```js

@@ -22,8 +22,12 @@ Two names. **modulatejs** is the library: a toy vocabulary for mobile-app feel (
 - `src/cli/cli.mjs`: `npx modulatejs` (file watcher, SSE relay, LAN address)
 - `src/worker/worker.js`, `wrangler.jsonc`: Cloudflare deploy. The worker routes by host: coral.fm `/` is the editor, modulatejs.com `/` is the library page; every other file is on both
 
+## MCP
+
+`.mcp.json` wires this repo's own build in as an MCP server (`node bin/modulate.mjs mcp`; run `npm run build` first). Use its `screenshot` tool to look at a prototype instead of guessing, and `check` before handing anything over. Tools live in `src/mcp/core.mjs`; both transports (stdio in `src/cli/cli.mjs`, HTTP in `src/worker/worker.js`) wrap it, so a tool added there appears in both unless it needs the local machine.
+
 ## Working on it
 
 - `npm run build`, then `node bin/modulate.mjs some.js` serves `dist/site` locally with the file mirrored.
 - To see a prototype for real, drive headless Chrome with `playwright-core` against `dist/modulate.js` (`Modulate.run(code, document.body)`), screenshot, and look. jsdom can't see motion.
-- Adding a verb means: a prototype that needs it, the `verb()` in `layer.ts`, a line in `SPEC.md`, a line in `modulate.d.ts`, an entry in `library-data.mjs`.
+- Adding a verb means: a prototype that needs it, the `verb()` in `layer.ts`, a line in `SPEC.md`, a line in `modulate.d.ts`, an entry in `library-data.mjs`. `vocab.json` and the lint pick it up from the build.

@@ -57,7 +57,7 @@ async function build() {
     loader: { ".md": "text", ".css": "text" },
   });
   cpSync(join(root, "site"), site, { recursive: true });
-  await esbuild.build({ ...common, minify: false, entryPoints: [join(root, "src/cli/cli.mjs")], outfile: join(dist, "cli.mjs"), format: "esm", platform: "node", banner: { js: "// modulatejs CLI — AGPL-3.0 — https://modulatejs.com" } });
+  await esbuild.build({ ...common, target: "node18", minify: false, entryPoints: [join(root, "src/cli/cli.mjs")], outfile: join(dist, "cli.mjs"), format: "esm", platform: "node", banner: { js: "// modulatejs CLI — AGPL-3.0 — https://modulatejs.com" } });
   cpSync(join(dist, "modulate.js"), join(site, "modulate.js"));
   cpSync(join(dist, "modulate.mjs"), join(site, "modulate.mjs"));
   cpSync(join(dist, "link.mjs"), join(site, "link.mjs"));
@@ -66,6 +66,23 @@ async function build() {
   const protos = readdirSync(join(root, "prototypes")).filter((f) => f.endsWith(".js")).sort();
   for (const f of protos) cpSync(join(root, "prototypes", f), join(site, "examples", f));
   writeFileSync(join(site, "examples/index.json"), JSON.stringify(protos));
+
+  // /vocab.json: every name the language has, for the lint, the MCP servers, and anyone's tooling
+  const rt = await import(join(dist, "modulate.mjs") + "?" + Date.now());
+  const pieces = ["box", "circle", "pill", "text", "emoji", "image", "avatar", "card", "row", "stack", "grid", "bubbles", "sheet", "tabbar"];
+  const globals = Object.keys(rt.vocabulary);
+  writeFileSync(join(site, "vocab.json"), JSON.stringify({
+    version: pkg.version,
+    pieces,
+    drivers: ["tap", "hold", "drag", "scroll", "time", "lfo", "page"],
+    globals,
+    verbs: rt.VERBS,
+    // verbs, plus what drivers and between() answer to
+    methods: [...new Set([...rt.VERBS, "drive", "spring", "curve", "range", "pause", "once", "go"])],
+    presets: Object.keys(rt.presets),
+    palette: Object.keys(rt.palette),
+    devices: Object.keys(rt.devices),
+  }, null, 1));
 
   // /library.md: the library page for readers who don't run JavaScript
   const { sections } = await import(join(root, "src/app/library-data.mjs") + "?" + Date.now());

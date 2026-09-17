@@ -8,7 +8,7 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/", "/library", "/library/"]
+    "run_worker_first": ["/", "/library", "/library/", "/mcp", "/mcp/"]
   },
   // coral.fm is the app, modulatejs.com is the library; the worker routes by host
   // Zone routes, not custom domains: both zones already have proxied DNS records for the apex and www.

@@ -3,6 +3,7 @@ declare const Modulate: any;
 
 const empty = document.getElementById("empty")!;
 const host = document.createElement("div");
+host.id = "host";
 host.style.cssText = "position:fixed;inset:0";
 document.body.appendChild(host);
 let last = "";

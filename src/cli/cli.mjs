@@ -1,14 +1,20 @@
-// npx modulatejs — the same page, pointed at a file on disk. AGPL-3.0.
+// npx modulatejs — the library's command line. The editor it opens is coral. AGPL-3.0.
 //   npx modulatejs [proto.js]        edit a file here, in the browser and on your phone, all in step
-//   npx modulatejs link [proto.js]   print the link for a file
+//   npx modulatejs link [proto.js]   print the coral.fm link for a file
+//   npx modulatejs check [proto.js]  parse it and check every piece and verb against the vocabulary
+//   npx modulatejs mcp [proto.js]    an MCP server on stdio, for Claude Code and other agents
 import http from "node:http";
 import { readFileSync, writeFileSync, existsSync, watch, statSync } from "node:fs";
 import { join, resolve, dirname, basename, extname, normalize } from "node:path";
 import { networkInterfaces } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 import qrcode from "qrcode-generator";
 import { link } from "../link";
+import { createServer, about } from "../mcp/core.mjs";
+import { report } from "../mcp/lint.mjs";
+import { photograph, closeBrowser } from "./chrome.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const site = join(here, "site");
@@ -19,6 +25,9 @@ const option = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const positional = args.filter((a, i) => !a.startsWith("-") && args[i - 1] !== "--port");
+const COMMANDS = new Set(["link", "check", "mcp"]);
+const command = COMMANDS.has(positional[0]) ? positional[0] : "serve";
+const fileArg = command === "serve" ? positional[0] : positional[1];
 
 const STARTER = `// a like button that pops. Change a number and watch.
 init: {
@@ -34,127 +43,155 @@ heart.on("tap").spring("pop", 1.3)
 burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 `;
 
+const vocab = () => JSON.parse(readFileSync(join(site, "vocab.json"), "utf8"));
+
 if (flag("--help") || flag("-h")) {
   console.log(`modulatejs — https://modulatejs.com · the editor is coral, https://coral.fm
 
-  npx modulatejs [file]         open the editor on a file (default proto.js), live on your phone too
-  npx modulatejs link [file]    print the coral.fm link for a file
+  npx modulatejs [file]          open the editor on a file (default proto.js), live on your phone too
+  npx modulatejs link [file]     print the coral.fm link for a file
+  npx modulatejs check [file]    parse it, and check every piece and verb against the vocabulary
+  npx modulatejs mcp [file]      an MCP server on stdio: spec, examples, check, link, show, screenshot
+                                 claude mcp add modulatejs -- npx -y modulatejs mcp
 
   --port <n>    default 4173
   --no-open     don't open the browser`);
   process.exit(0);
 }
 
-if (positional[0] === "link") {
-  const file = resolve(positional[1] ?? "proto.js");
-  console.log(link(readFileSync(file, "utf8")));
+if (command === "link") {
+  console.log(link(readFileSync(resolve(fileArg ?? "proto.js"), "utf8")));
   process.exit(0);
 }
 
-const file = resolve(positional[0] ?? "proto.js");
-if (!existsSync(file)) writeFileSync(file, STARTER);
-let content = readFileSync(file, "utf8");
+if (command === "check") {
+  const r = report(readFileSync(resolve(fileArg ?? "proto.js"), "utf8"), vocab());
+  console.log(r.text);
+  process.exit(r.ok ? 0 : 1);
+}
 
-const clients = new Set();
-const broadcast = (except) => {
-  const msg = `data: ${JSON.stringify({ code: content })}\n\n`;
-  for (const c of clients) if (c !== except) c.write(msg);
-};
-
-let debounce;
-watch(dirname(file), (_event, name) => {
-  if (name && name !== basename(file)) return;
-  clearTimeout(debounce);
-  debounce = setTimeout(() => {
-    let next;
-    try {
-      next = readFileSync(file, "utf8");
-    } catch {
-      return;
-    }
-    if (next === content) return;
-    content = next;
-    broadcast(null);
-  }, 30);
-});
+// ——— the relay: one file, mirrored to every page that is open on it
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png" };
 
 function lan() {
-  for (const list of Object.values(networkInterfaces()))
-    for (const n of list ?? []) if (n.family === "IPv4" && !n.internal) return n.address;
+  for (const list of Object.values(networkInterfaces())) for (const n of list ?? []) if (n.family === "IPv4" && !n.internal) return n.address;
   return null;
 }
 
-const port = Number(option("--port", 4173));
-const ip = lan();
-const lanUrl = ip ? `http://${ip}:${port}` : null;
+function startRelay({ file, port, create, hunt }) {
+  if (create && !existsSync(file)) writeFileSync(file, STARTER);
+  let content = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const clients = new Set();
+  const broadcast = () => {
+    const msg = `data: ${JSON.stringify({ code: content })}\n\n`;
+    for (const c of clients) c.write(msg);
+  };
 
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, "http://x");
-  const path = url.pathname;
-
-  if (path === "/__modulate/info") {
-    res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
-    return res.end(JSON.stringify({ file: basename(file), lan: lanUrl }));
-  }
-  if (path === "/__modulate/events") {
-    res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
-    res.write(`data: ${JSON.stringify({ code: content })}\n\n`);
-    clients.add(res);
-    const beat = setInterval(() => res.write(": hi\n\n"), 25000);
-    req.on("close", () => {
-      clearInterval(beat);
-      clients.delete(res);
-    });
-    return;
-  }
-  if (path === "/__modulate/file" && req.method === "POST") {
-    // only this page may write the file
-    const origin = req.headers.origin;
-    if (origin && new URL(origin).host !== req.headers.host) {
-      res.writeHead(403);
-      return res.end();
-    }
-    let body = "";
-    req.on("data", (c) => (body += c));
-    req.on("end", () => {
-      if (body !== content && body.length < 256 * 1024) {
-        content = body;
-        writeFileSync(file, content);
-        broadcast(null);
+  let debounce;
+  watch(dirname(file), (_event, name) => {
+    if (name && name !== basename(file)) return;
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      let next;
+      try {
+        next = readFileSync(file, "utf8");
+      } catch {
+        return;
       }
-      res.writeHead(204);
-      res.end();
+      if (next === content) return;
+      content = next;
+      broadcast();
+    }, 30);
+  });
+
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://x");
+    const path = url.pathname;
+    if (path === "/__modulate/info") {
+      res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+      return res.end(JSON.stringify({ file: basename(file), lan: relay.lanUrl }));
+    }
+    if (path === "/__modulate/events") {
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
+      res.write(`data: ${JSON.stringify({ code: content })}\n\n`);
+      clients.add(res);
+      const beat = setInterval(() => res.write(": hi\n\n"), 25000);
+      req.on("close", () => (clearInterval(beat), clients.delete(res)));
+      return;
+    }
+    if (path === "/__modulate/file" && req.method === "POST") {
+      // only this page may write the file
+      const origin = req.headers.origin;
+      if (origin && new URL(origin).host !== req.headers.host) return res.writeHead(403).end();
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        if (body !== content && body.length < 256 * 1024) relay.set(body);
+        res.writeHead(204).end();
+      });
+      return;
+    }
+    let rel = normalize(decodeURIComponent(path)).replace(/^(\.\.[/\\])+/, "");
+    if (rel === "/" || rel === "") rel = (req.headers.accept ?? "").includes("text/markdown") ? "/index.md" : "/index.html";
+    if (!extname(rel)) rel += ".html";
+    const full = join(site, rel);
+    if (!full.startsWith(site) || !existsSync(full) || !statSync(full).isFile()) return res.writeHead(404, { "content-type": "text/plain" }).end("not found");
+    res.writeHead(200, { "content-type": TYPES[extname(full)] ?? "application/octet-stream", "cache-control": "no-store" });
+    res.end(readFileSync(full));
+  });
+
+  const relay = {
+    port,
+    lanUrl: null,
+    clients,
+    get: () => content,
+    set(next) {
+      content = next;
+      writeFileSync(file, content);
+      broadcast();
+    },
+  };
+  // (the promise refers to relay, so it is made once relay exists)
+  relay.ready = new Promise((ok, fail) => {
+    const listen = () => server.listen(relay.port, "0.0.0.0");
+    server.on("error", (e) => {
+      if (e.code === "EADDRINUSE" && hunt && relay.port < port + 20) return relay.port++, listen();
+      fail(e);
     });
-    return;
-  }
+    server.on("listening", () => {
+      const ip = lan();
+      relay.lanUrl = ip ? `http://${ip}:${relay.port}` : null;
+      relay.local = `http://localhost:${relay.port}`;
+      ok(relay);
+    });
+    listen();
+  });
+  return relay;
+}
 
-  let rel = normalize(decodeURIComponent(path)).replace(/^(\.\.[/\\])+/, "");
-  if (rel === "/" || rel === "") rel = (req.headers.accept ?? "").includes("text/markdown") ? "/index.md" : "/index.html";
-  if (!extname(rel)) rel += ".html";
-  const full = join(site, rel);
-  if (!full.startsWith(site) || !existsSync(full) || !statSync(full).isFile()) {
-    res.writeHead(404, { "content-type": "text/plain" });
-    return res.end("not found");
-  }
-  res.writeHead(200, { "content-type": TYPES[extname(full)] ?? "application/octet-stream", "cache-control": "no-store" });
-  res.end(readFileSync(full));
-});
+function openBrowser(url) {
+  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const a = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+  try {
+    spawn(cmd, a, { stdio: "ignore", detached: true }).on("error", () => {}).unref();
+  } catch {}
+}
 
-server.on("error", (e) => {
-  console.error(e.code === "EADDRINUSE" ? `port ${port} is taken — try --port ${port + 1}` : e.message);
-  process.exit(1);
-});
+const file = resolve(fileArg ?? "proto.js");
+const port = Number(option("--port", 4173));
 
-server.listen(port, "0.0.0.0", () => {
-  const local = `http://localhost:${port}`;
+if (command === "serve") {
+  const relay = await startRelay({ file, port, create: true, hunt: false }).ready.catch((e) => {
+    console.error(e.code === "EADDRINUSE" ? `port ${port} is taken — try --port ${port + 1}` : e.message);
+    process.exit(1);
+  });
   console.log(`\n  coral · ${basename(file)}\n`);
-  console.log(`  editor   ${local}`);
-  if (lanUrl) {
-    console.log(`  phone    ${lanUrl}   (same wifi)\n`);
+  console.log(`  editor   ${relay.local}`);
+  if (relay.lanUrl) {
+    console.log(`  phone    ${relay.lanUrl}   (same wifi)\n`);
     const qr = qrcode(0, "L");
-    qr.addData(lanUrl);
+    qr.addData(relay.lanUrl);
     qr.make();
     const n = qr.getModuleCount();
     const at = (r, c) => r >= 0 && r < n && c >= 0 && c < n && qr.isDark(r, c);
@@ -166,11 +203,71 @@ server.listen(port, "0.0.0.0", () => {
     }
   }
   console.log(`\n  Edit ${basename(file)} in anything — your editor, Claude Code, the page — and every screen follows.\n`);
-  if (!flag("--no-open")) {
-    const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
-    const a = process.platform === "win32" ? ["/c", "start", "", local] : [local];
+  if (!flag("--no-open")) openBrowser(relay.local);
+}
+
+// ——— mcp: the same relay, with a model holding the pen. stdout is the protocol; everything else goes to stderr.
+if (command === "mcp") {
+  const relay = await startRelay({ file, port, create: false, hunt: true }).ready;
+  const examplesDir = join(site, "examples");
+  const names = JSON.parse(readFileSync(join(examplesDir, "index.json"), "utf8")).map((f) => f.replace(/\.js$/, ""));
+  let opened = false;
+
+  const server = createServer({
+    name: "modulatejs",
+    version: vocab().version,
+    host: {
+      spec: () => readFileSync(join(site, "spec.md"), "utf8"),
+      examples: () => names.map((name) => ({ name, about: about(readFileSync(join(examplesDir, name + ".js"), "utf8")) })),
+      example: (name) => (names.includes(name) ? readFileSync(join(examplesDir, name + ".js"), "utf8") : null),
+      vocab,
+      link,
+      show(code) {
+        relay.set(code);
+        const watching = relay.clients.size;
+        const opening = !watching && !opened && !flag("--no-open");
+        if (opening) (openBrowser(relay.local), (opened = true));
+        const screens = watching ? `${watching} open screen${watching === 1 ? "" : "s"} updated` : opening ? "the editor is opening in their browser" : "no screen is open on it yet: they can open the editor address below";
+        return [
+          `Shown. It is in ${basename(file)}, and ${screens}.`,
+          `editor: ${relay.local}`,
+          relay.lanUrl ? `phones on the same wifi: ${relay.lanUrl} (the editor's "open on phone" button shows the QR code)` : null,
+          `to share: ${link(code)}`,
+        ].filter(Boolean).join("\n");
+      },
+      async screenshot({ code, actions }) {
+        const src = code ?? relay.get();
+        if (!String(src).trim()) return { failed: "There is nothing to photograph: pass code, or show something first." };
+        try {
+          return await photograph({ origin: relay.local, code: src, actions });
+        } catch (e) {
+          return { failed: `screenshot couldn't run: ${e.message}` };
+        }
+      },
+    },
+  });
+
+  console.error(`modulatejs mcp · ${basename(file)} · editor at ${relay.local}`);
+  const rl = createInterface({ input: process.stdin });
+  let inFlight = Promise.resolve();
+  rl.on("line", (line) => {
+    if (!line.trim()) return;
+    let msg;
     try {
-      spawn(cmd, a, { stdio: "ignore", detached: true }).on("error", () => {}).unref();
-    } catch {}
-  }
-});
+      msg = JSON.parse(line);
+    } catch {
+      return void process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }) + "\n");
+    }
+    // one at a time, in order: a screenshot shouldn't race the show before it
+    inFlight = inFlight.then(async () => {
+      for (const m of Array.isArray(msg) ? msg : [msg]) {
+        const out = await server.handle(m);
+        if (out) process.stdout.write(JSON.stringify(out) + "\n");
+      }
+    });
+  });
+  const bye = () => (closeBrowser(), process.exit(0));
+  rl.on("close", () => inFlight.finally(bye));
+  process.on("SIGINT", bye);
+  process.on("SIGTERM", bye);
+}

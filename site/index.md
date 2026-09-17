@@ -36,6 +36,10 @@ heart.on("tap").spring("pop", 1.3)
 burst.on(heart.tap).show().fly(40).fade().stagger(.03)
 ```
 
+## MCP
+
+A Model Context Protocol server lives at `https://coral.fm/mcp` (streamable HTTP, no auth): `spec`, `examples`, `check`, `link`. Locally, `npx -y modulatejs mcp` adds `show` and `screenshot`. Details in [llms.txt](https://coral.fm/llms.txt).
+
 ## Everything else
 
 - [llms.txt](https://modulatejs.com/llms.txt)
