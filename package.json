@@ -1,7 +1,7 @@
 {
   "name": "modulatejs",
-  "version": "0.23.0",
-  "description": "ModulateJS is a lightweight prototyping library: get an idea out of your head as fast as you can type it, and keep control of every detail. Speed, fidelity and control. Fifteen lines, a link, and it's on your phone. Inspired by Strudel, built on Motion.",
+  "version": "0.23.1",
+  "description": "ModulateJS is markdown for UI interactions: a consistent language people and models can both write, for describing complex, fun interface motion. Fifteen lines, a link, and it's on your phone. Inspired by Strudel, built on Motion.",
   "keywords": [
     "prototype",
     "animation",

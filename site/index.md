@@ -1,6 +1,6 @@
 # coral.fm
 
-Riff, Play, Share. This is coral, the editor for [ModulateJS](https://modulatejs.com), a lightweight prototyping library: a raw code editor on the left, a phone-sized device on the right, the spec folded into a side panel. It is one static page. There is no login, no chat and no API; all state lives in the URL fragment. You are reading the markdown version because you asked for `text/markdown` or don't run JavaScript. Nothing here is hidden from people: the spec panel in the editor renders the same spec.md.
+Riff, Play, Share. This is coral, the editor for [ModulateJS](https://modulatejs.com), markdown for UI interactions: a raw code editor on the left, a phone-sized device on the right, the spec folded into a side panel. It is one static page. There is no login, no chat and no API; all state lives in the URL fragment. You are reading the markdown version because you asked for `text/markdown` or don't run JavaScript. Nothing here is hidden from people: the spec panel in the editor renders the same spec.md.
 
 ## What you can do from here
 

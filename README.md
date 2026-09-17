@@ -1,6 +1,6 @@
 # modulate
 
-**ModulateJS is a lightweight prototyping library** for getting an idea out of your head as fast as you can type it, without giving up control of the smallest detail. Making a new kind of interface usually costs you one of three things: **speed**, **fidelity** or **control**. This library hopes to be the one where you keep all three. The inspiration is [Strudel](https://strudel.cc), where a few characters are already music; here fifteen lines are already an app you can hold: you get a link, and the link runs on your phone. [modulatejs.com](https://modulatejs.com)
+**ModulateJS is markdown for UI interactions**: a consistent language that people and models can both write, for describing complex, fun interface motion. What markdown did for writing, this tries to do for the way an interface moves. It gets an idea out of your head as fast as you can type it, without giving up control of the smallest detail. The inspiration is [Strudel](https://strudel.cc), where a few characters are already music; here fifteen lines are already an app you can hold: you get a link, and the link runs on your phone. [modulatejs.com](https://modulatejs.com)
 
 **[coral.fm](https://coral.fm)** is the app that runs it: an editor, a device frame, and links. *Riff, Play, Share.*
 

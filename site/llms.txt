@@ -1,6 +1,6 @@
 # modulatejs and coral.fm
 
-> ModulateJS is a lightweight prototyping library for getting an idea out of your head as fast as you can type it without giving up control of the details (speed, fidelity and control, all three; inspired by Strudel): a toy vocabulary for prototyping mobile-app feel in ten to fifteen lines (pieces, drivers and springs on top of Motion's animation engine). coral.fm is the app that runs it (Riff, Play, Share): a code editor beside a phone-sized device, where the code itself is the link. A coral.fm link opens in a device frame on a desktop and full screen on a phone. No login, no API, nothing stored: the link is the file.
+> ModulateJS is markdown for UI interactions: a consistent language that people and models can both write, for describing complex, fun interface motion. It gets an idea out of your head as fast as you can type it without giving up control of the details (speed, fidelity and control; inspired by Strudel): a toy vocabulary for prototyping mobile-app feel in ten to fifteen lines (pieces, drivers and springs on top of Motion's animation engine). coral.fm is the app that runs it (Riff, Play, Share): a code editor beside a phone-sized device, where the code itself is the link. A coral.fm link opens in a device frame on a desktop and full screen on a phone. No login, no API, nothing stored: the link is the file.
 
 To hand someone a working prototype: read the spec, write the code, encode it into a coral.fm link, reply with the link.
 
