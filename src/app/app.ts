@@ -261,7 +261,7 @@ if (!player) {
   attach(tabs);
   (window as any).__view = view; // for the tests
   hintsTalkTo(post);
-  const plain = plainWhileAlt(view);
+  const plain = plainWhileAlt(view, tabs.results);
   addEventListener("message", (e) => e.source === frame.contentWindow && e.data?.type === "alt" && plain(!!e.data.on));
   // Space, with the editor not focused (after tapping the phone, say): pause or resume the current trigger
   let paused: number | null = null;
