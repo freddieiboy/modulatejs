@@ -1,6 +1,6 @@
 {
   "name": "modulatejs",
-  "version": "0.25.3",
+  "version": "0.26.0",
   "description": "ModulateJS is markdown for UI interactions: a consistent language for how UI can feel, that a human or an LLM can write. Comprehensive enough that custom JavaScript is never necessary. Speed, fidelity and control. Fifteen lines, a link, and it's on your phone.",
   "keywords": [
     "prototype",
@@ -50,7 +50,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/build.mjs --watch",
-    "test": "node scripts/build.mjs && node --test \"test/*.test.mjs\"",
+    "test": "node scripts/build.mjs && node --test \"test/*.test.mjs\" && node --test --test-concurrency=2 \"test/browser/*.test.mjs\"",
     "prepublishOnly": "npm run build && npm test"
   },
   "engines": {

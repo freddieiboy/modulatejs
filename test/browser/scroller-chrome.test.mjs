@@ -2,9 +2,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { Browser, findChrome } from "../src/cli/chrome.mjs";
+import { Browser, findChrome } from "../../src/cli/chrome.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = new URL("../..", import.meta.url).pathname;
 const chrome = findChrome();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let browser;

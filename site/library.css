@@ -1,7 +1,7 @@
 body.lib { overflow: hidden; }
 .lib .scroll { flex: 1; overflow: auto; scroll-behavior: smooth; }
 .lib .links.top { font-size: 13px; }
-.lib .cols, .lib #reference, .lib #licences, .lib .foot { max-width: 1120px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
+.lib .cols, .lib #prototypes, .lib #reference, .lib #licences, .lib .foot { max-width: 1120px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
 .lib .cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 64px; }
 .lib .right { position: sticky; top: 0; align-self: start; height: calc(100vh - 56px); display: flex; flex-direction: column; justify-content: center; gap: 14px; }
 .lib .hero { padding-top: 80px; }
@@ -59,10 +59,21 @@ body.lib { overflow: hidden; }
 
 @media (max-width: 860px) {
   .lib .cols { grid-template-columns: minmax(0, 1fr); }
-  .lib .cols, .lib #reference, .lib #licences, .lib .foot { padding-left: 20px; padding-right: 20px; }
+  .lib .cols, .lib #prototypes, .lib #reference, .lib #licences, .lib .foot { padding-left: 20px; padding-right: 20px; }
   .lib .right { display: none; }
   .ex .phone, #reads .phone { margin: 6px auto 14px; }
   .lib .hero { padding-top: 44px; }
   .install span { display: none; }
   .word { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* the prototypes as a bento: live tiles of different sizes */
+.bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 224px; grid-auto-flow: dense; gap: 14px; margin-top: 28px; }
+.tile { position: relative; border-radius: 22px; overflow: hidden; background: #141417; box-shadow: 0 0 0 1px #26262c; }
+.tile-screen { position: absolute; inset: 0; overflow: hidden; background: #fff; }
+.tile-screen iframe { position: absolute; width: 390px; height: 844px; border: 0; background: #fff; transform-origin: 0 0; }
+.tile-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 16px 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); pointer-events: none; }
+.tile-cap b { font: 500 13px var(--sans); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.tile-cap .open { font: 12px var(--mono); color: rgba(255,255,255,.75); pointer-events: auto; opacity: 0; transition: opacity .15s; white-space: nowrap; }
+.tile:hover .tile-cap .open { opacity: 1; }
+@media (max-width: 860px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; } }

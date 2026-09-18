@@ -4,10 +4,10 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { extname, join } from "node:path";
-import { Browser, findChrome } from "../src/cli/chrome.mjs";
-import { decode, encode } from "../dist/link.mjs";
+import { Browser, findChrome } from "../../src/cli/chrome.mjs";
+import { decode, encode } from "../../dist/link.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = new URL("../..", import.meta.url).pathname;
 const chrome = findChrome();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".md": "text/markdown" };
@@ -64,6 +64,14 @@ home.on(bubbles.tap).fade()
 product.on(bubbles.tap).show()`;
 
 const ev = (js) => browser.evaluate(js);
+// the page is ready once the device has run the file and reported back (the status line says so)
+async function ready() {
+  for (let i = 0; i < 100; i++) {
+    if (await ev(`!!document.getElementById("status-left").textContent || document.querySelectorAll(".cm-line").length === 0`)) break;
+    await sleep(50);
+  }
+  await sleep(250);
+}
 const MOD = process.platform === "darwin" ? 4 : 2; // ⌘ on a Mac, Ctrl elsewhere: what the editor calls Mod
 const tabs = () => ev(`JSON.stringify([...document.querySelectorAll("#tabs .tab")].map((b) => b.textContent.replace(/\\d+$/, "") + (b.querySelector(".tab-dot") ? "•" : "")))`).then(JSON.parse);
 // the code on each visible line, without the result column beside it
@@ -86,7 +94,7 @@ async function open(code = FILE) {
   browser ??= await Browser.launch();
   await browser.page("about:blank", 1250, 780); // a new hash on the same address is no new page
   await browser.page(origin + "/?edit#" + encode(code), 1250, 780);
-  await sleep(1500);
+  await ready();
 }
 
 test("1. the strip: all · home · bubbles · product · js · feel · +, dots on the three with layers", { skip: !chrome }, async () => {

@@ -5,10 +5,10 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { extname, join } from "node:path";
-import { Browser, findChrome } from "../src/cli/chrome.mjs";
-import { decode, encode } from "../dist/link.mjs";
+import { Browser, findChrome } from "../../src/cli/chrome.mjs";
+import { decode, encode } from "../../dist/link.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = new URL("../..", import.meta.url).pathname;
 const chrome = findChrome();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".md": "text/markdown" };
@@ -54,6 +54,14 @@ product.on(bubbles.tap).show().after(.2)
 photo.on(choice).image("<${PICS.join(" ")}>")`;
 
 const ev = (js) => browser.evaluate(js);
+// the page is ready once the device has run the file and reported back (the status line says so)
+async function ready() {
+  for (let i = 0; i < 100; i++) {
+    if (await ev(`!!document.getElementById("status-left").textContent || document.querySelectorAll(".cm-line").length === 0`)) break;
+    await sleep(50);
+  }
+  await sleep(250);
+}
 // a double-click, as the browser counts it: the second press says so
 async function dblclick(x, y) {
   await browser.mouse("mouseMoved", x, y);
@@ -69,7 +77,7 @@ async function open(code = FILE) {
   browser ??= await Browser.launch();
   await browser.page("about:blank", 1250, 1100);
   await browser.page(origin + "/?edit#" + encode(code), 1250, 1100);
-  await sleep(1800);
+  await ready();
 }
 // put the cursor on a line by clicking its text (the line that starts with `text`)
 async function goTo(text) {

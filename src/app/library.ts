@@ -88,7 +88,96 @@ for (const s of sections) {
   for (const it of s.items) sec.appendChild(example(it.code, it.verbs, it.text));
   root.appendChild(sec);
 }
-$("toc").innerHTML = [...sections.map((s) => [s.id, s.title.toLowerCase()]), ["reference", "every word"], ["licences", "licences"]].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
+$("toc").innerHTML = [...sections.map((s) => [s.id, s.title.toLowerCase()]), ["prototypes", "prototypes"], ["reference", "every word"], ["licences", "licences"]].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
+
+// a tile's device runs only while it is on screen, and each says hello before it is given its code
+const pending = new WeakMap<object, string>();
+addEventListener("message", (e) => {
+  const code = e.source && pending.get(e.source as object);
+  if (e.data?.type === "ready" && code != null) (e.source as Window).postMessage({ type: "run", code }, "*");
+});
+const io = new IntersectionObserver(
+  (entries) => {
+    for (const en of entries) {
+      const frame = en.target as HTMLIFrameElement;
+      if (en.isIntersecting && !frame.dataset.on) {
+        frame.dataset.on = "1";
+        frame.addEventListener("load", () => (pending.set(frame.contentWindow!, frame.dataset.code!), frame.contentWindow!.postMessage({ type: "hello" }, "*")), { once: true });
+        frame.src = "/frame";
+      } else if (!en.isIntersecting && frame.dataset.on) {
+        delete frame.dataset.on;
+        frame.src = "about:blank";
+      }
+    }
+  },
+  { root: scroller, rootMargin: "300px" }
+);
+const watch = () => document.querySelectorAll<HTMLIFrameElement>(".tile iframe").forEach((f) => io.observe(f));
+
+// ——— the prototypes, as a bento: tiles of different sizes, each the prototype itself running. A tall tile is a
+// whole phone; a small one is cropped in on the part that matters (its focus, a point on the 390 × 844 screen).
+const BENTO: Record<string, { span: [number, number]; focus?: [number, number]; scale?: number }> = {
+  "12-bubbles": { span: [2, 2] },
+  "15-feed": { span: [1, 2] },
+  "03-sheet": { span: [1, 2] },
+  "07-like-button": { span: [1, 1], focus: [195, 422], scale: 1 },
+  "05-tab-bar": { span: [2, 1], focus: [195, 700], scale: 1 },
+  "13-pick": { span: [1, 2] },
+  "14-screens": { span: [1, 2] },
+  "01-swipe-to-dismiss": { span: [1, 2] },
+  "08-story-progress": { span: [1, 1], focus: [195, 90], scale: 0.9 },
+  "11-chat-head": { span: [1, 1], focus: [300, 640], scale: 1 },
+  "10-shop-to-chat": { span: [1, 2] },
+  "02-pull-to-refresh": { span: [1, 2] },
+  "09-card-expand": { span: [2, 1], focus: [195, 300], scale: 0.9 },
+  "04-push-pop": { span: [1, 2] },
+  "06-onboarding-pager": { span: [1, 2] },
+};
+(async () => {
+  const grid = $("bento");
+  try {
+    const files: string[] = await (await fetch("/examples/index.json")).json();
+    files.sort((a, b) => (BENTO[a.replace(/\.js$/, "")]?.span[0] === 2 && BENTO[a.replace(/\.js$/, "")]?.span[1] === 2 ? -1 : 0) - (BENTO[b.replace(/\.js$/, "")]?.span[0] === 2 && BENTO[b.replace(/\.js$/, "")]?.span[1] === 2 ? -1 : 0)); // the hero leads
+    for (const f of files) {
+      const name = f.replace(/\.js$/, ""), spec = BENTO[name] ?? { span: [1, 2] as [number, number] };
+      const code = (await (await fetch("/examples/" + f)).text()).trim();
+      const title = name.replace(/^\d+-/, "").replace(/-/g, " ");
+      const comment = /^\/\/\s*(.*)$/m.exec(code)?.[1] ?? title;
+      const tile = document.createElement("article");
+      tile.className = "tile";
+      tile.style.gridColumn = `span ${spec.span[0]}`;
+      tile.style.gridRow = `span ${spec.span[1]}`;
+      const screen = document.createElement("div");
+      screen.className = "tile-screen";
+      const frame = document.createElement("iframe");
+      frame.title = title;
+      tile.title = comment;
+      frame.dataset.code = code;
+      screen.appendChild(frame);
+      const cap = document.createElement("div");
+      cap.className = "tile-cap";
+      cap.innerHTML = `<b>${esc(title)}</b><a class="open" href="${EDITOR}#${encode(code)}">open in coral →</a>`;
+      tile.append(screen, cap);
+      grid.appendChild(tile);
+      // the phone's place in the tile: a whole phone fits the tile's height; a crop sits so its focus is centred
+      const place = () => {
+        const w = screen.clientWidth, h = screen.clientHeight;
+        if (!w || !h) return;
+        const full = !spec.focus;
+        const k = full ? Math.min(h / 844, w / 390) : spec.scale ?? 1;
+        const [fx, fy] = spec.focus ?? [195, 422];
+        frame.style.transform = `scale(${k})`;
+        frame.style.left = `${Math.round(w / 2 - fx * k)}px`;
+        frame.style.top = `${full ? Math.round((h - 844 * k) / 2) : Math.round(h / 2 - fy * k)}px`;
+      };
+      new ResizeObserver(place).observe(screen);
+      place();
+    }
+    watch();
+  } catch {
+    grid.insertAdjacentHTML("beforeend", `<p class="lede">The prototypes live at <a href="/examples/index.json">/examples/</a>.</p>`);
+  }
+})();
 
 
 // every word: the spec's own tables, as the build read them into /vocab.json
