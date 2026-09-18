@@ -78,6 +78,8 @@ async function open(code = FILE) {
   await browser.page("about:blank", 1250, 1100);
   await browser.page(origin + "/?edit#" + encode(code), 1250, 1100);
   await ready();
+  // the instrument is off by default; these tests are about it, so they turn it on
+  if ((await ev(`document.querySelector(".tab-instrument").getAttribute("aria-checked")`)) !== "true") (await ev(`document.querySelector(".tab-instrument").click(); 0`), await sleep(300));
 }
 // put the cursor on a line by clicking its text (the line that starts with `text`)
 async function goTo(text) {
@@ -245,16 +247,17 @@ test("7. a file with no .on() lines shows sliders and chips only, no result colu
   assert.equal(await ev(`location.hash`), before, "nothing in the link changed from opening or hovering");
 });
 
-test("9. the instrument switch turns it off, and stays off across a reload", { skip: !chrome }, async () => {
-  await open();
-  assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5);
-  await ev(`document.querySelector(".tab-instrument").click(); 0`);
-  await sleep(200);
-  assert.equal(await ev(`document.querySelectorAll(".cm-result, .cm-num, .cm-lane, .cm-thumb, .cm-swatch").length`), 0);
+test("9. the instrument is off by default; the switch turns it on and stays on across a reload", { skip: !chrome }, async () => {
+  await ev(`try { localStorage.removeItem("coral.instrument") } catch {}; 0`);
+  browser ??= await Browser.launch();
+  await browser.page("about:blank", 1250, 1100);
+  await browser.page(origin + "/?edit#" + encode(FILE), 1250, 1100);
+  await ready();
+  assert.equal(await ev(`document.querySelectorAll(".cm-result, .cm-num, .cm-lane, .cm-thumb, .cm-swatch").length`), 0, "plain code to begin with");
   assert.equal(await ev(`document.querySelector(".tab-instrument").getAttribute("aria-checked")`), "false");
-  await open();
-  assert.equal(await ev(`document.querySelectorAll(".cm-result").length`), 0, "still off");
   await ev(`document.querySelector(".tab-instrument").click(); 0`);
   await sleep(300);
-  assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5, "and back on");
+  assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5, "on");
+  await open();
+  assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5, "still on after a reload");
 });

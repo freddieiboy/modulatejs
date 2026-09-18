@@ -380,9 +380,10 @@ export function instrument(post: Post) {
 // ⌥ hides every control and result: the file is plain code while it is held
 // ⌥ hides every control and result while it is held; the "instrument" switch turns them off and stays off
 export function plainWhileAlt(view: EditorView, toggle: HTMLElement, onSwitch?: (on: boolean) => void) {
-  let off = false;
+  // off unless you turned it on: the file should look like code first
+  let off = true;
   try {
-    off = localStorage.getItem("coral.instrument") === "off";
+    off = localStorage.getItem("coral.instrument") !== "on";
   } catch {}
   const apply = (plain: boolean) => {
     if (view.state.field(plainField) !== plain) view.dispatch({ effects: setPlain.of(plain) });
