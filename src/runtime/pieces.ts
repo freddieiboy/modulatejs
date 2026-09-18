@@ -302,6 +302,79 @@ export function grid(...args: any[]): Layer {
   return new Group("grid", items, nums[0] ?? 3);
 }
 
+// nav("Inbox", "3 unread"): the top of a screen, under the safe area: a large title and a dim line, full width.
+// nav("‹ Back", "Film camera") is a back chevron and a small title, the way a pushed screen starts.
+export function nav(...args: any[]): Layer {
+  const { strs } = sort(args);
+  const st = stage();
+  const back = strs[0]?.startsWith("‹") ? strs.shift()! : null;
+  const title = strs[0] ?? next("titles"), line = strs[1] ?? null;
+  const h = back ? 44 : line ? 96 : 76;
+  const l = new Layer("nav", { w: st.W, h, radius: 0 });
+  l.colorMode = "none";
+  l.inert = true;
+  const put = (t: Layer, x: number, y: number) => ((t.placeOp = null), t.v.x.jump(x), t.v.y.jump(y), l.adopt(t), t);
+  if (back) {
+    const b = new TextLayer("text", back, 17);
+    paint(b, "accent", "text");
+    b.inert = false;
+    b.el.style.cursor = "pointer";
+    put(b, 24, 11);
+    const t = new TextLayer("text", title, 17);
+    t.el.style.fontWeight = "600";
+    t.measure();
+    paint(t, "text", "text");
+    put(t, (st.W - t.v.w.get()) / 2, 11);
+    (l as any).back = b;
+  } else {
+    const t = new TextLayer("text", title, 34);
+    paint(t, "text", "text");
+    put(t, 24, 22);
+    if (line) {
+      const sub = new TextLayer("text", line, 15);
+      paint(sub, "dim", "text");
+      put(sub, 24, 66);
+    }
+  }
+  finish(l, () => nav(...args));
+  l.placeOp = (x) => (x.v.x.jump(0), x.v.y.jump(st.safeTop));
+  l.placeOp(l);
+  return l;
+}
+
+// people(5) · people("Noor Haddad", "Kenji Sato"): rows with a face, a name and a line, full width, a hairline between.
+// Each row is a layer of its own (tap one, drag one); the list is a stack.
+export function people(...args: any[]): Layer {
+  const { nums, strs } = sort(args);
+  const st = stage();
+  const names = strs.length ? strs : Array.from({ length: nums[0] ?? 5 }, () => next("names"));
+  const rows = names.map((name) => {
+    const r = new Layer("item", { w: st.W, h: 72, radius: 0 });
+    r.colorMode = "none";
+    const put = (t: Layer, x: number, y: number) => ((t.placeOp = null), t.v.x.jump(x), t.v.y.jump(y), r.adopt(t), t);
+    put(avatar(name, 44), 24, 14);
+    const t = new TextLayer("text", name, 17);
+    t.el.style.fontWeight = "600";
+    t.measure();
+    paint(t, "text", "text");
+    put(t, 84, 15);
+    const line = new TextLayer("text", next("lines"), 15);
+    paint(line, "dim", "text");
+    put(line, 84, 40);
+    const chevron = new TextLayer("text", "›", 22);
+    paint(chevron, "dim", "text");
+    put(chevron, st.W - 40, 20);
+    const rule = new Layer("rule", { w: st.W - 84, h: 1, radius: 0 });
+    paint(rule, "line");
+    put(rule, 84, 71);
+    return finish(r, () => r);
+  });
+  const g = new Group("people", rows);
+  g.gapSize = 0;
+  g.arrange();
+  return finish(g, () => people(...args));
+}
+
 export function messages(...args: any[]): Layer {
   const { nums, strs } = sort(args);
   const lines = strs.length ? strs : Array.from({ length: nums[0] ?? 5 }, () => next("lines"));

@@ -928,7 +928,7 @@ export class Group extends Layer {
         x += k.v.w.get() + step;
       }
       w = x - step;
-    } else if (this.kind === "stack") {
+    } else if (this.kind === "stack" || this.kind === "people") {
       w = Math.max(0, ...kids.map((k) => k.v.w.get()));
       for (const k of kids) {
         k.placeOp = null;

@@ -8,8 +8,26 @@ export interface Providers {
   file?(name: string): string | null;
 }
 
+// A picture should be the thing it is named for. These are picked by hand from picsum's set (Unsplash photos,
+// free to use), so "mug" is a mug and "park" is a park, and the same word is the same picture everywhere. A word
+// that isn't here gets a picture by hash, as ever.
+export const PICTURES: Record<string, number> = {
+  // things
+  mug: 30, coffee: 113, espresso: 225, book: 24, notes: 24, "field notes": 24, clock: 175, watch: 26, "desk set": 26, camera: 250, "film camera": 250, sneakers: 103, shoes: 103, heels: 21, tricycle: 146, bike: 146, honey: 312, "honey jar": 312, tart: 102, dessert: 102, "dream catcher": 104, iris: 152, flower: 152, plant: 305, "house plant": 305, salad: 292, dog: 237, laptop: 9, car: 111, van: 184, balloon: 174, cactus: 248, lily: 306, cow: 200,
+  // places
+  room: 42, cafe: 42, park: 216, path: 17, forest: 203, woods: 190, harbour: 211, pier: 77, boats: 211, dunes: 196, sand: 196, desert: 27, sea: 149, ocean: 296, beach: 215, lake: 54, mountain: 29, mountains: 29, alps: 29, city: 122, night: 232, street: 164, canal: 165, venice: 165, lighthouse: 58, bridge: 43, road: 314, railway: 197, train: 197, blossom: 83, spring: 83, family: 129, bench: 129, concert: 158, sunset: 110, field: 107, meadow: 18, snow: 235, winter: 235, sky: 52, clouds: 54, cabin: 76, garden: 189, market: 195,
+};
+// "Stone mug" is a mug, "a film camera" is a camera: the whole name first, then its last word
+export function pictureOf(seed: string): number | undefined {
+  const key = String(seed).trim().toLowerCase().replace(/^(a|an|the)\s+/, "");
+  return PICTURES[key] ?? PICTURES[key.split(/\s+/).pop()!];
+}
+
 export const providers: Providers = {
-  image: (seed, w, h) => `https://picsum.photos/seed/${encodeURIComponent(seed)}/${Math.round(w * 2)}/${Math.round(h * 2)}`,
+  image: (seed, w, h) => {
+    const id = pictureOf(seed);
+    return id != null ? `https://picsum.photos/id/${id}/${Math.round(w * 2)}/${Math.round(h * 2)}` : `https://picsum.photos/seed/${encodeURIComponent(seed)}/${Math.round(w * 2)}/${Math.round(h * 2)}`;
+  },
   // notionists-neutral is CC0
   avatar: (seed) => `https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent`,
 };
@@ -21,7 +39,7 @@ export function provider(next: Partial<Providers>) {
 const builtin = {
   names: ["Addie Moreau", "Noor Haddad", "Kenji Sato", "Lucía Peña", "Theo Lindqvist", "Amara Obi", "Ines Castel", "Milo Hartmann", "Priya Raman", "Sol Navarro"],
   prices: ["$48", "$120", "$19", "$240", "$65", "$8.50", "$32", "$310"],
-  titles: ["Canvas tote", "Morning light", "Weekend in Lisbon", "Quiet hours", "Field notes", "Small batch", "Soft launch", "Blue hour"],
+  titles: ["Film camera", "Stone mug", "Field notes", "Brass clock", "Sunday sneakers", "Honey jar", "Raspberry tart", "Dream catcher", "House plant", "Red tricycle"],
   lines: [
     "Is this still available?",
     "Yes! Two left in sand.",

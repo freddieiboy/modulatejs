@@ -4,7 +4,7 @@ import { Value, modulate } from "./value";
 import { Layer, Group, VERBS } from "./layer";
 import { Reaction, between } from "./reaction";
 import { Driver, tap, hold, drag, scroll, time, lfo, page } from "./drivers";
-import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar } from "./pieces";
+import { box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, nav, people } from "./pieces";
 import { theme, palette } from "./theme";
 import { presets, presetTable } from "./presets";
 import { provider, bank, content } from "./content";
@@ -25,7 +25,7 @@ Object.defineProperty(stack, "depth", { get: () => depth(), configurable: true }
 
 // what a prototype can say without importing anything
 export const vocabulary = {
-  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, group, pick, scroller,
+  box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, nav, people, group, pick, scroller,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, theme, content, provider,
 };
@@ -46,6 +46,6 @@ export {
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
   run, check, preprocess, mini, stage, solo,
-  group, LayerSet, pick, Pick, scroller,
+  group, LayerSet, pick, Pick, scroller, nav, people,
   Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };

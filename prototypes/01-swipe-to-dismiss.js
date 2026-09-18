@@ -1,9 +1,5 @@
-// swipe to dismiss: rubber-band, spring back, flick it away
-theme("sand")
-photo: image("dunes")
-place: text("Dune walk, 6 km", 22).bold()
-note: text("Tomorrow · 7:30 · with Noor", 15).color("dim")
-pass: card(photo, place, note)
-
-pass.drag("x").rubberband(.8).release("settle").dismiss()
-pass.rotate(modulate(drag(pass).x, [-200, 200], [-9, 9]))
+// swipe to dismiss: an inbox. Drag a row sideways and let go: it springs back, or a flick throws it out
+nav("Inbox", "4 unread")
+rows: people(6).at(0, 156)
+rows.drag("x").rubberband().release("settle").dismiss()
+tabbar("Home Offers Inbox Me")

@@ -1,7 +1,10 @@
-// bottom sheet: frosted glass, two buttons on top, up to the middle, easy to throw away
-map: image("map").fill()
-buttons: row(pill("Cancel", "fill"), pill("Add to bag", "coral")).spread()
-item: sheet(buttons, image("tote", 342, 150), "Canvas tote", "$48 · two left in sand").glass()
-
-item.on("tap").rise("half").drag("y").dismiss().spring("snappy").over(.3)
-map.on(item).blur(8).scale(.96)
+// bottom sheet: a product, and its options sliding up over it. Tap Add to bag; drag the sheet; flick it away
+nav("‹ Back", "Film camera")
+photo: image("film camera", 342, 300).at(24, 110)
+name: text("Film camera", 26).at(24, 430)
+price: text("$240 · Kenji Sato", 17).color("dim").at(24, 468)
+buy: pill("Add to bag", "coral").at(24, 520)
+finishes: row(pill("Black", "fill"), pill("Silver", "fill"), pill("Chrome", "fill")).gap(10)
+options: sheet("Pick a finish", "Ships Friday from Kenji", finishes, pill("Add to bag", "coral"))
+options.on(buy.tap).rise("half").drag("y").dismiss()
+photo.on(options).blur(6).scale(.96)

@@ -121,14 +121,14 @@ test("card takes its words from its arguments, then content(), then the bank", (
     return [...win.document.querySelectorAll(".m-text")].map((e) => e.textContent);
   };
   assert.deepEqual(texts(`card("Canvas tote", "$48")`), ["Canvas tote", "$48"]);
-  assert.deepEqual(texts(`card()`), ["Canvas tote", "$48 · Addie Moreau"]);
+  assert.deepEqual(texts(`card()`), ["Film camera", "$48 · Addie Moreau"]);
   assert.deepEqual(texts(`content({ titles: "Stone mug, Apron", prices: ["$22"], names: "Noor" })\nrow(2, card())`), ["Stone mug", "$22 · Noor", "Apron", "$22 · Noor"]);
   assert.deepEqual(texts(`card(200, 120)`), []);
   assert.deepEqual(texts(`card("sand")`).length, 2, "a colour name is still a colour");
   const win = browser();
   assert.match(win.Modulate.run(`content({ title: "x" })`, win.document.body).error, /the kinds are names, prices, titles, lines/);
   // and the bank comes back on the next run
-  assert.deepEqual(texts(`text()`), ["Canvas tote"]);
+  assert.deepEqual(texts(`text()`), ["Film camera"]);
 });
 
 test("sections group lines and change nothing", () => {
