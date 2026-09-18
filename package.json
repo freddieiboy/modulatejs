@@ -1,7 +1,7 @@
 {
   "name": "modulatejs",
-  "version": "0.23.1",
-  "description": "ModulateJS is markdown for UI interactions: a consistent language people and models can both write, for describing complex, fun interface motion. Fifteen lines, a link, and it's on your phone. Inspired by Strudel, built on Motion.",
+  "version": "0.23.2",
+  "description": "ModulateJS is markdown for UI interactions: a consistent language for how UI can feel, that a human or an LLM can write. Comprehensive enough that custom JavaScript is never necessary. Speed, fidelity and control. Fifteen lines, a link, and it's on your phone.",
   "keywords": [
     "prototype",
     "animation",
