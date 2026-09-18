@@ -66,21 +66,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .cm-foldGutter .cm-gutterElement:hover { color: #fff; }
 .cm-foldPlaceholder { background: #1d1d20 !important; border: 1px solid #34343a !important; color: #b4b4bd !important; border-radius: 5px; padding: 0 7px !important; margin: 0 4px; font-size: 13px; }
 
-/* typewriter: the line you're writing stays in the middle of the pane, the way iA Writer does it.
    Half the editor's height pads the text above and below, so even line one can sit at the centre. */
-.mode { position: absolute; top: 56px; right: 22px; z-index: 3; display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 12px 0 11px; border: 1px solid #3a3a40; border-radius: 9px; background: #101012; font-size: 12.5px; color: #8e8e97; transition: color .15s, border-color .15s; }
-.mode:hover { border-color: #5a5a62; color: #d6d6db; }
-.mode .led { width: 8px; height: 8px; border-radius: 50%; background: #4a4a52; box-shadow: inset 0 0 0 1px #00000055; transition: background .15s, box-shadow .15s; }
-.mode[aria-checked="true"] { color: #e4e4e8; }
-.mode[aria-checked="true"] .led { background: #3ddc84; box-shadow: 0 0 0 1px #3ddc8433, 0 0 8px 1px #3ddc8488; }
-.pane.typewriter #editor { flex: 1; min-height: 0; }
-.pane.typewriter .cm-content { padding-top: calc(var(--half, 200px) - .95em) !important; padding-bottom: var(--half, 200px) !important; }
-.pane.typewriter .cm-scroller { scroll-behavior: smooth; scrollbar-width: none; }
-.pane.typewriter .cm-scroller::-webkit-scrollbar { display: none; }
 /* a hairline where the writing happens, only while the editor has focus */
-.pane.typewriter::after { content: ""; position: absolute; left: 0; right: 0; top: var(--centre, 50%); height: 1.85em; margin-top: -.925em; font-size: 16px; pointer-events: none; background: linear-gradient(90deg, #ffffff08, transparent 70%); opacity: 0; transition: opacity .25s; }
-.pane.typewriter:focus-within::after { opacity: 1; }
-.pane.typewriter .try { position: absolute; left: 0; top: calc(var(--centre, 50%) + 34px); }
 body.player .mode { display: none; }
 
 /* hover docs and option pickers */
@@ -123,7 +110,8 @@ body.player .mode { display: none; }
 .tip-info .tip-text { margin-top: 0; }
 
 /* the pictures this browser is keeping: see them, put one in, throw one away */
-.mode.tray-button { right: 158px; }
+.mode { position: absolute; top: 56px; right: 22px; z-index: 3; display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 12px 0 11px; border: 1px solid #3a3a40; border-radius: 15px; font: 12.5px var(--mono); color: #a9a9b2; background: #0f0f10; }
+.mode:hover { border-color: #5a5a62; color: #d6d6db; }
 .tray { position: absolute; top: 50px; right: 22px; z-index: 8; width: 320px; max-height: min(420px, calc(100% - 70px)); overflow: auto; padding: 8px; background: #161618; border: 1px solid #34343a; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,.6); }
 .tray-note { font: 12.5px/1.45 var(--sans); color: #a9a9b2; padding: 6px 8px 10px; }
 .tray-row { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: 9px; }
@@ -248,4 +236,3 @@ body.player .edit { display: flex; }
 .runs-it { font: inherit; color: var(--dim); }
 .runs-it:hover { color: #fff; }
 body.player .tabs { display: none; }
-.pane.typewriter #editor { flex: 1; }

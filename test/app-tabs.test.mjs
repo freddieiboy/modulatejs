@@ -86,7 +86,6 @@ async function open(code = FILE) {
   await browser.page("about:blank", 1250, 780); // a new hash on the same address is no new page
   await browser.page(origin + "/?edit#" + encode(code), 1250, 780);
   await sleep(1500);
-  await ev(`try { localStorage.setItem("coral.typewriter", "off") } catch {}; 0`);
 }
 
 test("1. the strip: all · home · bubbles · product · js · feel · +, dots on the three with layers", { skip: !chrome }, async () => {
