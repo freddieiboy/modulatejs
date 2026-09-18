@@ -127,6 +127,88 @@ addEventListener("pointercancel", () => touch.classList.remove("down"), true);
 document.documentElement.addEventListener("pointerleave", () => touch.classList.remove("on", "down"));
 addEventListener("blur", () => touch.classList.remove("down"));
 
+// ——— a take: what a finger does here can be recorded, and a link can play it back with the finger dot on
+type TakeEvent = [number, "d" | "m" | "u", number, number];
+let recording: { events: TakeEvent[]; at: number } | null = null;
+let playing: { events: TakeEvent[]; i: number; at: number; timer: any; id: number } | null = null;
+const stageScale = () => Modulate.stage().scale || 1;
+const record = (kind: TakeEvent[1], e: PointerEvent) => {
+  if (!recording || (e as any).synthetic) return;
+  const now = performance.now();
+  // moves are worth keeping at about 60 a second; a down or an up always is
+  const last = recording.events.at(-1);
+  if (kind === "m" && last && last[1] === "m" && now - recording.at < 14) return;
+  recording.events.push([now - recording.at, kind, e.clientX / stageScale(), e.clientY / stageScale()]);
+  recording.at = now;
+};
+addEventListener("pointerdown", (e) => record("d", e), true);
+addEventListener("pointermove", (e) => e.buttons && record("m", e), true);
+addEventListener("pointerup", (e) => record("u", e), true);
+
+// a synthetic finger: real pointer events at real coordinates, so every listener hears what a finger would
+function finger(kind: TakeEvent[1], x: number, y: number) {
+  const k = stageScale(), cx = x * k, cy = y * k;
+  const type = kind === "d" ? "pointerdown" : kind === "m" ? "pointermove" : "pointerup";
+  const target = kind === "m" ? window : document.elementFromPoint(cx, cy) ?? document.body;
+  const ev: any = new PointerEvent(type, { bubbles: true, cancelable: true, clientX: cx, clientY: cy, pointerId: 7, pointerType: "touch", isPrimary: true, buttons: kind === "u" ? 0 : 1, button: 0 });
+  ev.synthetic = true;
+  target.dispatchEvent(ev);
+  // the finger dot follows
+  touch.classList.add("on");
+  touch.style.transform = `translate(${cx}px, ${cy}px) scale(${scale})`;
+  if (kind === "d") touch.classList.add("down");
+  if (kind === "u") touch.classList.remove("down");
+}
+function stopPlaying(why: "done" | "touched" | "stopped") {
+  if (!playing) return;
+  clearTimeout(playing.timer);
+  const p = playing;
+  playing = null;
+  if (why !== "done") touch.classList.remove("on", "down");
+  parent.postMessage({ type: "take-ended", why, id: p.id }, "*");
+}
+function play(events: TakeEvent[], id: number) {
+  stopPlaying("stopped");
+  run(last); // from rest, every time, so it replays the same
+  playing = { events, i: 0, at: performance.now() + 400, timer: null, id };
+  const step = () => {
+    if (!playing || playing.id !== id) return;
+    const now = performance.now();
+    while (playing.i < playing.events.length) {
+      const [dt, kind, x, y] = playing.events[playing.i];
+      if (playing.at + dt > now) break;
+      playing.at += dt;
+      playing.i++;
+      finger(kind, x, y);
+    }
+    if (playing.i >= playing.events.length) {
+      // let the last thing settle, then it is over (the editor may ask for it again)
+      playing.timer = setTimeout(() => (touch.classList.remove("on"), stopPlaying("done")), 1200);
+      return;
+    }
+    const next = playing.at + playing.events[playing.i][0] - now;
+    playing.timer = setTimeout(step, Math.max(0, Math.min(next, 40)));
+  };
+  playing.timer = setTimeout(step, 400);
+}
+// a real finger takes over from the take
+addEventListener("pointerdown", (e) => !(e as any).synthetic && playing && stopPlaying("touched"), true);
+
+addEventListener("message", (e) => {
+  const d = e.data;
+  if (d?.type === "record") {
+    run(last);
+    recording = { events: [], at: performance.now() };
+  }
+  if (d?.type === "stop-record") {
+    const events = recording?.events ?? [];
+    recording = null;
+    parent.postMessage({ type: "take", events }, "*");
+  }
+  if (d?.type === "play") play(d.events, d.id ?? 0);
+  if (d?.type === "stop-play") stopPlaying("stopped");
+});
+
 // ⌥ held over the device hides the editor's controls too
 addEventListener("keydown", (e) => e.key === "Alt" && parent.postMessage({ type: "alt", on: true }, "*"));
 addEventListener("keyup", (e) => e.key === "Alt" && parent.postMessage({ type: "alt", on: false }, "*"));

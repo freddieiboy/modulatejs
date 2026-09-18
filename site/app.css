@@ -413,3 +413,5 @@ body.plain .cm-content { padding-right: 236px; }
 body.plain .cm-result, body.plain .cm-lane, body.plain .cm-swatch { display: none; }
 body.plain .cm-num::after { display: none; }
 body.plain .cm-lit-line { color: inherit !important; }
+
+#record.on { color: #f0634a; border-color: #f0634a; }

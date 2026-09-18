@@ -8,7 +8,7 @@ import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, fol
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { tags as t } from "@lezer/highlight";
 import qrcode from "qrcode-generator";
-import { encode, decode } from "../link";
+import { encode, decode, encodeTake, decodeTake, takeLength, type TakeEvent } from "../link";
 import { tint } from "./tint";
 import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
@@ -50,6 +50,7 @@ addEventListener("message", (e) => {
       frame.contentWindow!.postMessage({ type: "pictures", files }, "*");
       frameReady = true;
       send();
+      if (take) playTake(true); // a link with a take opens performing it
     });
   } else if (d?.type === "result") showResult(d);
   else if (d?.type === "report") report(d.lines);
@@ -95,6 +96,8 @@ const pictures: Promise<Record<string, Blob>> = player ? Promise.resolve({}) : a
 function showResult(r: { ok: boolean; error?: string; line?: number; ms: number; device?: typeof dev; sections?: { name: string; layers: number }[] }) {
   if (!player) shapeDevice(r.device);
   tabs?.result(r.sections, r.ok ? null : r.line ?? null);
+  markLine(r.ok ? null : r.line ?? null);
+  if (looping || recording != null) return; // the status line is the take's while one records or plays
   const left = $("status-left"), right = $("status-right");
   const framed = tabs?.framed ?? null;
   left.className = r.ok ? (framed ? "framed" : "") : "bad";
@@ -356,7 +359,7 @@ function chrome() {
 }
 
 // ——— the URL is the truth
-const fragment = () => (code.trim() ? "#" + encode(code) : " ");
+const fragment = () => (code.trim() ? "#" + encode(code) + (take ? "&t=" + encodeTake(take) : "") : " ");
 let runTimer: any, pauseTimer: any;
 let settled = true; // a pause in typing makes what's there a version: back is undo
 
@@ -395,11 +398,80 @@ function fromLocation() {
     return;
   }
   lastPushed = held.code;
+  take = held.params.t ? decodeTake(held.params.t) : null;
+  takeChrome();
   setDoc(held.code);
   chrome();
   send();
   foldInit();
+  if (take) playTake(true);
 }
+
+// ——— a take: the link performs itself. What a finger did on the phone is recorded into the link, beside the
+// code; a link with a take plays it with the finger dot on, looping, until a real touch takes over.
+let take: TakeEvent[] | null = null;
+let recording: number | null = null, recTimer: any = null, playId = 0, looping = false;
+const takeChrome = () => {
+  const has = !!take && take.length > 0;
+  $("play").hidden = !has || player;
+  $("drop-take").hidden = !has || player;
+  $("play").textContent = looping ? "■ stop" : `▶ take · ${Math.round(takeLength(take ?? []) / 100) / 10} s`;
+  $("record").textContent = recording != null ? "■ stop" : "● record";
+  $("record").classList.toggle("on", recording != null);
+};
+function startRecording() {
+  if (recording != null || !frameReady) return;
+  stopTake();
+  recording = performance.now();
+  post({ type: "record" });
+  takeChrome();
+  const left = $("status-left");
+  recTimer = setInterval(() => (left.textContent = `● recording · ${Math.round((performance.now() - recording!) / 100) / 10} s · press stop when you're done`), 100);
+}
+function stopRecording() {
+  if (recording == null) return;
+  clearInterval(recTimer);
+  recording = null;
+  post({ type: "stop-record" }); // the take comes back as a message
+}
+function playTake(loop = false) {
+  if (!take?.length || !frameReady) return;
+  looping = loop;
+  playId++;
+  post({ type: "play", events: take, id: playId });
+  $("status-left").className = "framed";
+  $("status-left").textContent = `▶ watching a take · ${Math.round(takeLength(take) / 100) / 10} s · tap the phone to take over`;
+  takeChrome();
+}
+function stopTake() {
+  looping = false;
+  post({ type: "stop-play" });
+  takeChrome();
+}
+$("record").onclick = () => (recording == null ? startRecording() : stopRecording());
+$("play").onclick = () => (looping ? (stopTake(), ($("status-left").textContent = "")) : playTake(true));
+$("drop-take").onclick = () => {
+  stopTake();
+  take = null;
+  takeChrome();
+  history_.push();
+  $("status-left").textContent = "the take is gone from the link";
+};
+addEventListener("message", (e) => {
+  if (e.source !== frame.contentWindow) return;
+  const d = e.data;
+  if (d?.type === "take") {
+    take = d.events?.length ? d.events : null;
+    takeChrome();
+    history_.push();
+    local.write();
+    $("status-left").textContent = take ? `● a ${Math.round(takeLength(take) / 100) / 10} s take is in the link · copy it and it plays itself` : "nothing happened on the phone, so there is no take";
+    $("status-left").className = "framed";
+  } else if (d?.type === "take-ended" && d.id === playId) {
+    if (d.why === "done" && looping) setTimeout(() => looping && d.id === playId && playTake(true), 900);
+    else if (d.why === "touched") ((looping = false), ($("status-left").textContent = "it's yours"), takeChrome());
+  }
+});
 addEventListener("popstate", fromLocation);
 addEventListener("hashchange", fromLocation);
 
