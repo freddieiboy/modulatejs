@@ -88,23 +88,8 @@ for (const s of sections) {
   for (const it of s.items) sec.appendChild(example(it.code, it.verbs, it.text));
   root.appendChild(sec);
 }
-$("toc").innerHTML = [...sections.map((s) => [s.id, s.title.toLowerCase()]), ["prototypes", "prototypes"], ["reference", "every word"], ["licences", "licences"]].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
+$("toc").innerHTML = [...sections.map((s) => [s.id, s.title.toLowerCase()]), ["reference", "every word"], ["licences", "licences"]].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
 
-// the prototypes
-(async () => {
-  const sec = $("prototypes");
-  try {
-    const files: string[] = await (await fetch("/examples/index.json")).json();
-    for (const f of files) {
-      const code = (await (await fetch("/examples/" + f)).text()).trim();
-      const title = f.replace(/^\d+-|\.js$/g, "").replace(/-/g, " ");
-      const comment = /^\/\/\s*(.*)$/m.exec(code)?.[1] ?? "";
-      sec.appendChild(example(code, title, comment));
-    }
-  } catch {
-    sec.insertAdjacentHTML("beforeend", `<p class="lede">The prototypes live at <a href="/examples/index.json">/examples/</a>.</p>`);
-  }
-})();
 
 // every word: the spec's own tables, as the build read them into /vocab.json
 (async () => {

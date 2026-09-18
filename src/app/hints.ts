@@ -9,6 +9,25 @@ import { tint } from "./tint";
 
 let vocab: any = null;
 export const getVocab = () => vocab;
+// the device, for a picker that plays what it offers
+let post: ((msg: any) => void) | null = null;
+export const hintsTalkTo = (fn: (msg: any) => void) => (post = fn);
+
+// a spring, drawn: its step response, so the rows of the picker show what each one does
+function curveSvg(name: string): string {
+  const p = vocab?.presetTable?.[name];
+  if (!p) return "";
+  const k = (2 * Math.PI / p.response) ** 2, c = 2 * p.damping * Math.sqrt(k);
+  let x = 0, v = 0, pts = "";
+  const dt = 1 / 240, span = 1.1;
+  for (let t = 0; t <= span; t += dt) {
+    const a = -k * (x - 1) - c * v;
+    v += a * dt;
+    x += v * dt;
+    pts += `${(t / span) * 100},${28 - x * 20} `;
+  }
+  return `<svg viewBox="0 0 100 34" width="100" height="34"><polyline points="${pts.trim()}" fill="none" stroke="#9db4ff" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
 
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
 export const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, (_m, c) => `<code>${tint(c.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"))}</code>`).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
@@ -116,14 +135,19 @@ function card(view: EditorView, t: Target): HTMLElement {
     dom.innerHTML = `<div class="tip-sig"><code>${tint(doc?.sig ?? t.callee + "()")}</code><em>${t.choices!.length} options</em></div>`;
     const row = document.createElement("div");
     row.className = "tip-options";
+    const springs = t.callee === "spring" || t.callee === "release";
+    if (springs) row.classList.add("tip-springs");
+    const line = view.state.doc.lineAt(t.from).number;
     for (const c of t.choices!) {
       const b = document.createElement("button");
       if (c.value === t.word) b.className = "is";
-      b.innerHTML = (c.swatch ? `<i style="background:${c.swatch}"></i>` : "") + `<b>${esc(c.value)}</b>` + (c.hint ? `<small>${esc(c.hint)}</small>` : "");
+      b.innerHTML = (c.swatch ? `<i style="background:${c.swatch}"></i>` : "") + `<b>${esc(c.value)}</b>` + (springs ? curveSvg(c.value) : "") + (c.hint ? `<small>${esc(c.hint)}</small>` : "");
       b.onclick = () => swap(t.from, t.to, c.value);
+      if (springs) b.onmouseenter = () => post?.({ type: "try", line, name: c.value }); // hear it on the phone, against this line
       row.appendChild(b);
     }
     dom.appendChild(row);
+    if (springs) dom.insertAdjacentHTML("beforeend", `<div class="tip-foot">hover plays it on the phone · ↑↓ to try each · Return writes · Esc restores</div>`);
   }
   return dom;
 }

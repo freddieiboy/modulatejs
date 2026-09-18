@@ -77,7 +77,7 @@ class Fold extends WidgetType {
   toDOM() {
     const el = document.createElement("span");
     el.className = "cm-tab-fold";
-    el.textContent = `{ ${this.note} }`;
+    el.textContent = `· ${this.note} ↗`;
     el.title = `open the ${this.name} tab`;
     return el;
   }
@@ -221,8 +221,9 @@ function build(state: EditorState): View {
     }
     if (!cursorSet) first = doc.length;
   } else {
-    // all: the whole file, each section folded to one line you can open; feel lines that go somewhere say where
-    const folds = lay.list.map((k) => ({ from: k.open, to: k.to, deco: Decoration.replace({ widget: new Fold(k.name, k.name in n ? `${n[k.name]} layer${n[k.name] === 1 ? "" : "s"}` : `${Math.max(0, doc.lineAt(k.close).number - doc.lineAt(k.open).number - 1)} line${doc.lineAt(k.close).number - doc.lineAt(k.open).number === 2 ? "" : "s"}`) }) }));
+    // all: the whole file, written in line (that is the point of one view); each section's first line says what it
+    // holds and opens its tab; feel lines that go somewhere say where
+    const folds = lay.list.map((k) => ({ from: doc.lineAt(k.open).to, to: doc.lineAt(k.open).to, deco: Decoration.widget({ widget: new Fold(k.name, k.name in n ? `${n[k.name]} layer${n[k.name] === 1 ? "" : "s"}` : `${Math.max(0, doc.lineAt(k.close).number - doc.lineAt(k.open).number - 1)} line${doc.lineAt(k.close).number - doc.lineAt(k.open).number === 2 ? "" : "s"}`), side: 1 }) }));
     const hints: { at: number; deco: Decoration }[] = [];
     for (let k = 1; k <= doc.lines; k++) {
       const line = doc.line(k);
@@ -233,7 +234,6 @@ function build(state: EditorState): View {
     }
     const all = [...folds.map((f) => ({ from: f.from, to: f.to, deco: f.deco })), ...hints.map((h) => ({ from: h.at, to: h.at, deco: h.deco }))].sort((p, q) => p.from - q.from || p.to - q.to);
     for (const r of all) b.add(r.from, r.to, r.deco);
-    for (const f of folds) at.add(f.from, f.to, f.deco);
   }
   return { deco: b.finish(), atomic: at.finish(), protect, first, span };
 }

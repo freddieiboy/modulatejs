@@ -80,7 +80,7 @@ function compile(code: string): Function {
   const names = Object.keys(api);
   const js = preprocess(code, new Set(names.filter((n) => !retired.has(n)))); // a retired word still runs, but no longer holds its name
   // named, so an error's line can be found in the stack whatever else is on it (the runtime itself may be eval'd)
-  return new Function(...names, "$name", "$open", "$close", "screen", js + "\n//# sourceURL=prototype.js");
+  return new Function(...names, "$name", "$open", "$close", "$at", "screen", js + "\n//# sourceURL=prototype.js");
 }
 
 function describe(e: any): RunResult {
@@ -129,7 +129,7 @@ export function run(code: string, target?: HTMLElement): RunResult {
   holdStill(false);
   st.made = (l: any) => opened.forEach((s) => s.made.push(l));
   try {
-    fn(...Object.values(api), $name, $open, $close, { get w() { return st.W; }, get h() { return st.H; } });
+    fn(...Object.values(api), $name, $open, $close, (n: number) => (st.line = n), { get w() { return st.W; }, get h() { return st.H; } });
     st.commit();
     return { ok: true, device: shape(st), sections: sections.map((s) => ({ name: s.label, layers: s.members.length })) };
   } catch (e) {

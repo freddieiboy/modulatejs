@@ -181,7 +181,8 @@ function pre(src: string, names: Names, before: number): string {
       if (!was) names.used.set(name, { kind: "layer", line: atLine(src, i, "").line + before });
       i += label[0].length;
       const end = statementEnd(src, i);
-      out += `var ${name} = $name(${JSON.stringify(name)}, ${src.slice(i, end)});`;
+      // $at(n): the runtime learns which line made what, so the editor can say what each line is worth
+      out += `$at(${atLine(src, i, "").line + before});var ${name} = $name(${JSON.stringify(name)}, ${src.slice(i, end)});`;
       i = src[end] === ";" ? end + 1 : end;
       continue;
     }
@@ -196,7 +197,7 @@ function pre(src: string, names: Names, before: number): string {
     }
     const end = statementEnd(src, i);
     const stop = src[end] === ";" ? end + 1 : Math.max(end, i + 1);
-    out += src.slice(i, stop);
+    out += `$at(${atLine(src, i, "").line + before});` + src.slice(i, stop);
     i = stop;
   }
   return out;

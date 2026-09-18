@@ -14,7 +14,8 @@ import { hints, loadHints } from "./hints";
 import { completion } from "./complete";
 import { allPictures, keepPicture, removePicture, heldPictures } from "./assets";
 import { Tabs, attach, whole } from "./tabs";
-import { getVocab } from "./hints";
+import { getVocab, hintsTalkTo } from "./hints";
+import { instrument, plainWhileAlt, setReport, setLit, sliding, reportField } from "./instrument";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -51,7 +52,25 @@ addEventListener("message", (e) => {
       send();
     });
   } else if (d?.type === "result") showResult(d);
+  else if (d?.type === "report") report(d.lines);
+  else if (d?.type === "layer") {
+    // the phone was touched: find the layer's lines
+    frame.contentWindow!.postMessage({ type: "lines", name: d.name }, "*");
+    $("status-left").textContent = `● ${d.name} · line ${d.line} · its lines are lit`;
+    $("status-left").className = "framed";
+  } else if (d?.type === "lines") view?.dispatch({ effects: setLit.of(d.lines) });
 });
+// what every line is worth, as the device says it, at most twenty times a second
+let reportTimer: any = null, pendingReport: any = null;
+function report(lines: Record<number, any>) {
+  pendingReport = lines;
+  if (reportTimer) return;
+  reportTimer = setTimeout(() => {
+    reportTimer = null;
+    view?.dispatch({ effects: setReport.of(pendingReport) });
+  }, 50);
+}
+const post = (msg: any) => frame.contentWindow?.postMessage(msg, "*");
 
 const hello = () => frame.contentWindow?.postMessage({ type: "hello" }, "*");
 frame.addEventListener("load", hello);
@@ -213,6 +232,7 @@ if (!player) {
         syntaxHighlighting(look),
         badLine,
         Tabs.extension(),
+        instrument(post),
         hints,
         completion,
         placeholder("// type here, or paste a link"),
@@ -228,7 +248,7 @@ if (!player) {
           },
         }),
         EditorView.updateListener.of((u) => {
-          if (u.docChanged && !quiet) edited(u.state.doc.toString());
+          if (u.docChanged && !quiet) edited(u.state.doc.toString(), u.transactions.some((tr) => tr.annotation(sliding))); // a slider: the phone follows at once
         }),
       ],
     }),
@@ -239,6 +259,31 @@ if (!player) {
     reserved: () => ({ globals: getVocab()?.globals ?? [], verbs: getVocab()?.verbs ?? [] }),
   });
   attach(tabs);
+  (window as any).__view = view; // for the tests
+  hintsTalkTo(post);
+  const plain = plainWhileAlt(view);
+  addEventListener("message", (e) => e.source === frame.contentWindow && e.data?.type === "alt" && plain(!!e.data.on));
+  // Space, with the editor not focused (after tapping the phone, say): pause or resume the current trigger
+  let paused: number | null = null;
+  addEventListener("keydown", (e) => {
+    if (e.key !== " " || (e.target as HTMLElement)?.closest?.(".cm-editor, input, textarea, button")) return;
+    const rep = view!.state.field(reportField);
+    const line = paused ?? Number(Object.keys(rep).find((n) => rep[Number(n)].live) ?? view!.state.doc.lineAt(view!.state.selection.main.head).number);
+    if (!rep[line]?.lane) return;
+    e.preventDefault();
+    if (paused === line) (post({ type: "resume", line }), (paused = null), ($("status-left").textContent = `▶ line ${line} resumed`));
+    else {
+      post({ type: "pause", line });
+      paused = line;
+      $("status-left").textContent = `● paused at t ${Math.round((rep[line].t ?? 0) * 100) / 100} · tap a layer to find its line`;
+      const go = document.createElement("button");
+      go.className = "runs-it";
+      go.textContent = "▶ resume";
+      go.onclick = () => (post({ type: "resume", line }), (paused = null), ($("status-left").textContent = ""), (go.remove()));
+      $("status-right").textContent = "";
+      $("status-right").appendChild(go);
+    }
+  });
 
   const box = $("try");
   for (const line of TRY) {

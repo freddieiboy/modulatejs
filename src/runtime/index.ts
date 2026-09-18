@@ -11,6 +11,7 @@ import { provider, bank, content } from "./content";
 import { mini } from "./mini";
 import { run, check, preprocess, setApi, solo } from "./run";
 import { depth } from "./screens";
+import { report, scrub, pause, resume, tryFeel, linesOf } from "./report";
 import { mountStage, stage } from "./stage";
 import { device, devices } from "./device";
 import { group, LayerSet } from "./set";
@@ -45,7 +46,7 @@ export {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar,
   tap, hold, drag, scroll, time, lfo, page,
   between, modulate, device, devices, theme, content, provider,
-  run, check, preprocess, mini, stage, solo,
+  run, check, preprocess, mini, stage, solo, report, scrub, pause, resume, tryFeel, linesOf,
   group, LayerSet, pick, Pick, scroller, nav, people,
   Value, Layer, Group, Reaction, Driver, presets, presetTable, palette, bank, VERBS,
 };

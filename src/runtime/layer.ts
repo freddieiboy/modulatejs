@@ -95,6 +95,7 @@ export class Layer {
   baseOrigin: Origin | null = null; // origin() said before any .on(): the layer's own
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
   private originWatch: (() => void)[] = [];
+  line = 0; // the line of the file that made it
   channels: Record<string, any> = {}; // per property, what the reactions that touch it add up to (reaction.ts)
   shadowUp = false; // a sheet's shadow falls upward
   private shadowDrawn = 0;
@@ -120,6 +121,7 @@ export class Layer {
     st.view.appendChild(this.el);
     st.layers.push(this);
     st.made?.(this);
+    this.line = st.line;
     this.placeOp = (l) => l.placeCenter(null, null);
     this.invalidate();
   }

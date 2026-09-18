@@ -3,7 +3,7 @@
 import { parse } from "acorn";
 import { preprocess } from "../runtime/preprocess";
 
-const JS_GLOBALS = new Set(["Math", "Number", "String", "Boolean", "Array", "Object", "JSON", "Date", "Map", "Set", "Promise", "Symbol", "RegExp", "Error", "parseInt", "parseFloat", "isNaN", "isFinite", "console", "setTimeout", "setInterval", "clearTimeout", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "fetch", "structuredClone", "queueMicrotask", "performance", "navigator", "document", "window", "globalThis", "alert", "screen", "Modulate", "$name", "$open", "$close", "undefined", "NaN", "Infinity"]);
+const JS_GLOBALS = new Set(["Math", "Number", "String", "Boolean", "Array", "Object", "JSON", "Date", "Map", "Set", "Promise", "Symbol", "RegExp", "Error", "parseInt", "parseFloat", "isNaN", "isFinite", "console", "setTimeout", "setInterval", "clearTimeout", "clearInterval", "requestAnimationFrame", "cancelAnimationFrame", "fetch", "structuredClone", "queueMicrotask", "performance", "navigator", "document", "window", "globalThis", "alert", "screen", "Modulate", "$name", "$open", "$close", "$at", "undefined", "NaN", "Infinity"]);
 
 function distance(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);

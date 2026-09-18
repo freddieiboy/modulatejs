@@ -66,7 +66,8 @@ product.on(bubbles.tap).show()`;
 const ev = (js) => browser.evaluate(js);
 const MOD = process.platform === "darwin" ? 4 : 2; // ⌘ on a Mac, Ctrl elsewhere: what the editor calls Mod
 const tabs = () => ev(`JSON.stringify([...document.querySelectorAll("#tabs .tab")].map((b) => b.textContent.replace(/\\d+$/, "") + (b.querySelector(".tab-dot") ? "•" : "")))`).then(JSON.parse);
-const visible = () => ev(`JSON.stringify([...document.querySelectorAll(".cm-line")].map((l) => l.textContent))`).then(JSON.parse);
+// the code on each visible line, without the result column beside it
+const visible = () => ev(`JSON.stringify([...document.querySelectorAll(".cm-line")].map((l) => { const c = l.cloneNode(true); c.querySelectorAll(".cm-result").forEach((r) => r.remove()); return c.textContent; }))`).then(JSON.parse);
 const numbers = () => ev(`JSON.stringify([...document.querySelectorAll(".cm-lineNumbers .cm-gutterElement")].map((e) => e.textContent).filter((t) => t && t !== "99"))`).then(JSON.parse);
 const file = async () => decode(await ev(`location.hash`))?.code ?? "";
 const click = (sel) => ev(`document.querySelector('${sel}').dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 })); document.querySelector('${sel}').dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 })); 0`);
@@ -117,13 +118,14 @@ test("2. the product tab: exactly its lines, numbered 17–24, braces and indent
   assert.ok(after.startsWith("// Addie\nhome: {") && after.includes("\nproduct: {\nx: box()\n}\nproduct.hide()"), "the rest of the file is untouched:\n" + after);
 });
 
-test("3. all: sections folded to one line; clicking product opens its tab; the → product hint sits after the into(photo) line", { skip: !chrome }, async () => {
+test("3. all: the whole file in line, each section's first line says what it holds and opens its tab; the → product hint sits after the into(photo) line", { skip: !chrome }, async () => {
   await open();
   await click("#tabs .tab[data-name=all]");
   await sleep(400);
   const lines = await visible();
-  assert.ok(lines.some((l) => /^home: \{ 2 layers \}$/.test(l)) && lines.some((l) => /^bubbles: \{ 7 layers \}$/.test(l)) && lines.some((l) => /^product: \{ 8 layers \}$/.test(l)), lines.join("\n"));
-  assert.ok(lines.some((l) => /^js: \{ 1 line \}$/.test(l)), "a layerless section says its lines");
+  assert.ok(lines.some((l) => /^home: \{· 2 layers ↗$/.test(l)) && lines.some((l) => /^bubbles: \{· 7 layers ↗$/.test(l)) && lines.some((l) => /^product: \{· 8 layers ↗$/.test(l)), lines.join("\n"));
+  assert.ok(lines.some((l) => /^js: \{· 1 line ↗$/.test(l)), "a layerless section says its lines");
+  assert.ok(lines.some((l) => l.startsWith("  photo: image(342)")), "and the section's lines are right there, in line");
   const into = lines.find((l) => l.includes("into(photo)"));
   assert.ok(into?.endsWith("→ product"), into);
   await ev(`[...document.querySelectorAll(".cm-tab-fold")].find((f) => f.title.includes("product")).click(); 0`);

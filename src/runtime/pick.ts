@@ -1,6 +1,7 @@
 import { Value, isValue } from "./value";
 import { Driver, tap } from "./drivers";
 import { Layer, rootOf } from "./layer";
+import { stage } from "./stage";
 import { LayerSet } from "./set";
 
 // pick(bubbles, strip): one choice that many layers follow. It is which index is chosen, 0 to n − 1; tapping
@@ -14,6 +15,7 @@ const nameOf = (g: any) => (g instanceof LayerSet ? g.label : rootOf(g).label) |
 
 export class Pick extends Driver {
   at = new Value(0);
+  line = 0;
   count: number;
   private groups: { source: any; members: Layer[] }[] = [];
   private chosen: Driver[] = [];
@@ -21,6 +23,8 @@ export class Pick extends Driver {
 
   constructor(sources: any[]) {
     super("pick", false);
+    this.line = stage().line;
+    ((stage() as any).picks ??= []).push(this);
     if (!sources.length) throw new Error("pick() needs a group to choose from: pick(strip), pick(bubbles, strip)");
     for (const source of sources) {
       const members = membersOf(source);
@@ -42,6 +46,9 @@ export class Pick extends Driver {
     this.at.on((i) => this.t.set(this.count > 1 ? i / (this.count - 1) : 0));
   }
 
+  get chosenLabel(): string {
+    return this.groups[0]?.members[this.index]?.label ?? "";
+  }
   get index(): number {
     return this.at.get();
   }

@@ -1,6 +1,6 @@
 {
   "name": "modulatejs",
-  "version": "0.24.1",
+  "version": "0.25.0",
   "description": "ModulateJS is markdown for UI interactions: a consistent language for how UI can feel, that a human or an LLM can write. Comprehensive enough that custom JavaScript is never necessary. Speed, fidelity and control. Fifteen lines, a link, and it's on your phone.",
   "keywords": [
     "prototype",

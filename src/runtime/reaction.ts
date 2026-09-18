@@ -146,6 +146,7 @@ const NOMINAL = 0.5; // seconds a played reaction is assumed to take, to turn st
 // Two states and a t between them. layer.on(driver)… makes one for a single
 // layer; between(() => {…}) makes one for as many as the function touches.
 export class Reaction extends Driver {
+  line = 0; // the line of the file that wrote it
   owner: Layer | null = null;
   targets = new Map<Layer, Target>();
   entries: Entry[] = [];
@@ -181,6 +182,7 @@ export class Reaction extends Driver {
 
   constructor() {
     super("reaction", false);
+    this.line = stage().line;
     stage().reactions.push(this);
     stage().scheduleCommit();
   }
@@ -566,7 +568,10 @@ export class Reaction extends Driver {
     });
   }
 
-  private playing = false;
+  playing = false;
+  lastBatch: Reaction[] | null = null; // everything that fired on the same tap as this, the last time
+  playedAt = 0; // when the last play started, and how long it took, for the line's result
+  lastTook = 0;
 
   // go(section, how): the screen's layers, a page behind them, and what is underneath when it has a part to play.
   // All of it rides on top of whatever those properties are (see Track.slot), so the screen's own changes go on working.
@@ -623,6 +628,7 @@ export class Reaction extends Driver {
 
   // a played driver fired
   fire() {
+    this.lastBatch = firingNow();
     if (this.isBack) return void screens.back();
     if (this.scrollTo) {
       const { scroller, target } = this.scrollTo;
@@ -697,6 +703,8 @@ export class Reaction extends Driver {
     const id = ++this.run;
     this.goal = to;
     this.playing = true;
+    const startedAt = performance.now();
+    if (to > 0) this.playedAt = startedAt;
     const feel = this.feel(to);
     // after(): the way there waits; the way back doesn't (hold is for a sequence going back in reverse order)
     const wait = (to > 0 ? this.delay : 0) + hold + (this.slot ? this.slot.stagger * (to === 1 ? this.slot.index : this.slot.count - 1 - this.slot.index) : 0);
@@ -710,7 +718,7 @@ export class Reaction extends Driver {
     const off = peaks.length ? this.t.on((t) => peaks.forEach((e) => e.t.set(this.shape(e, t)))) : null;
     return Promise.all(jobs).then(() => {
       off?.();
-      if (id === this.run) this.playing = false;
+      if (id === this.run) ((this.playing = false), (this.lastTook = performance.now() - startedAt));
       return id === this.run;
     });
   }
