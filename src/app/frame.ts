@@ -71,6 +71,7 @@ const layerAt = (e: PointerEvent) => {
 // passing over a layer outlines it, and only while the editor is showing results.
 let outlines = true;
 addEventListener("pointerdown", (e) => {
+  if ((e as any).synthetic) return; // a take's finger is not someone asking
   const l = layerAt(e);
   if (!l) return;
   light(null);
@@ -192,8 +193,12 @@ function play(events: TakeEvent[], id: number) {
   };
   playing.timer = setTimeout(step, 400);
 }
-// a real finger takes over from the take
-addEventListener("pointerdown", (e) => !(e as any).synthetic && playing && stopPlaying("touched"), true);
+// a real finger takes over from the take, also in the pause between two rounds of it
+addEventListener("pointerdown", (e) => {
+  if ((e as any).synthetic) return;
+  if (playing) stopPlaying("touched");
+  else parent.postMessage({ type: "touched" }, "*");
+}, true);
 
 addEventListener("message", (e) => {
   const d = e.data;
@@ -239,7 +244,8 @@ function tellScreen() {
   } catch {
     return;
   }
-  const now = JSON.stringify({ w: st.W, h: st.H, fold: st.fold.t.get(), turn: st.turn.t.get() });
+  const own = st.dims(true); // the device's own size: what the page draws the body around
+  const now = JSON.stringify({ w: own.w, h: own.h, fold: st.fold.t.get(), turn: st.turn.t.get() });
   if (now === lastScreen) return;
   lastScreen = now;
   parent.postMessage({ type: "screen", ...JSON.parse(now) }, "*");

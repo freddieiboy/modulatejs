@@ -98,10 +98,11 @@ export class Stage {
     this.fit();
   }
 
-  // what the screen measures now: closed → open along fold, then the sides swap along turn
-  private dims() {
+  // what the screen measures now: closed → open along fold, then the sides swap along turn. The device's own
+  // height, or the taller one a real phone allows (the editor sizes its frame by the device's)
+  dims(own = false) {
     const d = this.device, f = Math.max(0, Math.min(1, this.fold.t.get())), t = Math.max(0, Math.min(1, this.turn.t.get()));
-    const w0 = d.open != null ? d.w + (d.open - d.w) * f : d.w, h0 = this.fitted;
+    const w0 = d.open != null ? d.w + (d.open - d.w) * f : d.w, h0 = own ? d.h : this.fitted;
     return { w: Math.round(w0 + (h0 - w0) * t), h: Math.round(h0 + (w0 - h0) * t) };
   }
   // the device moved: the screen is another size, and anchors re-solve against it (points stay where they are)
@@ -129,7 +130,8 @@ export class Stage {
     const h = r.height || this.device.h;
     // the mount is the screen: the editor sizes it to the device, a real phone is its own size
     this.scale = w / this.W;
-    if (this.turn.t.get() === 0 && this.fold.t.get() === 0) this.fitted = Math.max(this.device.h, Math.round(h / this.scale));
+    // a canvas is its own size everywhere; a phone's screen is as tall as the real phone allows
+    if (this.turn.t.get() === 0 && this.fold.t.get() === 0) this.fitted = this.device.canvas ? this.device.h : Math.max(this.device.h, Math.round(h / this.scale));
     const { w: W, h: H } = this.dims();
     this.screen.w.jump(W);
     this.screen.h.jump(H);

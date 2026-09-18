@@ -78,18 +78,68 @@ const hello = () => frame.contentWindow?.postMessage({ type: "hello" }, "*");
 frame.addEventListener("load", hello);
 hello();
 
-// the screen is live: as a fold opens or the device turns, the frame around it follows without a new run
+// the screen is live: as a fold opens or the device turns, the body around it follows without a new run
 let live = { w: 0, h: 0, fold: 0, turn: 0 };
+let knobbing: string | null = null; // which scrubber the pointer is on, so it isn't written back while dragged
 function screenIs(d: { w: number; h: number; fold: number; turn: number }) {
   if (player) return;
+  const moving = live.w && (d.fold !== live.fold || d.turn !== live.turn);
   live = d;
   const el = $("device");
   el.style.setProperty("--dw", d.w + "px");
   el.style.setProperty("--dh", d.h + "px");
   el.style.setProperty("--fold", String(d.fold));
   el.style.setProperty("--turn", String(d.turn));
+  // in flight the body tilts a few degrees, so the third dimension reads; at rest it faces the viewer flat
+  el.style.setProperty("--tilt", `${(-7 * Math.sin(Math.PI * d.fold)).toFixed(2)}deg`);
+  el.style.setProperty("--tiltx", `${(3 * Math.sin(Math.PI * d.turn)).toFixed(2)}deg`);
+  // the second panel swings out from behind the first: the screen shows only what the panel has come round to hold
+  // the panel leans away as it comes round, so its edge projects a little short of cos θ: the screen stops there
+  const theta = (1 - d.fold) * Math.PI;
+  const closed = dev.w, shown = d.fold < 0.5 ? 0 : closed * Math.cos(theta) * (1200 / (1200 + closed * Math.sin(theta)));
+  const beyond = Math.max(0, d.w - closed);
+  el.style.setProperty("--clip", (dev as any).open ? `${Math.max(0, beyond - shown).toFixed(1)}px` : "0px");
+  el.style.setProperty("--aw", `${(dev as any).open ? closed * (1 + d.fold) : closed}px`); // the panels together, for centring
+  $("floor").style.setProperty("--dw", d.w + "px");
+  $("floor").style.setProperty("--fold", String(d.fold));
+  if (knobbing !== "fold") ($("knob-fold").querySelector("input") as HTMLInputElement).value = String(Math.round(d.fold * 1000));
+  if (knobbing !== "turn") ($("knob-turn").querySelector("input") as HTMLInputElement).value = String(Math.round(d.turn * 1000));
+  if (moving) frameWatch();
   fitDevice();
 }
+// weak machines: if the body costs frames while it moves, it drops to the flat vector one
+let slow = 0, watching = false;
+function frameWatch() {
+  if (watching || document.body.classList.contains("flat")) return;
+  watching = true;
+  let last = performance.now(), n = 0;
+  const tick = (t: number) => {
+    if (t - last > 40) slow++;
+    else slow = Math.max(0, slow - 1);
+    last = t;
+    if (slow > 6) return void (document.body.classList.add("flat"), (watching = false));
+    if (++n < 60) requestAnimationFrame(tick);
+    else watching = false;
+  };
+  requestAnimationFrame(tick);
+}
+if (params.has("flat")) document.body.classList.add("flat");
+
+// the knobs: fold and turn scrubbers drive the device (a take records that); the select writes device() into the file
+for (const which of ["fold", "turn"] as const) {
+  const knob = $("knob-" + which), input = knob.querySelector("input")!, go = knob.querySelector("button")!;
+  input.oninput = () => post({ type: which, t: Number(input.value) / 1000 });
+  input.onpointerdown = () => (knobbing = which);
+  input.onpointerup = input.onpointercancel = () => (knobbing = null);
+  go.onclick = () => post({ type: which, t: (which === "fold" ? live.fold : live.turn) < 0.5 ? 1 : 0, spring: true });
+}
+($("pick-device") as HTMLSelectElement).onchange = () => {
+  const name = ($("pick-device") as HTMLSelectElement).value;
+  const line = `device("${name}")`;
+  const next = /device\([^)]*\)/.test(code) ? code.replace(/device\([^)]*\)/, line) : hasInit(code) ? code.replace(/^([ \t]*init[ \t]*:[ \t]*\{)/m, `$1\n  ${line}`) : `${line}\n${code}`;
+  setDoc(next);
+  edited(next, true);
+};
 
 // the frame takes the shape of whatever device() the code asked for
 let dev = { name: "iphone", w: 390, h: 844, radius: 52, bezel: [6, 6, 6], body: 58, button: false, bar: true, dark: false };
@@ -102,6 +152,14 @@ function shapeDevice(d?: typeof dev) {
   el.classList.toggle("chin", d.button);
   el.classList.toggle("no-bar", !d.bar);
   el.classList.toggle("dark-screen", d.dark); // the home indicator is dark on a light screen, light on a dark one
+  el.classList.toggle("folding", !!(d as any).open);
+  el.classList.toggle("canvas", !!(d as any).canvas);
+  el.style.setProperty("--pw", d.w + "px"); // one panel: the closed width
+  el.style.setProperty("--ph", d.h + "px");
+  $("knobs").hidden = false;
+  $("knob-fold").hidden = !(d as any).open;
+  $("knob-turn").hidden = !!(d as any).canvas;
+  ($("pick-device") as HTMLSelectElement).value = d.name === "canvas" ? "none" : d.name;
   fitDevice(); // the iframe resizes, the frame notices and runs again at the new size
 }
 
@@ -130,9 +188,9 @@ function showResult(r: { ok: boolean; error?: string; line?: number; ms: number;
 function fitDevice() {
   if (player) return;
   const fit = $("fit"), device = $("device");
-  // the body is sized for the device open and upright, so nothing jumps as it folds or turns
-  const wide = Math.max((dev as any).open ?? dev.w, dev.h), tall = Math.max(dev.h, (dev as any).open ?? dev.w);
-  const W = ((dev as any).open ? wide : Math.max(dev.w, live.turn > 0 ? dev.h : 0)) + dev.bezel[1] * 2, H = ((dev as any).open ? tall : dev.h) + dev.bezel[0] + dev.bezel[2];
+  // the room is for the device open and turned either way, so nothing jumps as it folds or turns
+  const open = (dev as any).open ?? dev.w;
+  const W = Math.max(open, dev.h) + dev.bezel[1] * 2, H = Math.max(dev.h, open) + dev.bezel[0] + dev.bezel[2];
   const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / H, (fit.clientWidth - 24) / W));
   device.style.transform = `scale(${k})`;
   device.style.margin = `${(-H * (1 - k)) / 2}px ${(-W * (1 - k)) / 2}px`;
@@ -483,9 +541,14 @@ addEventListener("message", (e) => {
     local.write();
     $("status-left").textContent = take ? `● a ${Math.round(takeLength(take) / 100) / 10} s take is in the link · copy it and it plays itself` : "nothing happened on the phone, so there is no take";
     $("status-left").className = "framed";
+  } else if (d?.type === "touched" && looping) {
+    looping = false;
+    playId++;
+    $("status-left").textContent = "it's yours";
+    takeChrome();
   } else if (d?.type === "take-ended" && d.id === playId) {
     if (d.why === "done" && looping) setTimeout(() => looping && d.id === playId && playTake(true), 900);
-    else if (d.why === "touched") ((looping = false), ($("status-left").textContent = "it's yours"), takeChrome());
+    else if (d.why === "touched") ((looping = false), playId++, ($("status-left").textContent = "it's yours"), takeChrome());
   }
 });
 addEventListener("popstate", fromLocation);

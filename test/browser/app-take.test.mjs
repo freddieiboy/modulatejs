@@ -87,8 +87,8 @@ test("play: the link opens performing the take with the finger dot, from rest; i
   const rotate = await device(`return by("door").v.rotate.get();`);
   assert.ok(rotate < 89 || (await device(`return by("door").reactions[0].fires;`)) >= 1, "played again from rest");
   // a real touch takes over
-  const [dx, dy] = await at("door");
-  await browser.tap(dx + 150, dy - 200); // empty screen: enough to take over
+  const f = JSON.parse(await ev(`JSON.stringify(document.getElementById("frame").getBoundingClientRect())`));
+  await browser.tap(f.x + 345 * (f.width / 390), f.y + 170 * (f.height / 844)); // empty screen: enough to take over
   await sleep(300);
   assert.equal(await ev(`document.getElementById("status-left").textContent`), "it's yours");
   await sleep(2500);

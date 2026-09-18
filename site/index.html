@@ -48,10 +48,26 @@
 
   <section class="stage" id="stage">
     <div class="device-fit" id="fit">
-      <div class="device" id="device">
-        <iframe id="frame" src="/frame" title="device" allow="clipboard-write"></iframe>
-        <i class="home"></i><i class="speaker"></i><i class="camera"></i><i class="button"></i>
+      <div class="scene" id="scene">
+        <i class="floor" id="floor"></i>
+        <div class="device" id="device">
+          <div class="body">
+            <div class="slab a"><i class="edge"></i><i class="lens"></i><i class="speaker"></i><i class="camera"></i><i class="button"></i></div>
+            <div class="slab b"><i class="edge"></i><i class="crease"></i></div>
+          </div>
+          <div class="screen" id="screen">
+            <iframe id="frame" src="/frame" title="device" allow="clipboard-write"></iframe>
+            <i class="hinge-shadow"></i><i class="glare"></i><i class="home"></i>
+          </div>
+        </div>
       </div>
+    </div>
+    <div class="knobs" id="knobs" hidden>
+      <label id="knob-fold" hidden><span>fold</span><input type="range" min="0" max="1000" value="0"><button title="open or close it with the hinge's spring">▶</button></label>
+      <label id="knob-turn"><span>turn</span><input type="range" min="0" max="1000" value="0"><button title="turn it with a spring">▶</button></label>
+      <select id="pick-device" title="which device the file is for: this writes device() into it">
+        <option value="iphone">iphone</option><option value="iphone pro max">iphone pro max</option><option value="iphone se">iphone se</option><option value="pixel">pixel</option><option value="ipad">ipad</option><option value="iphone fold">iphone fold</option><option value="none">canvas</option>
+      </select>
     </div>
     <div class="status"><span id="status-left"></span><span id="status-right"></span></div>
   </section>
