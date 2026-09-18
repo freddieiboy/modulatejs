@@ -67,14 +67,17 @@ const layerAt = (e: PointerEvent) => {
   }
   return best;
 };
+// A tap is using the prototype: it tells the editor which lines, and draws nothing on the phone. Only a mouse
+// passing over a layer outlines it, and only while the editor is showing results.
+let outlines = true;
 addEventListener("pointerdown", (e) => {
   const l = layerAt(e);
   if (!l) return;
-  light(l.label);
+  light(null);
   parent.postMessage({ type: "layer", name: l.label, line: l.line }, "*");
 }, true);
 addEventListener("pointermove", (e) => {
-  if (e.pointerType !== "mouse" || e.buttons) return;
+  if (e.pointerType !== "mouse" || e.buttons || !outlines) return;
   const l = layerAt(e);
   if (l?.label !== litName) light(l?.label ?? null);
 }, true);
@@ -85,7 +88,8 @@ addEventListener("message", (e) => {
   if (d?.type === "pause") Modulate.pause(d.line);
   if (d?.type === "resume") Modulate.resume(d.line);
   if (d?.type === "try") Modulate.tryFeel(d.line, d.name);
-  if (d?.type === "light") light(d.name ?? null);
+  if (d?.type === "light") outlines && light(d.name ?? null);
+  if (d?.type === "outlines") ((outlines = !!d.on), outlines || light(null));
   if (d?.type === "lines") parent.postMessage({ type: "lines", name: d.name, lines: Modulate.linesOf(d.name) }, "*");
 });
 

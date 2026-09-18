@@ -195,7 +195,7 @@ test("5. the lane on the into line: drag its head to 0.3 and every line on bubbl
   assert.equal(after, 1, "resumed and finished");
 });
 
-test("6. tap a layer on the device: its lines light and the outline and label appear; ⌥ makes the editor plain code", { skip: !chrome }, async () => {
+test("6. tap a layer on the device: its lines light and nothing is drawn on the phone; a hover outlines it; ⌥ makes the editor plain code", { skip: !chrome }, async () => {
   await open();
   const [x, y] = await device(`const r = by("title").el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2];`).then(async ([px, py]) => {
     const f = JSON.parse(await ev(`JSON.stringify(document.getElementById("frame").getBoundingClientRect())`));
@@ -206,6 +206,10 @@ test("6. tap a layer on the device: its lines light and the outline and label ap
   await sleep(500);
   const lit = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll(".cm-lineNumbers .cm-lit-line")].map((e) => e.textContent))`));
   assert.deepEqual(lit, ["2", "21"], "title is made on line 2 and moved by home's fade on line 21");
+  assert.equal(await ev(`document.getElementById("frame").contentWindow.document.getElementById("lit").style.display`), "none", "a tap draws nothing on the phone: that would spoil using it");
+  // a mouse passing over a layer does outline it
+  await browser.mouse("mouseMoved", x + 3, y + 2);
+  await sleep(250);
   const label = await ev(`document.getElementById("frame").contentWindow.document.getElementById("lit").textContent`);
   assert.match(label, /^title · line 2/);
   assert.equal(await ev(`document.getElementById("frame").contentWindow.document.getElementById("lit").style.display`), "block");

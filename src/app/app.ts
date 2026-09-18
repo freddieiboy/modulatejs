@@ -261,7 +261,8 @@ if (!player) {
   attach(tabs);
   (window as any).__view = view; // for the tests
   hintsTalkTo(post);
-  const plain = plainWhileAlt(view, tabs.results);
+  const plain = plainWhileAlt(view, tabs.results, (on) => post({ type: "outlines", on }));
+  frame.addEventListener("load", () => setTimeout(() => post({ type: "outlines", on: tabs!.results.getAttribute("aria-checked") !== "false" }), 300));
   addEventListener("message", (e) => e.source === frame.contentWindow && e.data?.type === "alt" && plain(!!e.data.on));
   // Space, with the editor not focused (after tapping the phone, say): pause or resume the current trigger
   let paused: number | null = null;

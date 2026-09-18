@@ -379,7 +379,7 @@ export function instrument(post: Post) {
 
 // ⌥ hides every control and result: the file is plain code while it is held
 // ⌥ hides every control and result while it is held; the "results" switch turns them off and stays off
-export function plainWhileAlt(view: EditorView, toggle: HTMLElement) {
+export function plainWhileAlt(view: EditorView, toggle: HTMLElement, onSwitch?: (on: boolean) => void) {
   let off = false;
   try {
     off = localStorage.getItem("coral.results") === "off";
@@ -389,6 +389,7 @@ export function plainWhileAlt(view: EditorView, toggle: HTMLElement) {
     document.body.classList.toggle("plain", plain);
   };
   const paint = () => {
+    onSwitch?.(!off);
     toggle.setAttribute("aria-checked", String(!off));
     toggle.title = off ? "results are off: show what every line is worth (⌥ hides them while held)" : "results are on: hide the controls and the results (⌥ hides them while held)";
     apply(off);
