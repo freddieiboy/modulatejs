@@ -2,8 +2,7 @@ body.lib { overflow: hidden; }
 .lib .scroll { flex: 1; overflow: auto; scroll-behavior: smooth; }
 .lib .links.top { font-size: 13px; }
 .lib .cols, .lib #prototypes, .lib #reference, .lib #licences, .lib .foot { max-width: 1120px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
-.lib .cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 64px; }
-.lib .right { position: sticky; top: 0; align-self: start; height: calc(100vh - 56px); display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.lib .cols { display: grid; grid-template-columns: minmax(0, 760px); }
 .lib .hero { padding-top: 80px; }
 .lib h1 { font: 500 clamp(34px, 4.6vw, 56px)/1.05 var(--sans); letter-spacing: -.035em; margin: 0 0 24px; color: #fff; }
 .lib .hero p { font: 17.5px/1.6 var(--sans); color: #c4c4cb; max-width: 620px; margin: 0 0 16px; }
@@ -29,22 +28,12 @@ body.lib { overflow: hidden; }
 .toc + main section:first-child { padding-top: 28px; }
 
 /* an example: a few lines you can run in the one phone beside them */
-.ex { margin: 0 -16px; padding: 18px 16px 8px; border-radius: 14px; border: 1px solid transparent; cursor: pointer; }
+.ex { margin: 0 -16px; padding: 18px 16px 8px; border-radius: 14px; border: 1px solid transparent; }
 .ex + .ex { margin-top: 6px; }
-.ex:hover { background: #0f0f10; }
-.ex.on { background: #101012; border-color: #2c2c33; }
 .ex h3 { font: 500 14px var(--mono); color: #a9a9b2; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
-.ex.on h3 { color: var(--fn); }
-.ex h3::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3a3a40; flex: none; }
-.ex.on h3::before { background: #5ad17c; box-shadow: 0 0 8px #5ad17c88; }
 .ex p { font: 15px/1.55 var(--sans); color: #c9c9cf; margin: 0 0 12px; max-width: 600px; }
 .ex pre { margin-bottom: 10px; }
 
-.phone { --k: .62; width: calc(402px * var(--k)); height: calc(856px * var(--k)); border-radius: calc(58px * var(--k)); background: #1b1b20; box-shadow: 0 0 0 1px #26262c, 0 20px 50px rgba(0,0,0,.45); position: relative; overflow: hidden; margin: 0 auto; flex: none; }
-.phone iframe { position: absolute; left: calc(6px * var(--k)); top: calc(6px * var(--k)); width: 390px; height: 844px; border: 0; border-radius: 52px; background: #fff; transform: scale(var(--k)); transform-origin: 0 0; }
-.now { display: flex; justify-content: space-between; gap: 12px; font: 12.5px var(--mono); padding: 0 6px; }
-.now .open, .ex .open { color: #a9a9b2; font-size: 12.5px; }
-.now .open:hover { color: #fff; }
 
 /* every word, from the spec */
 #ref h3 { font: 500 13px var(--mono); color: #8d8d96; text-transform: lowercase; letter-spacing: .04em; margin: 34px 0 6px; }
@@ -60,20 +49,8 @@ body.lib { overflow: hidden; }
 @media (max-width: 860px) {
   .lib .cols { grid-template-columns: minmax(0, 1fr); }
   .lib .cols, .lib #prototypes, .lib #reference, .lib #licences, .lib .foot { padding-left: 20px; padding-right: 20px; }
-  .lib .right { display: none; }
-  .ex .phone, #reads .phone { margin: 6px auto 14px; }
   .lib .hero { padding-top: 44px; }
   .install span { display: none; }
   .word { grid-template-columns: 1fr; gap: 4px; }
 }
 
-/* the prototypes as a bento: live tiles of different sizes */
-.bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 224px; grid-auto-flow: dense; gap: 14px; margin-top: 28px; }
-.tile { position: relative; border-radius: 22px; overflow: hidden; background: #141417; box-shadow: 0 0 0 1px #26262c; }
-.tile-screen { position: absolute; inset: 0; overflow: hidden; background: #fff; }
-.tile-screen iframe { position: absolute; width: 390px; height: 844px; border: 0; background: #fff; transform-origin: 0 0; }
-.tile-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 16px 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0)); pointer-events: none; }
-.tile-cap b { font: 500 13px var(--sans); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
-.tile-cap .open { font: 12px var(--mono); color: rgba(255,255,255,.75); pointer-events: auto; opacity: 0; transition: opacity .15s; white-space: nowrap; }
-.tile:hover .tile-cap .open { opacity: 1; }
-@media (max-width: 860px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; } }
