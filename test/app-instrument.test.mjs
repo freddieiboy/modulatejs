@@ -237,16 +237,16 @@ test("7. a file with no .on() lines shows sliders and chips only, no result colu
   assert.equal(await ev(`location.hash`), before, "nothing in the link changed from opening or hovering");
 });
 
-test("9. the results switch turns the instrument off, and stays off across a reload", { skip: !chrome }, async () => {
+test("9. the instrument switch turns it off, and stays off across a reload", { skip: !chrome }, async () => {
   await open();
   assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5);
-  await ev(`document.querySelector(".tab-results").click(); 0`);
+  await ev(`document.querySelector(".tab-instrument").click(); 0`);
   await sleep(200);
   assert.equal(await ev(`document.querySelectorAll(".cm-result, .cm-num, .cm-lane, .cm-thumb, .cm-swatch").length`), 0);
-  assert.equal(await ev(`document.querySelector(".tab-results").getAttribute("aria-checked")`), "false");
+  assert.equal(await ev(`document.querySelector(".tab-instrument").getAttribute("aria-checked")`), "false");
   await open();
   assert.equal(await ev(`document.querySelectorAll(".cm-result").length`), 0, "still off");
-  await ev(`document.querySelector(".tab-results").click(); 0`);
+  await ev(`document.querySelector(".tab-instrument").click(); 0`);
   await sleep(300);
   assert.ok((await ev(`document.querySelectorAll(".cm-result").length`)) > 5, "and back on");
 });

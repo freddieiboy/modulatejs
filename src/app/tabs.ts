@@ -270,7 +270,7 @@ export interface TabsOptions {
 }
 
 export class Tabs {
-  readonly results = Object.assign(document.createElement("button"), { className: "tab-results", role: "switch", textContent: "results" });
+  readonly results = Object.assign(document.createElement("button"), { className: "tab-instrument", role: "switch", textContent: "instrument" });
   private counts: Record<string, number> = {};
   private errorLine: number | null = null;
   private adding = false;
@@ -389,7 +389,7 @@ export class Tabs {
     help.className = "tab-help";
     help.textContent = "⌘1–9 · ⌘⇧] next · drag to reorder";
     h.appendChild(help);
-    // the results switch lives at the strip's right end, and the strip is rebuilt often: it is kept, not remade
+    // the instrument switch lives at the strip's right end, and the strip is rebuilt often: it is kept, not remade
     h.appendChild(this.results);
     if (this.adding) this.add();
   }

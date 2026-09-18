@@ -378,11 +378,11 @@ export function instrument(post: Post) {
 }
 
 // ⌥ hides every control and result: the file is plain code while it is held
-// ⌥ hides every control and result while it is held; the "results" switch turns them off and stays off
+// ⌥ hides every control and result while it is held; the "instrument" switch turns them off and stays off
 export function plainWhileAlt(view: EditorView, toggle: HTMLElement, onSwitch?: (on: boolean) => void) {
   let off = false;
   try {
-    off = localStorage.getItem("coral.results") === "off";
+    off = localStorage.getItem("coral.instrument") === "off";
   } catch {}
   const apply = (plain: boolean) => {
     if (view.state.field(plainField) !== plain) view.dispatch({ effects: setPlain.of(plain) });
@@ -391,13 +391,13 @@ export function plainWhileAlt(view: EditorView, toggle: HTMLElement, onSwitch?: 
   const paint = () => {
     onSwitch?.(!off);
     toggle.setAttribute("aria-checked", String(!off));
-    toggle.title = off ? "results are off: show what every line is worth (⌥ hides them while held)" : "results are on: hide the controls and the results (⌥ hides them while held)";
+    toggle.title = off ? "the instrument is off: every number a slider, every word a chip, every line its result (⌥ hides them while held)" : "the instrument is on: turn it off and the file is plain code";
     apply(off);
   };
   toggle.onclick = () => {
     off = !off;
     try {
-      localStorage.setItem("coral.results", off ? "off" : "on");
+      localStorage.setItem("coral.instrument", off ? "off" : "on");
     } catch {}
     paint();
   };
