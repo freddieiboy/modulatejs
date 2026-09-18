@@ -128,7 +128,7 @@ document.documentElement.addEventListener("pointerleave", () => touch.classList.
 addEventListener("blur", () => touch.classList.remove("down"));
 
 // ——— a take: what a finger does here can be recorded, and a link can play it back with the finger dot on
-type TakeEvent = [number, "d" | "m" | "u", number, number];
+type TakeEvent = [number, "d" | "m" | "u" | "f" | "r", number, number];
 let recording: { events: TakeEvent[]; at: number } | null = null;
 let playing: { events: TakeEvent[]; i: number; at: number; timer: any; id: number } | null = null;
 const stageScale = () => Modulate.stage().scale || 1;
@@ -147,6 +147,7 @@ addEventListener("pointerup", (e) => record("u", e), true);
 
 // a synthetic finger: real pointer events at real coordinates, so every listener hears what a finger would
 function finger(kind: TakeEvent[1], x: number, y: number) {
+  if (kind === "f" || kind === "r") return void (kind === "f" ? Modulate.stage().fold : Modulate.stage().turn).jump(x / 1000); // a scrub of the device
   const k = stageScale(), cx = x * k, cy = y * k;
   const type = kind === "d" ? "pointerdown" : kind === "m" ? "pointermove" : "pointerup";
   const target = kind === "m" ? window : document.elementFromPoint(cx, cy) ?? document.body;
@@ -206,6 +207,17 @@ addEventListener("message", (e) => {
     parent.postMessage({ type: "take", events }, "*");
   }
   if (d?.type === "play") play(d.events, d.id ?? 0);
+  // the scrubbers under the phone drive the device; while recording, that is part of the take
+  if (d?.type === "fold" || d?.type === "turn") {
+    const drv = d.type === "fold" ? Modulate.stage().fold : Modulate.stage().turn;
+    if (d.spring) drv.set(d.t);
+    else drv.jump(d.t);
+    if (recording) {
+      const now = performance.now();
+      recording.events.push([now - recording.at, d.type === "fold" ? "f" : "r", Math.round(d.t * 1000), 0]);
+      recording.at = now;
+    }
+  }
   if (d?.type === "stop-play") stopPlaying("stopped");
 });
 
@@ -218,10 +230,34 @@ addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "s") e.preventDefault();
 });
 
+// the screen's size, live: a fold opening or a turn changes it, and the page around the device follows
+let lastScreen = "";
+function tellScreen() {
+  let st;
+  try {
+    st = Modulate.stage();
+  } catch {
+    return;
+  }
+  const now = JSON.stringify({ w: st.W, h: st.H, fold: st.fold.t.get(), turn: st.turn.t.get() });
+  if (now === lastScreen) return;
+  lastScreen = now;
+  parent.postMessage({ type: "screen", ...JSON.parse(now) }, "*");
+}
+setInterval(tellScreen, 33);
+
 let timer: any;
 addEventListener("resize", () => {
   clearTimeout(timer);
-  timer = setTimeout(() => run(last, alone), 120);
+  timer = setTimeout(() => {
+    // the page sized the frame to the screen the device asked for: fit, don't run again
+    let st = null;
+    try {
+      st = Modulate.stage();
+    } catch {}
+    if (st && Math.abs(innerWidth - st.W * st.scale) < 2 && Math.abs(innerHeight - st.H * st.scale) < 2) return void st.fit();
+    run(last, alone);
+  }, 120);
 });
 
 // either side may load first, so the editor also says hello and we answer

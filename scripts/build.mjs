@@ -100,7 +100,7 @@ async function build() {
   writeFileSync(join(site, "vocab.json"), JSON.stringify({
     version: pkg.version,
     pieces,
-    drivers: ["tap", "hold", "drag", "scroll", "time", "lfo", "page"],
+    drivers: ["tap", "hold", "drag", "scroll", "time", "lfo", "page", "fold", "turn"],
     globals,
     verbs: rt.VERBS,
     // verbs, plus what drivers and between() answer to

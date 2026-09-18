@@ -66,7 +66,9 @@ export interface RunResult {
   error?: string;
   line?: number;
   sections?: { name: string; layers: number }[]; // the sections that have layers in them, and how many: the editor's tabs show which are screens
-  device?: { name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean; dark: boolean };
+  device?: {
+    open?: number | null;
+    canvas?: boolean; name: string; w: number; h: number; radius: number; bezel: [number, number, number]; body: number; button: boolean; bar: boolean; dark: boolean };
 }
 
 let api: Record<string, any> = {};
@@ -129,7 +131,9 @@ export function run(code: string, target?: HTMLElement): RunResult {
   holdStill(false);
   st.made = (l: any) => opened.forEach((s) => s.made.push(l));
   try {
-    fn(...Object.values(api), $name, $open, $close, (n: number) => (st.line = n), { get w() { return st.W; }, get h() { return st.H; } });
+    // fold, turn and screen are the stage's own: the device this run is on. screen.w and .h are live Values
+    const args = Object.keys(api).map((k) => (k === "fold" ? st.fold : k === "turn" ? st.turn : api[k]));
+    fn(...args, $name, $open, $close, (n: number) => (st.line = n), { get w() { return st.screen.w; }, get h() { return st.screen.h; }, get hinge() { return st.screen.hinge; } });
     st.commit();
     return { ok: true, device: shape(st), sections: sections.map((s) => ({ name: s.label, layers: s.members.length })) };
   } catch (e) {
@@ -162,5 +166,5 @@ export function solo(name: string): boolean {
 
 const shape = (st: any) => {
   const d = st.device;
-  return { name: d.name, w: d.w, h: d.h, radius: d.radius, bezel: d.bezel, body: d.body, button: !!d.button, bar: !!d.bar, dark: !!st.dark };
+  return { name: d.name, w: d.w, h: d.h, open: d.open ?? null, canvas: !!d.canvas, radius: d.radius, bezel: d.bezel, body: d.body, button: !!d.button, bar: !!d.bar, dark: !!st.dark };
 };

@@ -96,6 +96,7 @@ export class Layer {
   pivot: Origin = CENTRE; // the origin in force now (not called origin: that is the verb)
   private originWatch: (() => void)[] = [];
   line = 0; // the line of the file that made it
+  onScreen: (() => void) | null = null; // the screen changed size (a fold opened, the device turned): fill to it again
   channels: Record<string, any> = {}; // per property, what the reactions that touch it add up to (reaction.ts)
   shadowUp = false; // a sheet's shadow falls upward
   private shadowDrawn = 0;
@@ -769,6 +770,13 @@ verb("go", (L, ctx, section: any, how: any = "cover") => {
   if (rx.goTo) throw new Error("go(): one change goes to one screen");
   rx.goTo = { set: section, how };
   screens.target(section);
+});
+// set(fold, 1): when this change fires, that driver goes there (and comes back to where it was when it plays back)
+verb("set", (_L, ctx, driver: any, value: number) => {
+  const rx = needsCtx(ctx, "set");
+  if (!driver || typeof driver.set !== "function" || !driver.t) throw new Error(`set(driver, value): which driver? open.on("tap").set(fold, 1)`);
+  if (typeof value !== "number") throw new Error(`set(${driver.kind ?? "driver"}, value): where to? a number from 0 to 1`);
+  rx.sets = { driver, value };
 });
 verb("back", (_L, ctx) => {
   needsCtx(ctx, "back").isBack = true;

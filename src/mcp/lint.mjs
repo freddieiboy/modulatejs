@@ -105,6 +105,18 @@ export function lint(code, vocab) {
   });
   const inJs = (n) => quiet.some(([a, b]) => n.start >= a && n.end <= b);
 
+  // fold.set() only means something on a folding device; turn, on anything but a canvas
+  let deviceCall = null;
+  walk(ast, (n) => { if (!deviceCall && n.type === "CallExpression" && n.callee.name === "device") deviceCall = n; });
+  const deviceName = deviceCall?.arguments[0]?.type === "Literal" && typeof deviceCall.arguments[0].value === "string" ? deviceCall.arguments[0].value.toLowerCase() : deviceCall ? "canvas" : "iphone";
+  const folds = /fold|flip/.test(deviceName), canvas = deviceName === "none" || deviceName === "canvas" || deviceName === "blank";
+  walk(ast, (n) => {
+    if (n.type !== "CallExpression" || n.callee.type !== "MemberExpression" || n.callee.object.type !== "Identifier") return;
+    const who = n.callee.object.name, what = n.callee.property.name;
+    if (who === "fold" && what === "set" && !folds) warnings.push({ line: n.loc.start.line, message: `fold.set(): this device doesn't fold, so nothing happens. device("iphone fold") does` });
+    if (who === "turn" && what === "set" && canvas) warnings.push({ line: n.loc.start.line, message: `turn.set(): a canvas doesn't turn, so nothing happens` });
+  });
+
   walk(ast, (n) => {
     if (n.type !== "CallExpression" || inJs(n)) return;
     const c = n.callee, line = n.loc.start.line;

@@ -64,6 +64,7 @@ A section is a screen. `go()` shows one on top of what is there and remembers it
 | verb | does |
 | --- | --- |
 | `go(section, how = "cover")` | after `.on(…)`: show that section on top of what is there, and remember it. `how` is one word: `"cover"` slides up from the bottom, `"push"` slides in from the right while the screen you are leaving slides a third of the way left, `"fade"`, `"sheet"` arrives as a sheet at half height and dims what is under (a tap out there, or pulling it down past a third, goes back). The section waits hidden until then, with no `hide()` needed, on a page of its own so what is under doesn't show through; nothing under it is hidden or changed by `go()` itself. Going to the screen you are already on does nothing. On a group it goes for the tapped member. No bounce by default; `spring()` and `over()` change that |
+| `set(driver, value)` | after `.on(…)`: when this fires, that driver goes there, with its own spring, and comes back to where it was when the change plays back: `open.on("tap").set(fold, 1)` opens the phone on a tap, and closes it on the next |
 | `back()` | after `.on(…)`: undo the last `go()` or `into()`, played in reverse. Every change that fired on the same tap is part of the move and goes back with it; changes on other triggers are left alone. With nothing to go back to it does nothing, so a back button on the first screen is harmless |
 
 `stack.depth` is a Value: 0 on the first screen, 1 under a `go()` or an `into()`, and so on, following the move itself (a swipe scrubs it). `home.on(stack.depth).blur(8)` blurs home while anything covers it.
@@ -87,7 +88,7 @@ What belongs in `init`, with its defaults:
 
 | verb | default | does |
 | --- | --- | --- |
-| `device(name)` · `device(w, h)` | `"iphone"` 390 × 844 | the screen: `"iphone"` · `"iphone pro max"` 430 × 932 · `"iphone se"` 375 × 667 · `"pixel"` 412 × 915 · `"ipad"` 820 × 1180. Sets the width, the safe areas and the editor's frame. It must come before any piece |
+| `device(name)` · `device(w, h)` | `"iphone"` 390 × 844 | the screen: `"iphone"` · `"iphone pro max"` 430 × 932 · `"iphone se"` 375 × 667 · `"pixel"` 412 × 915 · `"ipad"` 820 × 1180 · `"iphone fold"` closed 390 × 844, open 780 × 844 (two panels, a hinge down the middle) · `"none"` a bare 600 × 600 canvas, and `device(w, h)` a canvas of that size, for a widget or a control: no safe areas, no fold, no turn. Sets the width, the safe areas and the editor's frame. It must come before any piece |
 | `theme(…)` | `"light", "coral"` | the look (see Look) |
 | `content({ … })` | the built-in bank | your words for the pieces that fill themselves (see Demo content) |
 
@@ -117,6 +118,8 @@ Drivers all produce `t` from 0 to 1, so any of them can drive any change:
 | `time(seconds = 1)` | a looping clock; `.once()`, `.pause(hold(layer))` | elapsed ÷ seconds |
 | `lfo(hz = 1, shape = "wave")` | an oscillator: `"wave"` `"saw"` `"square"` | 0 → 1 → 0 |
 | another layer: `.on(sheet)` | follow that layer's own `.on()` | its t |
+| `fold` | the device opening: 0 closed → 1 open. Only `"iphone fold"` moves; elsewhere it is 0 and stays. `fold.set(1)` opens it with the hinge's own spring (settle, .6 s); the scrubber under the phone drives it, and a take records it | 0 → 1 |
+| `turn` | the device turning: 0 portrait → 1 landscape, on anything but a canvas. `turn.set(1)`; the screen's width and height swap across it | 0 → 1 |
 | a scroller's `feed.scroll` · `feed.pull` · `feed.page` | how far it is scrolled, pulled past its top, which page (see Scrolling) | 0 → 1; `scroll` reads past the ends while it rubber-bands |
 | a Value | anything from `modulate()` | the value |
 
@@ -168,6 +171,8 @@ things.bump()
 ```
 
 ## Placement
+
+**When the screen changes** (a fold opens, the device turns): anchors re-solve, points don't. `at(x, y)` is a point and stays where it is, so a layer at `(600, 100)` is off the closed fold and appears as it opens: that is how things go on the second panel. `center()`, `right()`, `below()`, `fill()`, `spread()`, `at("center", y)` and the like re-solve against the live screen, tweened with the hinge's spring, so a centred card slides to the new centre. `screen.w` and `screen.h` are live Values (`width(screen.w)` follows; `screen.w / 2` is a number), and `screen.hinge` is the fold's middle. A `sheet` or `scroller` with no width fills to the screen; `walls()` are the live screen. Nothing else reflows: a different layout open than closed is written, and `between(() => { … }).drive(fold)` is the tool.
 
 | verb | does |
 | --- | --- |
@@ -395,7 +400,7 @@ or `import { link } from "modulatejs/link"`, or `npx modulatejs link proto.js`. 
 
 Each is under fifteen lines and runs as written: [/examples/](https://modulatejs.com/examples/index.json)
 
-1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js) · 14. [screens](https://modulatejs.com/examples/14-screens.js) · 15. [feed](https://modulatejs.com/examples/15-feed.js)
+1. [swipe to dismiss](https://modulatejs.com/examples/01-swipe-to-dismiss.js) · 2. [pull to refresh](https://modulatejs.com/examples/02-pull-to-refresh.js) · 3. [bottom sheet](https://modulatejs.com/examples/03-sheet.js) · 4. [push and pop](https://modulatejs.com/examples/04-push-pop.js) · 5. [tab bar](https://modulatejs.com/examples/05-tab-bar.js) · 6. [onboarding pager](https://modulatejs.com/examples/06-onboarding-pager.js) · 7. [like button](https://modulatejs.com/examples/07-like-button.js) · 8. [story progress](https://modulatejs.com/examples/08-story-progress.js) · 9. [card expand](https://modulatejs.com/examples/09-card-expand.js) · 10. [shop to chat](https://modulatejs.com/examples/10-shop-to-chat.js) · 11. [chat head](https://modulatejs.com/examples/11-chat-head.js) · 12. [bubbles](https://modulatejs.com/examples/12-bubbles.js) · 13. [pick](https://modulatejs.com/examples/13-pick.js) · 14. [screens](https://modulatejs.com/examples/14-screens.js) · 15. [feed](https://modulatejs.com/examples/15-feed.js) · 16. [the fold](https://modulatejs.com/examples/16-fold.js)
 
 ```js
 // swipe to dismiss

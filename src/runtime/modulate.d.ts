@@ -78,6 +78,8 @@ export class Layer {
   sticky(): this;
   /** after .on(…): the change starts this many seconds after its trigger; its way back is not delayed */
   after(seconds: number): this;
+  /** after .on(…): when this fires, that driver goes there (fold, turn, a scroller's page), and comes back when it plays back */
+  set(driver: Driver, value: number): this;
   /** after .on(…): undo the last go() or into(), with everything that changed on the same tap */
   back(): this;
   /** an outline just outside the layer; a property, so a state can have one: strip.on(choice).ring("plum") */
@@ -198,6 +200,10 @@ export interface Choice extends Driver {
 }
 export function pick(...groups: (Layer | LayerGroup)[]): Choice;
 
+/** the device opening, 0 closed → 1 open: only "iphone fold" moves. set(1) opens it with the hinge's spring */
+export const fold: Driver & { set(to: number): Driver; jump(to: number): Driver };
+/** the device turning, 0 portrait → 1 landscape, on anything but a canvas */
+export const turn: Driver & { set(to: number): Driver; jump(to: number): Driver };
 export function tap(layer?: Layer): Driver;
 export function hold(layer?: Layer): Driver;
 export function drag(layer: Layer): DragDriver;

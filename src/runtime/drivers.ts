@@ -71,6 +71,23 @@ export function resolveDriver(source: any, self: Layer | null): Driver {
   throw new Error("on() needs a driver: \"tap\", another layer's .tap, drag(layer), scroll(), page(n), time(s), lfo(hz)");
 }
 
+// fold and turn: the device itself as a driver. 0 closed → 1 open; 0 portrait → 1 landscape. set(1) moves it with the
+// hinge's own spring; a device that can't (a plain phone, a canvas) has the driver at 0, and set() does nothing.
+export class HingeDriver extends Driver {
+  constructor(kind: "fold" | "turn", public able: boolean) {
+    super(kind, false);
+  }
+  set(to: number): this {
+    if (!this.able) return this;
+    this.t.to(Math.max(0, Math.min(1, Number(to) || 0)), timed("settle", 0.6));
+    return this;
+  }
+  jump(to: number): this {
+    if (this.able) this.t.jump(Math.max(0, Math.min(1, Number(to) || 0)));
+    return this;
+  }
+}
+
 // A mouse that moves with no button down is not dragging anything, whatever we believe: the lift was lost
 // somewhere (another window, a handler that swallowed it). Touch and pen only send moves while they are down.
 const lifted = (e: PointerEvent) => e.pointerType === "mouse" && e.buttons === 0;

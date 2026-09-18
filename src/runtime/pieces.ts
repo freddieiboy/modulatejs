@@ -311,6 +311,7 @@ export function nav(...args: any[]): Layer {
   const title = strs[0] ?? next("titles"), line = strs[1] ?? null;
   const h = back ? 44 : line ? 96 : 76;
   const l = new Layer("nav", { w: st.W, h, radius: 0 });
+  l.onScreen = () => l.v.w.jump(stage().W);
   l.colorMode = "none";
   l.inert = true;
   const put = (t: Layer, x: number, y: number) => ((t.placeOp = null), t.v.x.jump(x), t.v.y.jump(y), l.adopt(t), t);
@@ -418,6 +419,7 @@ export function sheet(...args: any[]): Layer {
   const st = stage();
   const h = nums[0] ?? 560, peek = nums[1] ?? 96;
   const l = new Layer("sheet", { w: st.W, h: h + 80, radius: 32, z: 10 });
+  l.onScreen = () => l.sized || l.v.w.jump(stage().W); // as wide as the screen is now
   paint(l, strs.find(isColorWord) ?? "surface");
   l.shadowUp = true;
   l.v.shadow.jump(2.5);

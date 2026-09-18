@@ -23,6 +23,13 @@ export class Value<T = number> {
   velocity(): number {
     return this.mv.getVelocity();
   }
+  // screen.w / 2: a live Value in arithmetic is its number right now
+  valueOf(): any {
+    return this.get();
+  }
+  toString(): string {
+    return String(this.get());
+  }
   on(cb: (v: T) => void): () => void {
     const off = this.mv.on("change", cb);
     track(off);

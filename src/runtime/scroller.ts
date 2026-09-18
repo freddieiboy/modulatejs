@@ -127,6 +127,13 @@ export class Scroller extends Layer {
     this.settle();
     this.listenForFingers();
     track(onFrame((_t, delta) => this.advance(Math.min(delta, 100) / 1000)));
+    this.onScreen = () => {
+      // the screen changed: with no size of its own it fills to the new one
+      if (this.sized) return;
+      const st = stage(), at = this.abs();
+      this.v.w.jump(Math.max(40, st.W - 2 * Math.max(0, at.x)));
+      this.v.h.jump(Math.max(40, st.H - at.y));
+    };
   }
 
   // sizes changed, or it has just been made: centre the content across, find the stops, draw

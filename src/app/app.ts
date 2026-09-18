@@ -53,6 +53,7 @@ addEventListener("message", (e) => {
       if (take) playTake(true); // a link with a take opens performing it
     });
   } else if (d?.type === "result") showResult(d);
+  else if (d?.type === "screen") screenIs(d); // the device's screen changed size: a fold opening, a turn
   else if (d?.type === "report") report(d.lines);
   else if (d?.type === "layer") {
     // the phone was touched: find the layer's lines
@@ -76,6 +77,19 @@ const post = (msg: any) => frame.contentWindow?.postMessage(msg, "*");
 const hello = () => frame.contentWindow?.postMessage({ type: "hello" }, "*");
 frame.addEventListener("load", hello);
 hello();
+
+// the screen is live: as a fold opens or the device turns, the frame around it follows without a new run
+let live = { w: 0, h: 0, fold: 0, turn: 0 };
+function screenIs(d: { w: number; h: number; fold: number; turn: number }) {
+  if (player) return;
+  live = d;
+  const el = $("device");
+  el.style.setProperty("--dw", d.w + "px");
+  el.style.setProperty("--dh", d.h + "px");
+  el.style.setProperty("--fold", String(d.fold));
+  el.style.setProperty("--turn", String(d.turn));
+  fitDevice();
+}
 
 // the frame takes the shape of whatever device() the code asked for
 let dev = { name: "iphone", w: 390, h: 844, radius: 52, bezel: [6, 6, 6], body: 58, button: false, bar: true, dark: false };
@@ -116,7 +130,9 @@ function showResult(r: { ok: boolean; error?: string; line?: number; ms: number;
 function fitDevice() {
   if (player) return;
   const fit = $("fit"), device = $("device");
-  const W = dev.w + dev.bezel[1] * 2, H = dev.h + dev.bezel[0] + dev.bezel[2];
+  // the body is sized for the device open and upright, so nothing jumps as it folds or turns
+  const wide = Math.max((dev as any).open ?? dev.w, dev.h), tall = Math.max(dev.h, (dev as any).open ?? dev.w);
+  const W = ((dev as any).open ? wide : Math.max(dev.w, live.turn > 0 ? dev.h : 0)) + dev.bezel[1] * 2, H = ((dev as any).open ? tall : dev.h) + dev.bezel[0] + dev.bezel[2];
   const k = Math.max(0.2, Math.min(1.6, fit.clientHeight / H, (fit.clientWidth - 24) / W));
   device.style.transform = `scale(${k})`;
   device.style.margin = `${(-H * (1 - k)) / 2}px ${(-W * (1 - k)) / 2}px`;

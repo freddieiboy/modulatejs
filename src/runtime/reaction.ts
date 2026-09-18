@@ -57,7 +57,7 @@ interface Track {
 //                             property is the state's, whatever the lfo is doing; on the way back the lfo's share
 //                             returns with the state's own way home, from wherever the lfo has got to meanwhile
 // States declared later take over from states declared earlier.
-const CONTINUOUS = new Set(["lfo", "time", "scroll", "drag", "page", "pull"]);
+const CONTINUOUS = new Set(["lfo", "time", "scroll", "drag", "page", "pull", "fold", "turn"]);
 class Channel {
   tracks: Track[] = [];
   constructor(private layer: Layer, private prop: string, public base: any) {}
@@ -167,7 +167,8 @@ export class Reaction extends Driver {
   comesBack = false; // transient, and visible at rest: it returns after a beat rather than at once
   private returning: (() => void) | null = null;
   drivers: Driver[] = [];
-  scrollTo: { scroller: any; target: any } | null = null; // to(): when it fires, that scroller goes there with this spring
+  scrollTo: { scroller: any; target: any } | null = null;
+  sets: { driver: any; value: number; was?: number } | null = null; // set(fold, 1): a driver this change moves // to(): when it fires, that scroller goes there with this spring
   delay = 0; // after(seconds): the way there starts this long after the trigger; the way back doesn't wait
   goTo: { set: any; how: string } | null = null; // go(section, how): this change shows a screen
   isBack = false; // back(): this one only closes whatever is on top
@@ -510,7 +511,8 @@ export class Reaction extends Driver {
       const played = this.drivers.some((d) => d.played);
       let f = played ? e.stagger / NOMINAL : e.stagger;
       f = Math.min(f, 0.8 / (e.count - 1));
-      return Math.max(0, Math.min(1.5, (t - e.index * f) / (1 - (e.count - 1) * f)));
+      // a played change may overshoot (that is its spring); one that follows a driver stops at the end
+      return Math.max(0, Math.min(played ? 1.5 : 1, (t - e.index * f) / (1 - (e.count - 1) * f)));
     }
     return t;
   }
@@ -630,6 +632,11 @@ export class Reaction extends Driver {
   fire() {
     this.lastBatch = firingNow();
     if (this.isBack) return void screens.back();
+    if (this.sets) {
+      const { driver, value } = this.sets;
+      if (this.goal === 0) ((this.sets.was = driver.t.get()), driver.set(value));
+      else driver.set(this.sets.was ?? 0);
+    }
     if (this.scrollTo) {
       const { scroller, target } = this.scrollTo;
       const go = () => scroller.scrollTo(target, this.springSet ? this.transition : undefined);

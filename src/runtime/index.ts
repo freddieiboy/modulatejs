@@ -14,6 +14,9 @@ import { depth } from "./screens";
 import { report, scrub, pause, resume, tryFeel, linesOf } from "./report";
 import { mountStage, stage } from "./stage";
 import { device, devices } from "./device";
+import { HingeDriver } from "./drivers";
+// fold and turn are placeholders here: a run hands the prototype the stage's own (see run.ts)
+const fold = new HingeDriver("fold", false), turn = new HingeDriver("turn", false);
 import { group, LayerSet } from "./set";
 import { pick, Pick } from "./pick";
 import { scroller } from "./scroller";
@@ -27,7 +30,7 @@ Object.defineProperty(stack, "depth", { get: () => depth(), configurable: true }
 // what a prototype can say without importing anything
 export const vocabulary = {
   box, circle, pill, text, emoji, image, avatar, card, row, stack, grid, messages, sheet, tabbar, nav, people, group, pick, scroller,
-  tap, hold, drag, scroll, time, lfo, page,
+  tap, hold, drag, scroll, time, lfo, page, fold, turn,
   between, modulate, device, theme, content, provider,
 };
 // bubbles() was the conversation's first name. It gave the name up (it is too good a name for a layer or a

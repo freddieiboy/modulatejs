@@ -1,6 +1,8 @@
 import { tokens } from "./theme";
 import { DEFAULT_DEVICE, Device } from "./device";
 import { startDrift } from "./drift";
+import { Value } from "./value";
+import { HingeDriver } from "./drivers";
 import { startPhysics } from "./physics";
 
 // The screen. As wide as the device says (390 points unless device() says otherwise), as tall
@@ -31,8 +33,17 @@ export class Stage {
   view: HTMLElement; // layers live here
   spacer: HTMLElement;
   device: Device = DEFAULT_DEVICE;
-  W = DEFAULT_DEVICE.w;
-  H = DEFAULT_DEVICE.h;
+  // the screen, live: a folding device opens, any device turns, and everything anchored re-solves against these
+  screen = { w: new Value(DEFAULT_DEVICE.w), h: new Value(DEFAULT_DEVICE.h), hinge: new Value(DEFAULT_DEVICE.w) };
+  fold = new HingeDriver("fold", false);
+  turn = new HingeDriver("turn", true);
+  private fitted = DEFAULT_DEVICE.h; // the height the mount allows (a real phone is as tall as it is)
+  get W() {
+    return this.screen.w.get();
+  }
+  get H() {
+    return this.screen.h.get();
+  }
   scale = 1;
   dark = false;
   ground: string | null = null;
@@ -62,6 +73,8 @@ export class Stage {
     this.spacer = doc.createElement("div");
     this.el.append(this.view, this.spacer);
     mount.appendChild(this.el);
+    this.fold.t.on(() => this.resize());
+    this.turn.t.on(() => this.resize());
     this.fit();
     this.applyTheme();
   }
@@ -75,19 +88,54 @@ export class Stage {
 
   setDevice(d: Device) {
     this.device = d;
-    this.W = d.w;
+    // the same driver objects the prototype was handed: device() only says whether they can move
+    this.fold.able = d.open != null;
+    this.turn.able = !d.canvas;
+    this.fitted = d.h;
+    this.screen.w.jump(d.w);
+    this.screen.h.jump(d.h);
+    this.screen.hinge.jump(d.open != null ? d.w : d.w);
     this.fit();
   }
+
+  // what the screen measures now: closed → open along fold, then the sides swap along turn
+  private dims() {
+    const d = this.device, f = Math.max(0, Math.min(1, this.fold.t.get())), t = Math.max(0, Math.min(1, this.turn.t.get()));
+    const w0 = d.open != null ? d.w + (d.open - d.w) * f : d.w, h0 = this.fitted;
+    return { w: Math.round(w0 + (h0 - w0) * t), h: Math.round(h0 + (w0 - h0) * t) };
+  }
+  // the device moved: the screen is another size, and anchors re-solve against it (points stay where they are)
+  private resize() {
+    const { w, h } = this.dims();
+    if (w === this.W && h === this.H) return;
+    this.screen.w.set(w);
+    this.screen.h.set(h);
+    this.el.style.width = w + "px";
+    this.el.style.height = h + "px";
+    this.view.style.height = h + "px";
+    for (const l of this.layers) {
+      if (l.parent) continue;
+      l.onScreen?.();
+      l.replace();
+      if ((l as any).spreads || l.kind === "row") (l as any).arrange?.();
+    }
+    this.onResize?.();
+  }
+  onResize: (() => void) | null = null; // the device page listens, to size the frame around the screen
 
   fit() {
     const r = this.mount.getBoundingClientRect();
     const w = r.width || this.W;
     const h = r.height || this.device.h;
+    // the mount is the screen: the editor sizes it to the device, a real phone is its own size
     this.scale = w / this.W;
-    this.el.style.width = this.W + "px";
-    this.H = Math.round(h / this.scale);
-    this.el.style.height = this.H + "px";
-    this.view.style.height = this.H + "px";
+    if (this.turn.t.get() === 0 && this.fold.t.get() === 0) this.fitted = Math.max(this.device.h, Math.round(h / this.scale));
+    const { w: W, h: H } = this.dims();
+    this.screen.w.jump(W);
+    this.screen.h.jump(H);
+    this.el.style.width = W + "px";
+    this.el.style.height = H + "px";
+    this.view.style.height = H + "px";
     this.el.style.transform = this.scale === 1 ? "" : `scale(${this.scale})`;
   }
 
